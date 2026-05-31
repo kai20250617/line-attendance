@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>薪資計算</title>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
+h1{text-align:center;}
+.box{background:white;padding:20px;margin-bottom:20px;border-radius:8px;}
+input{padding:10px;font-size:16px;width:150px;}
+button{padding:10px 20px;background:#4a90e2;color:white;border:none;border-radius:5px;cursor:pointer;}
+table{width:100%;border-collapse:collapse;background:white;}
+th{background:#222;color:white;padding:12px;}
+td{border:1px solid #ddd;padding:10px;text-align:center;}
+.total{font-size:22px;font-weight:bold;color:green;}
+</style>
+</head>
+
+<body>
+
+<h1>💰 薪資計算系統</h1>
+
+<div class="box">
+  <label>時薪：</label>
+  <input type="number" id="hourlyWage" value="200">
+  <button onclick="loadSalary()">重新計算</button>
+</div>
+
+<div class="box">
+  <p>本月總工時：</p>
+  <p class="total" id="totalHours">0 小時</p>
+
+  <p>預估薪資：</p>
+  <p class="total" id="totalSalary">NT$ 0</p>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>員工</th>
+  <th>日期</th>
+  <th>上班</th>
+  <th>下班</th>
+  <th>工時</th>
+</tr>
+</thead>
+
+<tbody id="salaryTable">
+<tr><td colspan="5">載入中...</td></tr>
+</tbody>
+</table>
+
+<script>
+async function loadSalary(){
+  const tbody = document.getElementById("salaryTable");
+  const wage = Number(document.getElementById("hourlyWage").value);
+
+  tbody.innerHTML = "<tr><td colspan='5'>載入中...</td></tr>";
+
+  const res = await fetch("/api/attendance");
+  const data = await res.json();
+
+  const groups = {};
+
+  data.forEach(item=>{
+    const date = new Date(item.clock_time).toLocaleDateString("zh-TW");
+    const key = item.name + "_" + date;
+
+    if(!groups[key]){
+      groups[key] = {
+        name:item.name,
+        date:date,
+        start:null,
+        end:null
+      };
+    }
+
+    if(item.type === "上班"){
+      if(!groups[key].start || new Date(item.clock_time) < new Date(groups[key].start)){
+        groups[key].start = item.clock_time;
+      }
+    }
+
+    if(item.type === "下班"){
+      if(!groups[key].end || new Date(item.clock_time) > new Date(groups[key].end)){
+        groups[key].end = item.clock_time;
+      }
+    }
+  });
+
+  tbody.innerHTML = "";
+
+  let totalHours = 0;
+
+  Object.values(groups).forEach(row=>{
+    let hours = 0;
+
+    if(row.start && row.end){
+      hours = (new Date(row.end) - new Date(row.start)) / 1000 / 60 / 60;
+      totalHours += hours;
+    }
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${row.name}</td>
+        <td>${row.date}</td>
+        <td>${row.start ? new Date(row.start).toLocaleTimeString("zh-TW") : "-"}</td>
+        <td>${row.end ? new Date(row.end).toLocaleTimeString("zh-TW") : "-"}</td>
+        <td>${hours ? hours.toFixed(2) : "-"}</td>
+      </tr>
+    `;
+  });
+
+  const salary = totalHours * wage;
+
+  document.getElementById("totalHours").innerText =
+    totalHours.toFixed(2) + " 小時";
+
+  document.getElementById("totalSalary").innerText =
+    "NT$ " + Math.round(salary).toLocaleString("zh-TW");
+}
+
+loadSalary();
+</script>
+
+</body>
+</html>
