@@ -11,10 +11,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const db = new Database("attendance.db");
 
-// =========================
-// 出勤資料表
-// =========================
-
 db.prepare(`
 CREATE TABLE IF NOT EXISTS attendance (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,10 +22,6 @@ CREATE TABLE IF NOT EXISTS attendance (
   longitude REAL
 )
 `).run();
-
-// =========================
-// 請假資料表
-// =========================
 
 db.prepare(`
 CREATE TABLE IF NOT EXISTS leaves (
@@ -45,10 +37,6 @@ CREATE TABLE IF NOT EXISTS leaves (
 )
 `).run();
 
-// =========================
-// 員工資料表
-// =========================
-
 db.prepare(`
 CREATE TABLE IF NOT EXISTS employees (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,41 +49,15 @@ CREATE TABLE IF NOT EXISTS employees (
 )
 `).run();
 
-// =========================
-// 打卡
-// =========================
-
 app.post("/api/clock", (req, res) => {
-  const {
-    lineUserId,
-    name,
-    type,
-    latitude,
-    longitude
-  } = req.body;
-
+  const { lineUserId, name, type, latitude, longitude } = req.body;
   const now = new Date().toISOString();
 
   db.prepare(`
     INSERT INTO attendance
-    (
-      line_user_id,
-      name,
-      type,
-      clock_time,
-      latitude,
-      longitude
-    )
-    VALUES
-    (?, ?, ?, ?, ?, ?)
-  `).run(
-    lineUserId,
-    name,
-    type,
-    now,
-    latitude,
-    longitude
-  );
+    (line_user_id, name, type, clock_time, latitude, longitude)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(lineUserId, name, type, now, latitude, longitude);
 
   res.json({
     success: true,
@@ -104,10 +66,6 @@ app.post("/api/clock", (req, res) => {
   });
 });
 
-// =========================
-// 出勤查詢
-// =========================
-
 app.get("/api/attendance", (req, res) => {
   const rows = db.prepare(
     "SELECT * FROM attendance ORDER BY id DESC"
@@ -115,10 +73,6 @@ app.get("/api/attendance", (req, res) => {
 
   res.json(rows);
 });
-
-// =========================
-// 請假申請
-// =========================
 
 app.post("/api/leave", (req, res) => {
   const {
@@ -144,8 +98,7 @@ app.post("/api/leave", (req, res) => {
       status,
       created_at
     )
-    VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     lineUserId,
     name,
@@ -163,10 +116,6 @@ app.post("/api/leave", (req, res) => {
   });
 });
 
-// =========================
-// 請假查詢
-// =========================
-
 app.get("/api/leaves", (req, res) => {
   const rows = db.prepare(
     "SELECT * FROM leaves ORDER BY id DESC"
@@ -174,10 +123,6 @@ app.get("/api/leaves", (req, res) => {
 
   res.json(rows);
 });
-
-// =========================
-// 請假核准 / 駁回
-// =========================
 
 app.post("/api/leave/status", (req, res) => {
   const { id, status } = req.body;
@@ -200,10 +145,6 @@ app.post("/api/leave/status", (req, res) => {
     message: "請假狀態已更新"
   });
 });
-
-// =========================
-// 新增員工
-// =========================
 
 app.post("/api/employees", (req, res) => {
   const {
@@ -231,8 +172,7 @@ app.post("/api/employees", (req, res) => {
       hourly_wage,
       status
     )
-    VALUES
-    (?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?)
   `).run(
     lineUserId || "",
     name,
@@ -248,10 +188,6 @@ app.post("/api/employees", (req, res) => {
   });
 });
 
-// =========================
-// 員工列表
-// =========================
-
 app.get("/api/employees", (req, res) => {
   const rows = db.prepare(
     "SELECT * FROM employees ORDER BY id DESC"
@@ -259,10 +195,6 @@ app.get("/api/employees", (req, res) => {
 
   res.json(rows);
 });
-
-// =========================
-// 更新員工狀態
-// =========================
 
 app.post("/api/employees/status", (req, res) => {
   const { id, status } = req.body;
@@ -280,22 +212,47 @@ app.post("/api/employees/status", (req, res) => {
 });
 
 // =========================
-// 首頁
+// 員工綁定 LINE ID
 // =========================
+
+app.post("/api/employees/bind", (req, res) => {
+  const { name, lineUserId } = req.body;
+
+  if (!name || !lineUserId) {
+    return res.status(400).json({
+      success: false,
+      message: "缺少員工姓名或 LINE ID"
+    });
+  }
+
+  const employee = db.prepare(
+    "SELECT * FROM employees WHERE name = ?"
+  ).get(name);
+
+  if (!employee) {
+    return res.status(404).json({
+      success: false,
+      message: "找不到這位員工，請先到員工管理新增"
+    });
+  }
+
+  db.prepare(`
+    UPDATE employees
+    SET line_user_id = ?
+    WHERE name = ?
+  `).run(lineUserId, name);
+
+  res.json({
+    success: true,
+    message: "LINE ID 綁定成功"
+  });
+});
 
 app.get("/", (req, res) => {
   res.sendFile(
-    path.join(
-      __dirname,
-      "public",
-      "index.html"
-    )
+    path.join(__dirname, "public", "index.html")
   );
 });
-
-// =========================
-// 啟動
-// =========================
 
 const PORT = process.env.PORT || 3000;
 
