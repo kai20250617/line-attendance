@@ -1,153 +1,229 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <title>員工打卡系統</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body{
-      font-family: Arial, sans-serif;
-      padding:20px;
-    }
+<title>員工打卡系統</title>
 
-    button{
-      padding:10px 20px;
-      margin-right:10px;
-      font-size:16px;
-    }
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-    .info{
-      margin-top:15px;
-    }
-  </style>
+<style>
+body{
+    font-family: Arial, sans-serif;
+    text-align:center;
+    padding:30px;
+}
+
+h1{
+    margin-bottom:20px;
+}
+
+button{
+    padding:12px 25px;
+    font-size:18px;
+    margin:10px;
+    cursor:pointer;
+}
+
+.info{
+    margin:10px;
+    font-size:18px;
+}
+
+.success{
+    color:green;
+    font-weight:bold;
+}
+
+.error{
+    color:red;
+}
+</style>
+
 </head>
 <body>
 
-  <h1>員工打卡系統</h1>
+<h1>員工打卡系統</h1>
 
-  <p id="employeeName">LINE 登入中...</p>
+<div class="info" id="employeeName">
+LINE登入中...
+</div>
 
-  <div class="info">
-    <p id="locationInfo">定位中...</p>
-  </div>
+<div class="info" id="gpsStatus">
+定位中...
+</div>
 
-  <button onclick="clock('上班')">上班打卡</button>
-  <button onclick="clock('下班')">下班打卡</button>
+<div class="info" id="gpsAccuracy">
+GPS精準度：
+</div>
 
-  <p id="status"></p>
+<button onclick="getLocation()">
+重新定位
+</button>
+
+<br>
+
+<button onclick="clock('上班')">
+上班打卡
+</button>
+
+<button onclick="clock('下班')">
+下班打卡
+</button>
+
+<p id="status"></p>
 
 <script>
 
 const LIFF_ID = "2010241581-YtDxQgWd";
 
 let profile = null;
-let currentLatitude = null;
-let currentLongitude = null;
 
-async function init() {
+let latitude = null;
+let longitude = null;
+let accuracy = null;
 
-  await liff.init({
-    liffId: LIFF_ID
-  });
+async function init(){
 
-  if (!liff.isLoggedIn()) {
-    liff.login();
-    return;
-  }
+    try{
 
-  profile = await liff.getProfile();
+        await liff.init({
+            liffId: LIFF_ID
+        });
 
-  document.getElementById("employeeName").innerText =
-    "員工：" + profile.displayName;
+        if(!liff.isLoggedIn()){
+            liff.login();
+            return;
+        }
 
-  getLocation();
+        profile = await liff.getProfile();
+
+        document.getElementById("employeeName").innerHTML =
+            "員工：<b>" + profile.displayName + "</b>";
+
+        getLocation();
+
+    }catch(err){
+
+        console.error(err);
+
+        document.getElementById("status").innerHTML =
+        "<span class='error'>LINE初始化失敗</span>";
+
+    }
+
 }
 
 function getLocation(){
 
-  if(!navigator.geolocation){
+    document.getElementById("gpsStatus").innerHTML =
+    "正在取得定位...";
 
-    document.getElementById("locationInfo").innerText =
-      "此裝置不支援 GPS";
+    navigator.geolocation.getCurrentPosition(
 
-    return;
-  }
+        function(position){
 
-  navigator.geolocation.getCurrentPosition(
+            latitude = position.coords.latitude;
+            longitude = position.coords.longitude;
+            accuracy = position.coords.accuracy;
 
-    function(position){
+            document.getElementById("gpsStatus").innerHTML =
+            "目前位置：<br>" +
+            latitude +
+            "<br>" +
+            longitude;
 
-      currentLatitude =
-        position.coords.latitude;
+            document.getElementById("gpsAccuracy").innerHTML =
+            "GPS精準度：約 " +
+            Math.round(accuracy) +
+            " 公尺";
 
-      currentLongitude =
-        position.coords.longitude;
+        },
 
-      document.getElementById("locationInfo").innerHTML =
-        `
-        緯度：${currentLatitude}<br>
-        經度：${currentLongitude}<br>
-        <a target="_blank"
-           href="https://maps.google.com/?q=${currentLatitude},${currentLongitude}">
-           查看地圖
-        </a>
-        `;
+        function(error){
 
-    },
+            document.getElementById("gpsStatus").innerHTML =
+            "<span class='error'>定位失敗，請開啟GPS權限</span>";
 
-    function(error){
+            console.error(error);
 
-      document.getElementById("locationInfo").innerText =
-        "定位失敗，請開啟定位權限";
+        },
 
-      console.log(error);
+        {
+            enableHighAccuracy:true,
+            timeout:10000,
+            maximumAge:0
+        }
 
-    }
-
-  );
+    );
 
 }
 
 async function clock(type){
 
-  if(!profile){
+    if(!profile){
 
-    alert("LINE 尚未登入完成");
-    return;
-  }
+        alert("LINE尚未登入");
+        return;
 
-  if(currentLatitude === null){
+    }
 
-    alert("尚未取得定位");
-    return;
-  }
+    if(latitude === null || longitude === null){
 
-  const res = await fetch("/api/clock",{
+        alert("尚未取得GPS定位");
+        return;
 
-    method:"POST",
+    }
 
-    headers:{
-      "Content-Type":"application/json"
-    },
+    try{
 
-    body:JSON.stringify({
+        const response = await fetch("/api/clock",{
 
-      lineUserId: profile.userId,
-      name: profile.displayName,
-      type: type,
+            method:"POST",
 
-      latitude: currentLatitude,
-      longitude: currentLongitude
+            headers:{
+                "Content-Type":"application/json"
+            },
 
-    })
+            body:JSON.stringify({
 
-  });
+                lineUserId:profile.userId,
+                name:profile.displayName,
+                type:type,
+                latitude:latitude,
+                longitude:longitude
 
-  const data = await res.json();
+            })
 
-  document.getElementById("status").innerText =
-    data.message + "：" + type;
+        });
+
+        const data = await response.json();
+
+        document.getElementById("status").innerHTML =
+        "<span class='success'>" +
+        data.message +
+        "</span><br><br>" +
+
+        "打卡類型：" + type +
+        "<br>" +
+
+        "打卡時間：" + new Date().toLocaleString("zh-TW") +
+        "<br><br>" +
+
+        "<a target='_blank' href='https://maps.google.com/?q="
+        + latitude + "," + longitude +
+        "'>查看打卡位置</a>";
+
+    }
+    catch(err){
+
+        console.error(err);
+
+        document.getElementById("status").innerHTML =
+        "<span class='error'>打卡失敗</span>";
+
+    }
 
 }
 
