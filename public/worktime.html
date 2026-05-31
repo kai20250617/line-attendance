@@ -1,125 +1,237 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <title>出勤紀錄</title>
-  <style>
-    body {
-      font-family: Arial, "Microsoft JhengHei", sans-serif;
-      padding: 20px;
-      background: #f5f5f5;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    h1 {
-      text-align: center;
-    }
+<title>工時統計</title>
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-    }
+<style>
 
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: center;
-    }
+body{
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    padding:20px;
+}
 
-    th {
-      background: #222;
-      color: white;
-    }
+h1{
+    text-align:center;
+}
 
-    a {
-      color: blue;
-    }
-  </style>
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+}
+
+th{
+    background:#222;
+    color:white;
+    padding:12px;
+}
+
+td{
+    border:1px solid #ddd;
+    padding:10px;
+    text-align:center;
+}
+
+button{
+    background:#4a90e2;
+    color:white;
+    border:none;
+    padding:10px 20px;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.top{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+</style>
+
 </head>
 <body>
 
-  <h1>出勤紀錄</h1>
+<h1>⏰ 員工工時統計</h1>
 
-  <table>
-    <thead>
-      <tr>
-        <th>姓名</th>
-        <th>類型</th>
-        <th>日期</th>
-        <th>時間</th>
-        <th>位置</th>
-      </tr>
-    </thead>
-    <tbody id="records">
-      <tr>
-        <td colspan="5">資料載入中...</td>
-      </tr>
-    </tbody>
-  </table>
+<div class="top">
+    <button onclick="loadData()">重新整理</button>
+</div>
 
-  <script>
-    function formatTaiwanTime(utcTime) {
-      const date = new Date(utcTime);
+<table>
 
-      const dateText = date.toLocaleDateString("zh-TW", {
-        timeZone: "Asia/Taipei",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-      });
+<thead>
+<tr>
+    <th>姓名</th>
+    <th>日期</th>
+    <th>上班時間</th>
+    <th>下班時間</th>
+    <th>工時(小時)</th>
+</tr>
+</thead>
 
-      const timeText = date.toLocaleTimeString("zh-TW", {
-        timeZone: "Asia/Taipei",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false
-      });
+<tbody id="tableBody">
 
-      return {
-        date: dateText,
-        time: timeText
-      };
+<tr>
+<td colspan="5">
+讀取中...
+</td>
+</tr>
+
+</tbody>
+
+</table>
+
+<script>
+
+async function loadData(){
+
+    const tbody =
+    document.getElementById("tableBody");
+
+    tbody.innerHTML =
+    "<tr><td colspan='5'>載入中...</td></tr>";
+
+    try{
+
+        const response =
+        await fetch("/api/attendance");
+
+        const data =
+        await response.json();
+
+        const groups = {};
+
+        data.forEach(item=>{
+
+            const date =
+            new Date(item.clock_time)
+            .toLocaleDateString("zh-TW");
+
+            const key =
+            item.name + "_" + date;
+
+            if(!groups[key]){
+
+                groups[key] = {
+                    name:item.name,
+                    date:date,
+                    start:null,
+                    end:null
+                };
+
+            }
+
+            if(item.type==="上班"){
+
+                if(
+                    !groups[key].start ||
+                    new Date(item.clock_time)
+                    <
+                    new Date(groups[key].start)
+                ){
+                    groups[key].start =
+                    item.clock_time;
+                }
+
+            }
+
+            if(item.type==="下班"){
+
+                if(
+                    !groups[key].end ||
+                    new Date(item.clock_time)
+                    >
+                    new Date(groups[key].end)
+                ){
+                    groups[key].end =
+                    item.clock_time;
+                }
+
+            }
+
+        });
+
+        tbody.innerHTML="";
+
+        Object.values(groups).forEach(row=>{
+
+            let hours = "-";
+
+            if(row.start && row.end){
+
+                const diff =
+                (
+                    new Date(row.end)
+                    -
+                    new Date(row.start)
+                )
+                /
+                1000
+                /
+                60
+                /
+                60;
+
+                hours =
+                diff.toFixed(2);
+
+            }
+
+            tbody.innerHTML += `
+            <tr>
+
+                <td>${row.name}</td>
+
+                <td>${row.date}</td>
+
+                <td>
+                ${
+                    row.start
+                    ?
+                    new Date(row.start)
+                    .toLocaleTimeString("zh-TW")
+                    :
+                    "-"
+                }
+                </td>
+
+                <td>
+                ${
+                    row.end
+                    ?
+                    new Date(row.end)
+                    .toLocaleTimeString("zh-TW")
+                    :
+                    "-"
+                }
+                </td>
+
+                <td>${hours}</td>
+
+            </tr>
+            `;
+
+        });
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        tbody.innerHTML =
+        "<tr><td colspan='5'>讀取失敗</td></tr>";
+
     }
 
-    async function loadRecords() {
-      const res = await fetch("/api/attendance");
-      const data = await res.json();
+}
 
-      const tbody = document.getElementById("records");
-      tbody.innerHTML = "";
+loadData();
 
-      if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">目前沒有出勤紀錄</td></tr>';
-        return;
-      }
-
-      data.forEach(item => {
-        const tw = formatTaiwanTime(item.clock_time);
-
-        const mapUrl =
-          `https://www.google.com/maps?q=${item.latitude},${item.longitude}`;
-
-        const tr = document.createElement("tr");
-
-        tr.innerHTML = `
-          <td>${item.name}</td>
-          <td>${item.type}</td>
-          <td>${tw.date}</td>
-          <td>${tw.time}</td>
-          <td>
-            <a href="${mapUrl}" target="_blank">
-              查看位置
-            </a>
-          </td>
-        `;
-
-        tbody.appendChild(tr);
-      });
-    }
-
-    loadRecords();
-  </script>
+</script>
 
 </body>
 </html>
