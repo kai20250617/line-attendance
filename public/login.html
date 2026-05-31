@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理員登入</title>
+
+<style>
+body{
+  font-family:Arial,sans-serif;
+  background:#f5f5f5;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.box{
+  background:white;
+  padding:30px;
+  border-radius:10px;
+  width:300px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.15);
+}
+
+h1{
+  text-align:center;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  margin:10px 0;
+  box-sizing:border-box;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  background:#222;
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h1>管理員登入</h1>
+
+  <input id="username" placeholder="帳號">
+  <input id="password" type="password" placeholder="密碼">
+
+  <button onclick="login()">登入</button>
+
+  <p id="msg"></p>
+</div>
+
+<script>
+function login(){
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  if(username === "admin" && password === "123456"){
+    localStorage.setItem("adminLogin","yes");
+    window.location.href = "/dashboard.html";
+  }else{
+    document.getElementById("msg").innerText = "帳號或密碼錯誤";
+  }
+}
+</script>
+
+</body>
+</html>
