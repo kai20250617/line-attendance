@@ -9,6 +9,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
+
 body{
     font-family: Arial, sans-serif;
     text-align:center;
@@ -39,6 +40,15 @@ button{
 .error{
     color:red;
 }
+
+.location-box{
+    margin-top:15px;
+    padding:15px;
+    border:1px solid #ddd;
+    border-radius:10px;
+    background:#f8f8f8;
+}
+
 </style>
 
 </head>
@@ -50,19 +60,27 @@ button{
 LINE登入中...
 </div>
 
-<div class="info" id="gpsStatus">
+<div class="location-box">
+
+<div id="gpsStatus">
 定位中...
 </div>
 
-<div class="info" id="gpsAccuracy">
+<br>
+
+<div id="gpsAccuracy">
 GPS精準度：
 </div>
+
+</div>
+
+<br>
 
 <button onclick="getLocation()">
 重新定位
 </button>
 
-<br>
+<br><br>
 
 <button onclick="clock('上班')">
 上班打卡
@@ -84,6 +102,8 @@ let latitude = null;
 let longitude = null;
 let accuracy = null;
 
+let address = "";
+
 async function init(){
 
     try{
@@ -93,18 +113,21 @@ async function init(){
         });
 
         if(!liff.isLoggedIn()){
+
             liff.login();
             return;
+
         }
 
         profile = await liff.getProfile();
 
         document.getElementById("employeeName").innerHTML =
-            "員工：<b>" + profile.displayName + "</b>";
+        "員工：<b>" + profile.displayName + "</b>";
 
         getLocation();
 
-    }catch(err){
+    }
+    catch(err){
 
         console.error(err);
 
@@ -122,17 +145,18 @@ function getLocation(){
 
     navigator.geolocation.getCurrentPosition(
 
-        function(position){
+        async function(position){
 
-            latitude = position.coords.latitude;
-            longitude = position.coords.longitude;
-            accuracy = position.coords.accuracy;
+            latitude =
+            position.coords.latitude;
 
-            document.getElementById("gpsStatus").innerHTML =
-            "目前位置：<br>" +
-            latitude +
-            "<br>" +
-            longitude;
+            longitude =
+            position.coords.longitude;
+
+            accuracy =
+            position.coords.accuracy;
+
+            await getAddress(latitude, longitude);
 
             document.getElementById("gpsAccuracy").innerHTML =
             "GPS精準度：約 " +
@@ -146,7 +170,7 @@ function getLocation(){
             document.getElementById("gpsStatus").innerHTML =
             "<span class='error'>定位失敗，請開啟GPS權限</span>";
 
-            console.error(error);
+            console.log(error);
 
         },
 
@@ -160,6 +184,35 @@ function getLocation(){
 
 }
 
+async function getAddress(lat, lng){
+
+    try{
+
+        const response =
+        await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+        );
+
+        const data =
+        await response.json();
+
+        address =
+        data.display_name;
+
+        document.getElementById("gpsStatus").innerHTML =
+        "📍目前位置：<br><br>" +
+        address;
+
+    }
+    catch(error){
+
+        document.getElementById("gpsStatus").innerHTML =
+        "位置解析失敗";
+
+    }
+
+}
+
 async function clock(type){
 
     if(!profile){
@@ -169,7 +222,7 @@ async function clock(type){
 
     }
 
-    if(latitude === null || longitude === null){
+    if(latitude === null){
 
         alert("尚未取得GPS定位");
         return;
@@ -178,7 +231,8 @@ async function clock(type){
 
     try{
 
-        const response = await fetch("/api/clock",{
+        const response =
+        await fetch("/api/clock",{
 
             method:"POST",
 
@@ -191,6 +245,7 @@ async function clock(type){
                 lineUserId:profile.userId,
                 name:profile.displayName,
                 type:type,
+
                 latitude:latitude,
                 longitude:longitude
 
@@ -198,27 +253,39 @@ async function clock(type){
 
         });
 
-        const data = await response.json();
+        const data =
+        await response.json();
 
         document.getElementById("status").innerHTML =
-        "<span class='success'>" +
-        data.message +
+        "<span class='success'>"+
+        data.message+
         "</span><br><br>" +
 
-        "打卡類型：" + type +
+        "打卡類型：" +
+        type +
+
         "<br>" +
 
-        "打卡時間：" + new Date().toLocaleString("zh-TW") +
+        "打卡時間：" +
+        new Date().toLocaleString("zh-TW") +
+
+        "<br><br>" +
+
+        "📍" +
+        address +
+
         "<br><br>" +
 
         "<a target='_blank' href='https://maps.google.com/?q="
-        + latitude + "," + longitude +
-        "'>查看打卡位置</a>";
+        + latitude +
+        "," +
+        longitude +
+        "'>查看Google地圖</a>";
 
     }
-    catch(err){
+    catch(error){
 
-        console.error(err);
+        console.error(error);
 
         document.getElementById("status").innerHTML =
         "<span class='error'>打卡失敗</span>";
