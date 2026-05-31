@@ -7,7 +7,6 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-
 app.use(express.static(path.join(__dirname, "public")));
 
 const db = new Database("attendance.db");
@@ -51,7 +50,6 @@ CREATE TABLE IF NOT EXISTS leaves (
 // =========================
 
 app.post("/api/clock", (req, res) => {
-
   const {
     lineUserId,
     name,
@@ -84,34 +82,29 @@ app.post("/api/clock", (req, res) => {
   );
 
   res.json({
-    success:true,
-    message:"打卡成功",
-    time:now
+    success: true,
+    message: "打卡成功",
+    time: now
   });
-
 });
 
 // =========================
 // 出勤查詢
 // =========================
 
-app.get("/api/attendance",(req,res)=>{
-
-  const rows =
-  db.prepare(
+app.get("/api/attendance", (req, res) => {
+  const rows = db.prepare(
     "SELECT * FROM attendance ORDER BY id DESC"
   ).all();
 
   res.json(rows);
-
 });
 
 // =========================
 // 請假申請
 // =========================
 
-app.post("/api/leave",(req,res)=>{
-
+app.post("/api/leave", (req, res) => {
   const {
     lineUserId,
     name,
@@ -121,8 +114,7 @@ app.post("/api/leave",(req,res)=>{
     reason
   } = req.body;
 
-  const now =
-  new Date().toISOString();
+  const now = new Date().toISOString();
 
   db.prepare(`
     INSERT INTO leaves
@@ -150,33 +142,54 @@ app.post("/api/leave",(req,res)=>{
   );
 
   res.json({
-    success:true,
-    message:"請假申請已送出"
+    success: true,
+    message: "請假申請已送出"
   });
-
 });
 
 // =========================
 // 請假查詢
 // =========================
 
-app.get("/api/leaves",(req,res)=>{
-
-  const rows =
-  db.prepare(
+app.get("/api/leaves", (req, res) => {
+  const rows = db.prepare(
     "SELECT * FROM leaves ORDER BY id DESC"
   ).all();
 
   res.json(rows);
+});
 
+// =========================
+// 請假核准 / 駁回
+// =========================
+
+app.post("/api/leave/status", (req, res) => {
+  const { id, status } = req.body;
+
+  if (!id || !status) {
+    return res.status(400).json({
+      success: false,
+      message: "缺少請假ID或狀態"
+    });
+  }
+
+  db.prepare(`
+    UPDATE leaves
+    SET status = ?
+    WHERE id = ?
+  `).run(status, id);
+
+  res.json({
+    success: true,
+    message: "請假狀態已更新"
+  });
 });
 
 // =========================
 // 首頁
 // =========================
 
-app.get("/",(req,res)=>{
-
+app.get("/", (req, res) => {
   res.sendFile(
     path.join(
       __dirname,
@@ -184,19 +197,15 @@ app.get("/",(req,res)=>{
       "index.html"
     )
   );
-
 });
 
 // =========================
 // 啟動
 // =========================
 
-const PORT =
-process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-app.listen(PORT,()=>{
-
+app.listen(PORT, () => {
   console.log("Server Running");
   console.log(`Port: ${PORT}`);
-
 });
