@@ -4,59 +4,156 @@
   <meta charset="UTF-8">
   <title>員工打卡系統</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      padding:20px;
+    }
+
+    button{
+      padding:10px 20px;
+      margin-right:10px;
+      font-size:16px;
+    }
+
+    .info{
+      margin-top:15px;
+    }
+  </style>
 </head>
 <body>
+
   <h1>員工打卡系統</h1>
+
   <p id="employeeName">LINE 登入中...</p>
+
+  <div class="info">
+    <p id="locationInfo">定位中...</p>
+  </div>
 
   <button onclick="clock('上班')">上班打卡</button>
   <button onclick="clock('下班')">下班打卡</button>
 
   <p id="status"></p>
 
-  <script>
-    const LIFF_ID = "2010241581-YtDxQgWd";
-    let profile = null;
+<script>
 
-    async function init() {
-      await liff.init({ liffId: LIFF_ID });
+const LIFF_ID = "2010241581-YtDxQgWd";
 
-      if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
-      }
+let profile = null;
+let currentLatitude = null;
+let currentLongitude = null;
 
-      profile = await liff.getProfile();
+async function init() {
 
-      document.getElementById("employeeName").innerText =
-        "員工：" + profile.displayName;
+  await liff.init({
+    liffId: LIFF_ID
+  });
+
+  if (!liff.isLoggedIn()) {
+    liff.login();
+    return;
+  }
+
+  profile = await liff.getProfile();
+
+  document.getElementById("employeeName").innerText =
+    "員工：" + profile.displayName;
+
+  getLocation();
+}
+
+function getLocation(){
+
+  if(!navigator.geolocation){
+
+    document.getElementById("locationInfo").innerText =
+      "此裝置不支援 GPS";
+
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+
+    function(position){
+
+      currentLatitude =
+        position.coords.latitude;
+
+      currentLongitude =
+        position.coords.longitude;
+
+      document.getElementById("locationInfo").innerHTML =
+        `
+        緯度：${currentLatitude}<br>
+        經度：${currentLongitude}<br>
+        <a target="_blank"
+           href="https://maps.google.com/?q=${currentLatitude},${currentLongitude}">
+           查看地圖
+        </a>
+        `;
+
+    },
+
+    function(error){
+
+      document.getElementById("locationInfo").innerText =
+        "定位失敗，請開啟定位權限";
+
+      console.log(error);
+
     }
 
-    async function clock(type) {
-      if (!profile) {
-        alert("LINE 尚未登入完成");
-        return;
-      }
+  );
 
-      const res = await fetch("/api/clock", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          lineUserId: profile.userId,
-          name: profile.displayName,
-          type: type,
-          latitude: 25.033,
-          longitude: 121.565
-        })
-      });
+}
 
-      const data = await res.json();
-      document.getElementById("status").innerText = data.message + "：" + type;
-    }
+async function clock(type){
 
-    init();
-  </script>
+  if(!profile){
+
+    alert("LINE 尚未登入完成");
+    return;
+  }
+
+  if(currentLatitude === null){
+
+    alert("尚未取得定位");
+    return;
+  }
+
+  const res = await fetch("/api/clock",{
+
+    method:"POST",
+
+    headers:{
+      "Content-Type":"application/json"
+    },
+
+    body:JSON.stringify({
+
+      lineUserId: profile.userId,
+      name: profile.displayName,
+      type: type,
+
+      latitude: currentLatitude,
+      longitude: currentLongitude
+
+    })
+
+  });
+
+  const data = await res.json();
+
+  document.getElementById("status").innerText =
+    data.message + "：" + type;
+
+}
+
+init();
+
+</script>
+
 </body>
 </html>
