@@ -46,6 +46,22 @@ CREATE TABLE IF NOT EXISTS leaves (
 `).run();
 
 // =========================
+// 員工資料表
+// =========================
+
+db.prepare(`
+CREATE TABLE IF NOT EXISTS employees (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  line_user_id TEXT,
+  name TEXT,
+  department TEXT,
+  position TEXT,
+  hourly_wage REAL,
+  status TEXT DEFAULT '在職'
+)
+`).run();
+
+// =========================
 // 打卡
 // =========================
 
@@ -182,6 +198,84 @@ app.post("/api/leave/status", (req, res) => {
   res.json({
     success: true,
     message: "請假狀態已更新"
+  });
+});
+
+// =========================
+// 新增員工
+// =========================
+
+app.post("/api/employees", (req, res) => {
+  const {
+    lineUserId,
+    name,
+    department,
+    position,
+    hourlyWage
+  } = req.body;
+
+  if (!name) {
+    return res.status(400).json({
+      success: false,
+      message: "請輸入員工姓名"
+    });
+  }
+
+  db.prepare(`
+    INSERT INTO employees
+    (
+      line_user_id,
+      name,
+      department,
+      position,
+      hourly_wage,
+      status
+    )
+    VALUES
+    (?, ?, ?, ?, ?, ?)
+  `).run(
+    lineUserId || "",
+    name,
+    department || "",
+    position || "",
+    Number(hourlyWage || 0),
+    "在職"
+  );
+
+  res.json({
+    success: true,
+    message: "員工已新增"
+  });
+});
+
+// =========================
+// 員工列表
+// =========================
+
+app.get("/api/employees", (req, res) => {
+  const rows = db.prepare(
+    "SELECT * FROM employees ORDER BY id DESC"
+  ).all();
+
+  res.json(rows);
+});
+
+// =========================
+// 更新員工狀態
+// =========================
+
+app.post("/api/employees/status", (req, res) => {
+  const { id, status } = req.body;
+
+  db.prepare(`
+    UPDATE employees
+    SET status = ?
+    WHERE id = ?
+  `).run(status, id);
+
+  res.json({
+    success: true,
+    message: "員工狀態已更新"
   });
 });
 
