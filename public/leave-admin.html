@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>請假審核管理</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    padding:20px;
+}
+
+h1{
+    text-align:center;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+}
+
+th{
+    background:#222;
+    color:white;
+    padding:12px;
+}
+
+td{
+    border:1px solid #ddd;
+    padding:10px;
+    text-align:center;
+}
+
+button{
+    padding:10px 20px;
+    margin:10px;
+    background:#4a90e2;
+    color:white;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.status{
+    font-weight:bold;
+    color:#d98200;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📝 請假審核管理</h1>
+
+<div style="text-align:center;">
+    <button onclick="loadLeaves()">重新整理</button>
+</div>
+
+<table>
+<thead>
+<tr>
+    <th>員工</th>
+    <th>假別</th>
+    <th>開始日期</th>
+    <th>結束日期</th>
+    <th>原因</th>
+    <th>狀態</th>
+</tr>
+</thead>
+
+<tbody id="leaveTable">
+<tr>
+<td colspan="6">載入中...</td>
+</tr>
+</tbody>
+</table>
+
+<script>
+async function loadLeaves(){
+
+    const tbody = document.getElementById("leaveTable");
+
+    tbody.innerHTML =
+    "<tr><td colspan='6'>載入中...</td></tr>";
+
+    try{
+
+        const response = await fetch("/api/leaves");
+        const data = await response.json();
+
+        if(data.length === 0){
+            tbody.innerHTML =
+            "<tr><td colspan='6'>目前沒有請假申請</td></tr>";
+            return;
+        }
+
+        tbody.innerHTML = "";
+
+        data.forEach(item => {
+
+            tbody.innerHTML += `
+            <tr>
+                <td>${item.name}</td>
+                <td>${item.leave_type}</td>
+                <td>${item.start_date}</td>
+                <td>${item.end_date}</td>
+                <td>${item.reason}</td>
+                <td class="status">${item.status}</td>
+            </tr>
+            `;
+
+        });
+
+    }catch(error){
+
+        console.error(error);
+
+        tbody.innerHTML =
+        "<tr><td colspan='6'>讀取失敗</td></tr>";
+
+    }
+}
+
+loadLeaves();
+</script>
+
+</body>
+</html>
