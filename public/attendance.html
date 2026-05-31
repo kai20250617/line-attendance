@@ -1,4 +1,202 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-...
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>出勤管理系統</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    background:#f5f5f5;
+    margin:0;
+    padding:30px;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+table{
+    width:100%;
+    background:white;
+    border-collapse:collapse;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+th{
+    background:#222;
+    color:white;
+    padding:15px;
+}
+
+td{
+    border:1px solid #ddd;
+    padding:12px;
+    text-align:center;
+}
+
+tr:nth-child(even){
+    background:#f9f9f9;
+}
+
+.map-btn{
+    background:#4CAF50;
+    color:white;
+    padding:8px 12px;
+    text-decoration:none;
+    border-radius:5px;
+}
+
+.map-btn:hover{
+    background:#45a049;
+}
+
+.refresh{
+    display:block;
+    margin:20px auto;
+    padding:10px 20px;
+    border:none;
+    background:#2196F3;
+    color:white;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.refresh:hover{
+    background:#0b7dda;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>📋 員工出勤紀錄</h1>
+
+<button class="refresh" onclick="loadData()">
+重新整理
+</button>
+
+<table>
+
+<thead>
+<tr>
+    <th>姓名</th>
+    <th>類型</th>
+    <th>日期</th>
+    <th>時間</th>
+    <th>經度</th>
+    <th>緯度</th>
+    <th>位置</th>
+</tr>
+</thead>
+
+<tbody id="attendanceBody">
+
+<tr>
+<td colspan="7">
+載入中...
+</td>
+</tr>
+
+</tbody>
+
+</table>
+
+<script>
+
+async function loadData(){
+
+    try{
+
+        const response =
+        await fetch("/api/attendance");
+
+        const data =
+        await response.json();
+
+        const tbody =
+        document.getElementById("attendanceBody");
+
+        tbody.innerHTML = "";
+
+        if(data.length === 0){
+
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="7">
+                目前沒有出勤紀錄
+                </td>
+            </tr>
+            `;
+
+            return;
+        }
+
+        data.forEach(item => {
+
+            const dateObj =
+            new Date(item.clock_time);
+
+            const date =
+            dateObj.toLocaleDateString("zh-TW");
+
+            const time =
+            dateObj.toLocaleTimeString("zh-TW");
+
+            tbody.innerHTML += `
+            <tr>
+
+                <td>${item.name}</td>
+
+                <td>${item.type}</td>
+
+                <td>${date}</td>
+
+                <td>${time}</td>
+
+                <td>${item.longitude}</td>
+
+                <td>${item.latitude}</td>
+
+                <td>
+                    <a
+                    class="map-btn"
+                    href="https://maps.google.com/?q=${item.latitude},${item.longitude}"
+                    target="_blank">
+                    查看地圖
+                    </a>
+                </td>
+
+            </tr>
+            `;
+
+        });
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        document.getElementById("attendanceBody").innerHTML = `
+        <tr>
+            <td colspan="7">
+            載入失敗
+            </td>
+        </tr>
+        `;
+    }
+
+}
+
+loadData();
+
+</script>
+
+</body>
 </html>
