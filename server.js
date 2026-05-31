@@ -13,7 +13,6 @@ app.use(express.static(path.join(__dirname, "public")));
 const db = new sqlite3.Database("attendance.db");
 
 db.serialize(() => {
-
   db.run(`
     CREATE TABLE IF NOT EXISTS attendance (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,11 +24,9 @@ db.serialize(() => {
       longitude REAL
     )
   `);
-
 });
 
 app.post("/api/clock", (req, res) => {
-
   const {
     lineUserId,
     name,
@@ -42,8 +39,7 @@ app.post("/api/clock", (req, res) => {
 
   db.run(
     `
-    INSERT INTO attendance
-    (
+    INSERT INTO attendance (
       line_user_id,
       name,
       type,
@@ -51,8 +47,7 @@ app.post("/api/clock", (req, res) => {
       latitude,
       longitude
     )
-    VALUES
-    (?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?)
     `,
     [
       lineUserId,
@@ -62,49 +57,49 @@ app.post("/api/clock", (req, res) => {
       latitude,
       longitude
     ],
-    function(err){
-
-      if(err){
+    function (err) {
+      if (err) {
         return res.status(500).json({
-          success:false,
-          error:err.message
+          success: false,
+          error: err.message
         });
       }
 
       res.json({
-        success:true,
-        message:"打卡成功",
-        time:now
+        success: true,
+        message: "打卡成功",
+        time: now
       });
-
     }
   );
-
 });
 
-app.get("/api/attendance",(req,res)=>{
-
+app.get("/api/attendance", (req, res) => {
   db.all(
     "SELECT * FROM attendance ORDER BY id DESC",
     [],
-    (err,rows)=>{
-
-      if(err){
-        return res.status(500).json(err);
+    (err, rows) => {
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          error: err.message
+        });
       }
 
       res.json(rows);
-
     }
   );
+});
 
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-
+  console.log("=================================");
   console.log("Server Running");
-  console.log("http://localhost:3000");
-
+  console.log(`Port: ${PORT}`);
+  console.log("=================================");
 });
