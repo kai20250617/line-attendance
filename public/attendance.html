@@ -4,27 +4,40 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>出勤管理系統</title>
+<title>員工出勤紀錄</title>
 
 <style>
 
 body{
-    font-family: Arial, sans-serif;
-    background:#f5f5f5;
+    font-family:Arial,sans-serif;
+    background:#f4f4f4;
     margin:0;
-    padding:30px;
+    padding:20px;
 }
 
 h1{
     text-align:center;
-    margin-bottom:30px;
+}
+
+button{
+    padding:10px 20px;
+    font-size:16px;
+    cursor:pointer;
+    background:#4a90e2;
+    color:white;
+    border:none;
+    border-radius:5px;
+}
+
+.refresh{
+    text-align:center;
+    margin:20px;
 }
 
 table{
     width:100%;
-    background:white;
     border-collapse:collapse;
-    box-shadow:0 0 10px rgba(0,0,0,0.1);
+    background:white;
 }
 
 th{
@@ -34,53 +47,35 @@ th{
 }
 
 td{
-    border:1px solid #ddd;
     padding:12px;
+    border:1px solid #ddd;
     text-align:center;
-}
-
-tr:nth-child(even){
-    background:#f9f9f9;
 }
 
 .map-btn{
     background:#4CAF50;
     color:white;
-    padding:8px 12px;
+    padding:8px 15px;
     text-decoration:none;
     border-radius:5px;
 }
 
-.map-btn:hover{
-    background:#45a049;
-}
-
-.refresh{
-    display:block;
-    margin:20px auto;
-    padding:10px 20px;
-    border:none;
-    background:#2196F3;
-    color:white;
-    border-radius:5px;
-    cursor:pointer;
-}
-
-.refresh:hover{
-    background:#0b7dda;
+.loading{
+    color:#888;
 }
 
 </style>
 
 </head>
-
 <body>
 
 <h1>📋 員工出勤紀錄</h1>
 
-<button class="refresh" onclick="loadData()">
-重新整理
-</button>
+<div class="refresh">
+    <button onclick="loadAttendance()">
+        重新整理
+    </button>
+</div>
 
 <table>
 
@@ -90,17 +85,16 @@ tr:nth-child(even){
     <th>類型</th>
     <th>日期</th>
     <th>時間</th>
-    <th>經度</th>
-    <th>緯度</th>
-    <th>位置</th>
+    <th>打卡位置</th>
+    <th>地圖</th>
 </tr>
 </thead>
 
-<tbody id="attendanceBody">
+<tbody id="attendanceTable">
 
 <tr>
-<td colspan="7">
-載入中...
+<td colspan="6">
+讀取中...
 </td>
 </tr>
 
@@ -110,65 +104,91 @@ tr:nth-child(even){
 
 <script>
 
-async function loadData(){
+async function getAddress(lat,lng){
+
+    try{
+
+        const response =
+        await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+        );
+
+        const data =
+        await response.json();
+
+        return data.display_name;
+
+    }
+    catch(error){
+
+        return "位置解析失敗";
+
+    }
+
+}
+
+async function loadAttendance(){
+
+    const table =
+    document.getElementById("attendanceTable");
+
+    table.innerHTML =
+    "<tr><td colspan='6'>載入中...</td></tr>";
 
     try{
 
         const response =
         await fetch("/api/attendance");
 
-        const data =
+        const rows =
         await response.json();
 
-        const tbody =
-        document.getElementById("attendanceBody");
+        if(rows.length===0){
 
-        tbody.innerHTML = "";
-
-        if(data.length === 0){
-
-            tbody.innerHTML = `
-            <tr>
-                <td colspan="7">
-                目前沒有出勤紀錄
-                </td>
-            </tr>
-            `;
+            table.innerHTML =
+            "<tr><td colspan='6'>目前沒有出勤紀錄</td></tr>";
 
             return;
+
         }
 
-        data.forEach(item => {
+        table.innerHTML="";
 
-            const dateObj =
-            new Date(item.clock_time);
+        for(const row of rows){
 
-            const date =
-            dateObj.toLocaleDateString("zh-TW");
+            let date =
+            new Date(row.clock_time);
 
-            const time =
-            dateObj.toLocaleTimeString("zh-TW");
+            let address =
+            await getAddress(
+                row.latitude,
+                row.longitude
+            );
 
-            tbody.innerHTML += `
+            table.innerHTML += `
             <tr>
 
-                <td>${item.name}</td>
+                <td>${row.name}</td>
 
-                <td>${item.type}</td>
+                <td>${row.type}</td>
 
-                <td>${date}</td>
+                <td>
+                ${date.toLocaleDateString("zh-TW")}
+                </td>
 
-                <td>${time}</td>
+                <td>
+                ${date.toLocaleTimeString("zh-TW")}
+                </td>
 
-                <td>${item.longitude}</td>
-
-                <td>${item.latitude}</td>
+                <td>
+                ${address}
+                </td>
 
                 <td>
                     <a
                     class="map-btn"
-                    href="https://maps.google.com/?q=${item.latitude},${item.longitude}"
-                    target="_blank">
+                    target="_blank"
+                    href="https://maps.google.com/?q=${row.latitude},${row.longitude}">
                     查看地圖
                     </a>
                 </td>
@@ -176,25 +196,21 @@ async function loadData(){
             </tr>
             `;
 
-        });
+        }
 
     }
     catch(error){
 
+        table.innerHTML =
+        "<tr><td colspan='6'>讀取失敗</td></tr>";
+
         console.error(error);
 
-        document.getElementById("attendanceBody").innerHTML = `
-        <tr>
-            <td colspan="7">
-            載入失敗
-            </td>
-        </tr>
-        `;
     }
 
 }
 
-loadData();
+loadAttendance();
 
 </script>
 
