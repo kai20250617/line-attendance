@@ -37,6 +37,7 @@ button{
   border-radius:5px;
   color:white;
   cursor:pointer;
+  margin:3px;
 }
 
 .add{
@@ -49,6 +50,10 @@ button{
 
 .active{
   background:#2196F3;
+}
+
+.logout{
+  background:#e53935;
 }
 
 table{
@@ -81,9 +86,8 @@ td{
   <input id="position" placeholder="職稱">
   <input id="hourlyWage" type="number" placeholder="時薪">
 
-  <button class="add" onclick="addEmployee()">
-    新增員工
-  </button>
+  <button class="add" onclick="addEmployee()">新增員工</button>
+  <button class="logout" onclick="logout()">登出</button>
 </div>
 
 <table>
@@ -106,6 +110,15 @@ td{
 </table>
 
 <script>
+if(localStorage.getItem("adminLogin") !== "yes"){
+  window.location.href = "/login.html";
+}
+
+function logout(){
+  localStorage.removeItem("adminLogin");
+  window.location.href = "/login.html";
+}
+
 async function addEmployee(){
   const name = document.getElementById("name").value;
   const department = document.getElementById("department").value;

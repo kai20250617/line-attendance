@@ -7,7 +7,6 @@
 <title>工時統計</title>
 
 <style>
-
 body{
     font-family:Arial,sans-serif;
     background:#f5f5f5;
@@ -43,13 +42,17 @@ button{
     padding:10px 20px;
     border-radius:5px;
     cursor:pointer;
+    margin:5px;
+}
+
+.logout{
+    background:#e53935;
 }
 
 .top{
     text-align:center;
     margin-bottom:20px;
 }
-
 </style>
 
 </head>
@@ -59,10 +62,10 @@ button{
 
 <div class="top">
     <button onclick="loadData()">重新整理</button>
+    <button class="logout" onclick="logout()">登出</button>
 </div>
 
 <table>
-
 <thead>
 <tr>
     <th>姓名</th>
@@ -74,163 +77,86 @@ button{
 </thead>
 
 <tbody id="tableBody">
-
 <tr>
-<td colspan="5">
-讀取中...
-</td>
+<td colspan="5">讀取中...</td>
 </tr>
-
 </tbody>
-
 </table>
 
 <script>
+if(localStorage.getItem("adminLogin") !== "yes"){
+    window.location.href = "/login.html";
+}
+
+function logout(){
+    localStorage.removeItem("adminLogin");
+    window.location.href = "/login.html";
+}
 
 async function loadData(){
-
-    const tbody =
-    document.getElementById("tableBody");
-
-    tbody.innerHTML =
-    "<tr><td colspan='5'>載入中...</td></tr>";
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "<tr><td colspan='5'>載入中...</td></tr>";
 
     try{
-
-        const response =
-        await fetch("/api/attendance");
-
-        const data =
-        await response.json();
+        const response = await fetch("/api/attendance");
+        const data = await response.json();
 
         const groups = {};
 
         data.forEach(item=>{
-
-            const date =
-            new Date(item.clock_time)
-            .toLocaleDateString("zh-TW");
-
-            const key =
-            item.name + "_" + date;
+            const date = new Date(item.clock_time).toLocaleDateString("zh-TW");
+            const key = item.name + "_" + date;
 
             if(!groups[key]){
-
                 groups[key] = {
                     name:item.name,
                     date:date,
                     start:null,
                     end:null
                 };
-
             }
 
             if(item.type==="上班"){
-
-                if(
-                    !groups[key].start ||
-                    new Date(item.clock_time)
-                    <
-                    new Date(groups[key].start)
-                ){
-                    groups[key].start =
-                    item.clock_time;
+                if(!groups[key].start || new Date(item.clock_time) < new Date(groups[key].start)){
+                    groups[key].start = item.clock_time;
                 }
-
             }
 
             if(item.type==="下班"){
-
-                if(
-                    !groups[key].end ||
-                    new Date(item.clock_time)
-                    >
-                    new Date(groups[key].end)
-                ){
-                    groups[key].end =
-                    item.clock_time;
+                if(!groups[key].end || new Date(item.clock_time) > new Date(groups[key].end)){
+                    groups[key].end = item.clock_time;
                 }
-
             }
-
         });
 
         tbody.innerHTML="";
 
         Object.values(groups).forEach(row=>{
-
             let hours = "-";
 
             if(row.start && row.end){
-
-                const diff =
-                (
-                    new Date(row.end)
-                    -
-                    new Date(row.start)
-                )
-                /
-                1000
-                /
-                60
-                /
-                60;
-
-                hours =
-                diff.toFixed(2);
-
+                const diff = (new Date(row.end) - new Date(row.start)) / 1000 / 60 / 60;
+                hours = diff.toFixed(2);
             }
 
             tbody.innerHTML += `
             <tr>
-
                 <td>${row.name}</td>
-
                 <td>${row.date}</td>
-
-                <td>
-                ${
-                    row.start
-                    ?
-                    new Date(row.start)
-                    .toLocaleTimeString("zh-TW")
-                    :
-                    "-"
-                }
-                </td>
-
-                <td>
-                ${
-                    row.end
-                    ?
-                    new Date(row.end)
-                    .toLocaleTimeString("zh-TW")
-                    :
-                    "-"
-                }
-                </td>
-
+                <td>${row.start ? new Date(row.start).toLocaleTimeString("zh-TW") : "-"}</td>
+                <td>${row.end ? new Date(row.end).toLocaleTimeString("zh-TW") : "-"}</td>
                 <td>${hours}</td>
-
             </tr>
             `;
-
         });
 
-    }
-    catch(error){
-
+    }catch(error){
         console.error(error);
-
-        tbody.innerHTML =
-        "<tr><td colspan='5'>讀取失敗</td></tr>";
-
+        tbody.innerHTML = "<tr><td colspan='5'>讀取失敗</td></tr>";
     }
-
 }
 
 loadData();
-
 </script>
 
 </body>
