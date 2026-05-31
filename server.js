@@ -7,56 +7,196 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
 app.use(express.static(path.join(__dirname, "public")));
 
 const db = new Database("attendance.db");
 
+// =========================
+// 出勤資料表
+// =========================
+
 db.prepare(`
-  CREATE TABLE IF NOT EXISTS attendance (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    line_user_id TEXT,
-    name TEXT,
-    type TEXT,
-    clock_time TEXT,
-    latitude REAL,
-    longitude REAL
-  )
+CREATE TABLE IF NOT EXISTS attendance (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  line_user_id TEXT,
+  name TEXT,
+  type TEXT,
+  clock_time TEXT,
+  latitude REAL,
+  longitude REAL
+)
 `).run();
 
+// =========================
+// 請假資料表
+// =========================
+
+db.prepare(`
+CREATE TABLE IF NOT EXISTS leaves (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  line_user_id TEXT,
+  name TEXT,
+  leave_type TEXT,
+  start_date TEXT,
+  end_date TEXT,
+  reason TEXT,
+  status TEXT DEFAULT '待審核',
+  created_at TEXT
+)
+`).run();
+
+// =========================
+// 打卡
+// =========================
+
 app.post("/api/clock", (req, res) => {
-  const { lineUserId, name, type, latitude, longitude } = req.body;
+
+  const {
+    lineUserId,
+    name,
+    type,
+    latitude,
+    longitude
+  } = req.body;
+
   const now = new Date().toISOString();
 
-  const stmt = db.prepare(`
+  db.prepare(`
     INSERT INTO attendance
-    (line_user_id, name, type, clock_time, latitude, longitude)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(lineUserId, name, type, now, latitude, longitude);
+    (
+      line_user_id,
+      name,
+      type,
+      clock_time,
+      latitude,
+      longitude
+    )
+    VALUES
+    (?, ?, ?, ?, ?, ?)
+  `).run(
+    lineUserId,
+    name,
+    type,
+    now,
+    latitude,
+    longitude
+  );
 
   res.json({
-    success: true,
-    message: "打卡成功",
-    time: now
+    success:true,
+    message:"打卡成功",
+    time:now
   });
+
 });
 
-app.get("/api/attendance", (req, res) => {
-  const rows = db.prepare(
+// =========================
+// 出勤查詢
+// =========================
+
+app.get("/api/attendance",(req,res)=>{
+
+  const rows =
+  db.prepare(
     "SELECT * FROM attendance ORDER BY id DESC"
   ).all();
 
   res.json(rows);
+
 });
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+// =========================
+// 請假申請
+// =========================
+
+app.post("/api/leave",(req,res)=>{
+
+  const {
+    lineUserId,
+    name,
+    leaveType,
+    startDate,
+    endDate,
+    reason
+  } = req.body;
+
+  const now =
+  new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO leaves
+    (
+      line_user_id,
+      name,
+      leave_type,
+      start_date,
+      end_date,
+      reason,
+      status,
+      created_at
+    )
+    VALUES
+    (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    lineUserId,
+    name,
+    leaveType,
+    startDate,
+    endDate,
+    reason,
+    "待審核",
+    now
+  );
+
+  res.json({
+    success:true,
+    message:"請假申請已送出"
+  });
+
 });
 
-const PORT = process.env.PORT || 3000;
+// =========================
+// 請假查詢
+// =========================
 
-app.listen(PORT, () => {
+app.get("/api/leaves",(req,res)=>{
+
+  const rows =
+  db.prepare(
+    "SELECT * FROM leaves ORDER BY id DESC"
+  ).all();
+
+  res.json(rows);
+
+});
+
+// =========================
+// 首頁
+// =========================
+
+app.get("/",(req,res)=>{
+
+  res.sendFile(
+    path.join(
+      __dirname,
+      "public",
+      "index.html"
+    )
+  );
+
+});
+
+// =========================
+// 啟動
+// =========================
+
+const PORT =
+process.env.PORT || 3000;
+
+app.listen(PORT,()=>{
+
   console.log("Server Running");
   console.log(`Port: ${PORT}`);
+
 });
