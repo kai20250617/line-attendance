@@ -3,6 +3,12 @@ const Database = require("better-sqlite3");
 const cors = require("cors");
 const path = require("path");
 
+const LINE_CHANNEL_ACCESS_TOKEN =
+process.env.LINE_CHANNEL_ACCESS_TOKEN;
+
+const MANAGER_LINE_USER_ID =
+process.env.MANAGER_LINE_USER_ID;
+
 const app = express();
 
 app.use(cors());
@@ -10,6 +16,49 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 const db = new Database("attendance.db");
+
+// =========================
+// LINE 推播通知
+// =========================
+
+async function pushLineMessage(userId, text) {
+  if (!LINE_CHANNEL_ACCESS_TOKEN || !userId) {
+    console.log("LINE通知未設定");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "https://api.line.me/v2/bot/message/push",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + LINE_CHANNEL_ACCESS_TOKEN
+        },
+        body: JSON.stringify({
+          to: userId,
+          messages: [
+            {
+              type: "text",
+              text: text
+            }
+          ]
+        })
+      }
+    );
+
+    const result = await response.text();
+
+    console.log("LINE通知結果：", result);
+  } catch (err) {
+    console.error("LINE通知失敗：", err);
+  }
+}
+
+// =========================
+// 資料表
+// =========================
 
 db.prepare(`
 CREATE TABLE IF NOT EXISTS attendance (
@@ -49,6 +98,10 @@ CREATE TABLE IF NOT EXISTS employees (
 )
 `).run();
 
+// =========================
+// 打卡
+// =========================
+
 app.post("/api/clock", (req, res) => {
   const { lineUserId, name, type, latitude, longitude } = req.body;
   const now = new Date().toISOString();
@@ -74,7 +127,11 @@ app.get("/api/attendance", (req, res) => {
   res.json(rows);
 });
 
-app.post("/api/leave", (req, res) => {
+// =========================
+// 請假
+// =========================
+
+app.post("/api/leave", async (req, res) => {
   const {
     lineUserId,
     name,
@@ -110,6 +167,25 @@ app.post("/api/leave", (req, res) => {
     now
   );
 
+  await pushLineMessage(
+    MANAGER_LINE_USER_ID,
+`📌 新請假申請
+
+員工：${name}
+假別：${leaveType}
+
+日期：
+${startDate}
+~
+${endDate}
+
+原因：
+${reason}
+
+請至後台審核：
+https://line-attendance-blt1.onrender.com/leave-admin.html`
+  );
+
   res.json({
     success: true,
     message: "請假申請已送出"
@@ -124,7 +200,11 @@ app.get("/api/leaves", (req, res) => {
   res.json(rows);
 });
 
-app.post("/api/leave/status", (req, res) => {
+// =========================
+// 請假核准 / 駁回
+// =========================
+
+app.post("/api/leave/status", async (req, res) => {
   const { id, status } = req.body;
 
   if (!id || !status) {
@@ -134,17 +214,42 @@ app.post("/api/leave/status", (req, res) => {
     });
   }
 
+  const leave = db.prepare(
+    "SELECT * FROM leaves WHERE id = ?"
+  ).get(id);
+
   db.prepare(`
     UPDATE leaves
     SET status = ?
     WHERE id = ?
   `).run(status, id);
 
+  if (leave && leave.line_user_id) {
+    await pushLineMessage(
+      leave.line_user_id,
+`📢 請假審核結果
+
+員工：${leave.name}
+假別：${leave.leave_type}
+
+日期：
+${leave.start_date}
+~
+${leave.end_date}
+
+狀態：${status}`
+    );
+  }
+
   res.json({
     success: true,
     message: "請假狀態已更新"
   });
 });
+
+// =========================
+// 員工管理
+// =========================
 
 app.post("/api/employees", (req, res) => {
   const {
@@ -172,7 +277,8 @@ app.post("/api/employees", (req, res) => {
       hourly_wage,
       status
     )
-    VALUES (?, ?, ?, ?, ?, ?)
+    VALUES
+    (?, ?, ?, ?, ?, ?)
   `).run(
     lineUserId || "",
     name,
@@ -247,6 +353,10 @@ app.post("/api/employees/bind", (req, res) => {
     message: "LINE ID 綁定成功"
   });
 });
+
+// =========================
+// 首頁
+// =========================
 
 app.get("/", (req, res) => {
   res.sendFile(
