@@ -357,7 +357,18 @@ app.post("/api/employees/bind", (req, res) => {
 // =========================
 // 首頁
 // =========================
+app.get("/test-line", async (req, res) => {
+  const result = await pushLineMessage(
+    MANAGER_LINE_USER_ID,
+    "✅ LINE 通知測試成功"
+  );
 
+  res.json({
+    success: true,
+    message: "測試通知已送出",
+    result: result
+  });
+});
 app.get("/", (req, res) => {
   res.sendFile(
     path.join(__dirname, "public", "index.html")
