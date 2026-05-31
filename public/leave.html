@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>員工請假系統</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+
+body{
+    font-family:Arial,sans-serif;
+    max-width:600px;
+    margin:auto;
+    padding:20px;
+}
+
+h1{
+    text-align:center;
+}
+
+label{
+    display:block;
+    margin-top:15px;
+}
+
+select,
+input,
+textarea{
+    width:100%;
+    padding:10px;
+    box-sizing:border-box;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    margin-top:20px;
+    background:#4CAF50;
+    color:white;
+    border:none;
+    cursor:pointer;
+    font-size:16px;
+}
+
+button:hover{
+    background:#45a049;
+}
+
+#status{
+    margin-top:20px;
+    text-align:center;
+    font-weight:bold;
+}
+
+</style>
+
+</head>
+<body>
+
+<h1>📝 員工請假申請</h1>
+
+<p id="employeeName">
+LINE登入中...
+</p>
+
+<label>請假類型</label>
+
+<select id="leaveType">
+
+<option value="特休">特休</option>
+<option value="病假">病假</option>
+<option value="事假">事假</option>
+<option value="公假">公假</option>
+
+</select>
+
+<label>開始日期</label>
+
+<input
+type="date"
+id="startDate"
+>
+
+<label>結束日期</label>
+
+<input
+type="date"
+id="endDate"
+>
+
+<label>請假原因</label>
+
+<textarea
+id="reason"
+rows="5"
+placeholder="請輸入請假原因..."
+></textarea>
+
+<button onclick="submitLeave()">
+送出請假申請
+</button>
+
+<div id="status"></div>
+
+<script>
+
+const LIFF_ID =
+"2010241581-YtDxQgWd";
+
+let profile = null;
+
+async function init(){
+
+    await liff.init({
+        liffId: LIFF_ID
+    });
+
+    if(!liff.isLoggedIn()){
+
+        liff.login();
+        return;
+
+    }
+
+    profile =
+    await liff.getProfile();
+
+    document.getElementById(
+        "employeeName"
+    ).innerHTML =
+    "員工：<b>" +
+    profile.displayName +
+    "</b>";
+
+}
+
+async function submitLeave(){
+
+    const leaveType =
+    document.getElementById(
+        "leaveType"
+    ).value;
+
+    const startDate =
+    document.getElementById(
+        "startDate"
+    ).value;
+
+    const endDate =
+    document.getElementById(
+        "endDate"
+    ).value;
+
+    const reason =
+    document.getElementById(
+        "reason"
+    ).value;
+
+    if(!startDate){
+
+        alert("請選擇開始日期");
+        return;
+
+    }
+
+    if(!endDate){
+
+        alert("請選擇結束日期");
+        return;
+
+    }
+
+    if(reason.trim()===""){
+
+        alert("請輸入請假原因");
+        return;
+
+    }
+
+    const response =
+    await fetch("/api/leave",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+            lineUserId:
+            profile.userId,
+
+            name:
+            profile.displayName,
+
+            leaveType,
+            startDate,
+            endDate,
+            reason
+
+        })
+
+    });
+
+    const data =
+    await response.json();
+
+    document.getElementById(
+        "status"
+    ).innerHTML =
+    "✅ " +
+    data.message;
+
+}
+
+init();
+
+</script>
+
+</body>
+</html>
