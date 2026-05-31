@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>員工管理</title>
+
+<style>
+body{
+  font-family:Arial,sans-serif;
+  background:#f5f5f5;
+  padding:20px;
+}
+
+h1{
+  text-align:center;
+}
+
+.box{
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  box-sizing:border-box;
+}
+
+button{
+  padding:8px 15px;
+  border:none;
+  border-radius:5px;
+  color:white;
+  cursor:pointer;
+}
+
+.add{
+  background:#4CAF50;
+}
+
+.leave{
+  background:#e53935;
+}
+
+.active{
+  background:#2196F3;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+}
+
+th{
+  background:#222;
+  color:white;
+  padding:12px;
+}
+
+td{
+  border:1px solid #ddd;
+  padding:10px;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<h1>👨‍💼 員工管理</h1>
+
+<div class="box">
+  <input id="name" placeholder="員工姓名">
+  <input id="department" placeholder="部門">
+  <input id="position" placeholder="職稱">
+  <input id="hourlyWage" type="number" placeholder="時薪">
+
+  <button class="add" onclick="addEmployee()">
+    新增員工
+  </button>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>姓名</th>
+  <th>部門</th>
+  <th>職稱</th>
+  <th>時薪</th>
+  <th>狀態</th>
+  <th>操作</th>
+</tr>
+</thead>
+
+<tbody id="employeeTable">
+<tr>
+<td colspan="6">讀取中...</td>
+</tr>
+</tbody>
+</table>
+
+<script>
+async function addEmployee(){
+  const name = document.getElementById("name").value;
+  const department = document.getElementById("department").value;
+  const position = document.getElementById("position").value;
+  const hourlyWage = document.getElementById("hourlyWage").value;
+
+  if(!name){
+    alert("請輸入員工姓名");
+    return;
+  }
+
+  await fetch("/api/employees",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      lineUserId:"",
+      name:name,
+      department:department,
+      position:position,
+      hourlyWage:hourlyWage
+    })
+  });
+
+  document.getElementById("name").value = "";
+  document.getElementById("department").value = "";
+  document.getElementById("position").value = "";
+  document.getElementById("hourlyWage").value = "";
+
+  loadEmployees();
+}
+
+async function loadEmployees(){
+  const tbody = document.getElementById("employeeTable");
+
+  const res = await fetch("/api/employees");
+  const data = await res.json();
+
+  if(data.length === 0){
+    tbody.innerHTML = "<tr><td colspan='6'>目前沒有員工資料</td></tr>";
+    return;
+  }
+
+  tbody.innerHTML = "";
+
+  data.forEach(item=>{
+    tbody.innerHTML += `
+      <tr>
+        <td>${item.name}</td>
+        <td>${item.department}</td>
+        <td>${item.position}</td>
+        <td>${item.hourly_wage}</td>
+        <td>${item.status}</td>
+        <td>
+          <button class="active" onclick="updateStatus(${item.id}, '在職')">在職</button>
+          <button class="leave" onclick="updateStatus(${item.id}, '離職')">離職</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function updateStatus(id,status){
+  await fetch("/api/employees/status",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      id:id,
+      status:status
+    })
+  });
+
+  loadEmployees();
+}
+
+loadEmployees();
+</script>
+
+</body>
+</html>
