@@ -145,7 +145,42 @@ CREATE TABLE IF NOT EXISTS settings (
   gps_radius REAL DEFAULT 300
 )
 `).run();
+// =========================
+// 出勤規則資料表
+// =========================
 
+db.prepare(`
+CREATE TABLE IF NOT EXISTS rules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  work_start TEXT DEFAULT '08:00',
+  work_end TEXT DEFAULT '17:00',
+  break_hours REAL DEFAULT 1,
+  overtime_start TEXT DEFAULT '17:30'
+)
+`).run();
+
+const rule = db.prepare(
+  "SELECT * FROM rules LIMIT 1"
+).get();
+
+if (!rule) {
+  db.prepare(`
+    INSERT INTO rules
+    (
+      work_start,
+      work_end,
+      break_hours,
+      overtime_start
+    )
+    VALUES
+    (
+      '08:00',
+      '17:00',
+      1,
+      '17:30'
+    )
+  `).run();
+}
 const setting = db.prepare(
   "SELECT * FROM settings LIMIT 1"
 ).get();
@@ -745,6 +780,51 @@ app.get("/api/export-monthly", (req, res) => {
   );
 
   res.send(csv);
+});
+// =========================
+// 出勤規則設定 API
+// =========================
+
+app.get("/api/rules", (req, res) => {
+
+  const rule =
+  db.prepare(
+    "SELECT * FROM rules LIMIT 1"
+  ).get();
+
+  res.json(rule);
+
+});
+
+app.post("/api/rules", (req, res) => {
+
+  const {
+    work_start,
+    work_end,
+    break_hours,
+    overtime_start
+  } = req.body;
+
+  db.prepare(`
+    UPDATE rules
+    SET
+      work_start = ?,
+      work_end = ?,
+      break_hours = ?,
+      overtime_start = ?
+    WHERE id = 1
+  `).run(
+    work_start,
+    work_end,
+    Number(break_hours),
+    overtime_start
+  );
+
+  res.json({
+    success:true,
+    message:"出勤規則已儲存"
+  });
+
 });
 // =========================
 // 測試 LINE
