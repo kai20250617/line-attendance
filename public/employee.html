@@ -7,6 +7,7 @@
 <title>員工管理</title>
 
 <style>
+
 body{
   font-family:Arial,sans-serif;
   background:#f5f5f5;
@@ -73,6 +74,17 @@ td{
   padding:10px;
   text-align:center;
 }
+
+.binded{
+  color:green;
+  font-weight:bold;
+}
+
+.unbind{
+  color:red;
+  font-weight:bold;
+}
+
 </style>
 </head>
 
@@ -81,123 +93,273 @@ td{
 <h1>👨‍💼 員工管理</h1>
 
 <div class="box">
-  <input id="name" placeholder="員工姓名">
-  <input id="department" placeholder="部門">
-  <input id="position" placeholder="職稱">
-  <input id="hourlyWage" type="number" placeholder="時薪">
 
-  <button class="add" onclick="addEmployee()">新增員工</button>
-  <button class="logout" onclick="logout()">登出</button>
+  <input
+    id="name"
+    placeholder="員工姓名"
+  >
+
+  <input
+    id="department"
+    placeholder="部門"
+  >
+
+  <input
+    id="position"
+    placeholder="職稱"
+  >
+
+  <input
+    id="hourlyWage"
+    type="number"
+    placeholder="時薪"
+  >
+
+  <button
+    class="add"
+    onclick="addEmployee()"
+  >
+    新增員工
+  </button>
+
+  <button
+    class="logout"
+    onclick="logout()"
+  >
+    登出
+  </button>
+
 </div>
 
 <table>
+
 <thead>
 <tr>
+
   <th>姓名</th>
   <th>部門</th>
   <th>職稱</th>
   <th>時薪</th>
+  <th>LINE綁定</th>
   <th>狀態</th>
   <th>操作</th>
+
 </tr>
 </thead>
 
 <tbody id="employeeTable">
+
 <tr>
-<td colspan="6">讀取中...</td>
+<td colspan="7">
+讀取中...
+</td>
 </tr>
+
 </tbody>
+
 </table>
 
 <script>
-if(localStorage.getItem("adminLogin") !== "yes"){
-  window.location.href = "/login.html";
+
+if(
+  localStorage.getItem("adminLogin")
+  !==
+  "yes"
+){
+  window.location.href =
+  "/login.html";
 }
 
 function logout(){
-  localStorage.removeItem("adminLogin");
-  window.location.href = "/login.html";
+
+  localStorage.removeItem(
+    "adminLogin"
+  );
+
+  window.location.href =
+  "/login.html";
+
 }
 
 async function addEmployee(){
-  const name = document.getElementById("name").value;
-  const department = document.getElementById("department").value;
-  const position = document.getElementById("position").value;
-  const hourlyWage = document.getElementById("hourlyWage").value;
+
+  const name =
+  document.getElementById(
+    "name"
+  ).value;
+
+  const department =
+  document.getElementById(
+    "department"
+  ).value;
+
+  const position =
+  document.getElementById(
+    "position"
+  ).value;
+
+  const hourlyWage =
+  document.getElementById(
+    "hourlyWage"
+  ).value;
 
   if(!name){
+
     alert("請輸入員工姓名");
     return;
+
   }
 
-  await fetch("/api/employees",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      lineUserId:"",
-      name:name,
-      department:department,
-      position:position,
-      hourlyWage:hourlyWage
-    })
-  });
+  await fetch(
+    "/api/employees",
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        lineUserId:"",
+        name:name,
+        department:department,
+        position:position,
+        hourlyWage:hourlyWage
+      })
+    }
+  );
 
-  document.getElementById("name").value = "";
-  document.getElementById("department").value = "";
-  document.getElementById("position").value = "";
-  document.getElementById("hourlyWage").value = "";
+  document.getElementById("name").value="";
+  document.getElementById("department").value="";
+  document.getElementById("position").value="";
+  document.getElementById("hourlyWage").value="";
 
   loadEmployees();
+
 }
 
 async function loadEmployees(){
-  const tbody = document.getElementById("employeeTable");
 
-  const res = await fetch("/api/employees");
-  const data = await res.json();
+  const tbody =
+  document.getElementById(
+    "employeeTable"
+  );
 
-  if(data.length === 0){
-    tbody.innerHTML = "<tr><td colspan='6'>目前沒有員工資料</td></tr>";
+  const res =
+  await fetch(
+    "/api/employees"
+  );
+
+  const data =
+  await res.json();
+
+  if(data.length===0){
+
+    tbody.innerHTML=
+    "<tr><td colspan='7'>目前沒有員工資料</td></tr>";
+
     return;
+
   }
 
-  tbody.innerHTML = "";
+  tbody.innerHTML="";
 
   data.forEach(item=>{
+
+    const bindStatus =
+    item.line_user_id
+    ?
+    "<span class='binded'>✅ 已綁定</span>"
+    :
+    "<span class='unbind'>❌ 未綁定</span>";
+
     tbody.innerHTML += `
+
       <tr>
-        <td>${item.name}</td>
-        <td>${item.department}</td>
-        <td>${item.position}</td>
-        <td>${item.hourly_wage}</td>
-        <td>${item.status}</td>
+
         <td>
-          <button class="active" onclick="updateStatus(${item.id}, '在職')">在職</button>
-          <button class="leave" onclick="updateStatus(${item.id}, '離職')">離職</button>
+          ${item.name}
         </td>
+
+        <td>
+          ${item.department}
+        </td>
+
+        <td>
+          ${item.position}
+        </td>
+
+        <td>
+          NT$
+          ${Number(item.hourly_wage)
+            .toLocaleString("zh-TW")}
+        </td>
+
+        <td>
+          ${bindStatus}
+        </td>
+
+        <td>
+          ${item.status}
+        </td>
+
+        <td>
+
+          <button
+            class="active"
+            onclick="
+            updateStatus(
+              ${item.id},
+              '在職'
+            )"
+          >
+            在職
+          </button>
+
+          <button
+            class="leave"
+            onclick="
+            updateStatus(
+              ${item.id},
+              '離職'
+            )"
+          >
+            離職
+          </button>
+
+        </td>
+
       </tr>
+
     `;
+
   });
+
 }
 
-async function updateStatus(id,status){
-  await fetch("/api/employees/status",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      id:id,
-      status:status
-    })
-  });
+async function updateStatus(
+  id,
+  status
+){
+
+  await fetch(
+    "/api/employees/status",
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        id:id,
+        status:status
+      })
+    }
+  );
 
   loadEmployees();
+
 }
 
 loadEmployees();
+
 </script>
 
 </body>
