@@ -49,11 +49,38 @@ async function pushLineMessage(userId, text) {
     );
 
     const result = await response.text();
-
     console.log("LINE通知結果：", result);
   } catch (err) {
     console.error("LINE通知失敗：", err);
   }
+}
+
+// =========================
+// GPS距離計算
+// =========================
+
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+
+  const toRad = value => value * Math.PI / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) *
+    Math.sin(dLng / 2);
+
+  const c =
+    2 * Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1 - a)
+    );
+
+  return R * c;
 }
 
 // =========================
@@ -97,6 +124,7 @@ CREATE TABLE IF NOT EXISTS employees (
   status TEXT DEFAULT '在職'
 )
 `).run();
+
 db.prepare(`
 CREATE TABLE IF NOT EXISTS settings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,19 +157,92 @@ if (!setting) {
     )
   `).run();
 }
+
 // =========================
 // 打卡
 // =========================
 
 app.post("/api/clock", (req, res) => {
-  const { lineUserId, name, type, latitude, longitude } = req.body;
-  const now = new Date().toISOString();
+  const {
+    lineUserId,
+    name,
+    type,
+    latitude,
+    longitude
+  } = req.body;
+
+  const gpsSetting =
+  db.prepare(
+    "SELECT * FROM settings LIMIT 1"
+  ).get();
+
+  const userLat =
+  Number(latitude);
+
+  const userLng =
+  Number(longitude);
+
+  if (
+    gpsSetting &&
+    Number(gpsSetting.gps_enabled) === 1
+  ) {
+    if (
+      !latitude ||
+      !longitude ||
+      isNaN(userLat) ||
+      isNaN(userLng)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "無法取得定位，請開啟GPS後再打卡"
+      });
+    }
+
+    const distance =
+    calculateDistance(
+      Number(gpsSetting.company_lat),
+      Number(gpsSetting.company_lng),
+      userLat,
+      userLng
+    );
+
+    if (
+      distance >
+      Number(gpsSetting.gps_radius)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "不在公司範圍內，無法打卡。目前距離約 " +
+          Math.round(distance) +
+          " 公尺"
+      });
+    }
+  }
+
+  const now =
+  new Date().toISOString();
 
   db.prepare(`
     INSERT INTO attendance
-    (line_user_id, name, type, clock_time, latitude, longitude)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(lineUserId, name, type, now, latitude, longitude);
+    (
+      line_user_id,
+      name,
+      type,
+      clock_time,
+      latitude,
+      longitude
+    )
+    VALUES
+    (?, ?, ?, ?, ?, ?)
+  `).run(
+    lineUserId,
+    name,
+    type,
+    now,
+    latitude,
+    longitude
+  );
 
   res.json({
     success: true,
@@ -172,7 +273,8 @@ app.post("/api/leave", async (req, res) => {
     reason
   } = req.body;
 
-  const now = new Date().toISOString();
+  const now =
+  new Date().toISOString();
 
   db.prepare(`
     INSERT INTO leaves
@@ -186,7 +288,8 @@ app.post("/api/leave", async (req, res) => {
       status,
       created_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES
+    (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     lineUserId,
     name,
@@ -353,7 +456,10 @@ app.post("/api/employees/status", (req, res) => {
 // =========================
 
 app.post("/api/employees/bind", (req, res) => {
-  const { name, lineUserId } = req.body;
+  const {
+    name,
+    lineUserId
+  } = req.body;
 
   if (!name || !lineUserId) {
     return res.status(400).json({
@@ -362,7 +468,8 @@ app.post("/api/employees/bind", (req, res) => {
     });
   }
 
-  const employee = db.prepare(
+  const employee =
+  db.prepare(
     "SELECT * FROM employees WHERE name = ?"
   ).get(name);
 
@@ -377,30 +484,31 @@ app.post("/api/employees/bind", (req, res) => {
     UPDATE employees
     SET line_user_id = ?
     WHERE name = ?
-  `).run(lineUserId, name);
+  `).run(
+    lineUserId,
+    name
+  );
 
   res.json({
     success: true,
     message: "LINE ID 綁定成功"
   });
 });
+
 // =========================
 // GPS設定
 // =========================
 
 app.get("/api/settings", (req, res) => {
-
   const setting =
   db.prepare(
     "SELECT * FROM settings LIMIT 1"
   ).get();
 
   res.json(setting);
-
 });
 
 app.post("/api/settings", (req, res) => {
-
   const {
     gps_enabled,
     company_lat,
@@ -427,13 +535,15 @@ app.post("/api/settings", (req, res) => {
     success: true,
     message: "GPS設定已儲存"
   });
-
 });
+
 // =========================
-// 首頁
+// 測試 LINE
 // =========================
+
 app.get("/test-line", async (req, res) => {
-  const result = await pushLineMessage(
+  const result =
+  await pushLineMessage(
     MANAGER_LINE_USER_ID,
     "✅ LINE 通知測試成功"
   );
@@ -444,13 +554,19 @@ app.get("/test-line", async (req, res) => {
     result: result
   });
 });
+
+// =========================
+// 首頁
+// =========================
+
 app.get("/", (req, res) => {
   res.sendFile(
     path.join(__dirname, "public", "index.html")
   );
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT =
+process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log("Server Running");
