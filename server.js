@@ -97,7 +97,38 @@ CREATE TABLE IF NOT EXISTS employees (
   status TEXT DEFAULT '在職'
 )
 `).run();
+db.prepare(`
+CREATE TABLE IF NOT EXISTS settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  gps_enabled INTEGER DEFAULT 1,
+  company_lat REAL DEFAULT 24.7906,
+  company_lng REAL DEFAULT 120.9969,
+  gps_radius REAL DEFAULT 300
+)
+`).run();
 
+const setting = db.prepare(
+  "SELECT * FROM settings LIMIT 1"
+).get();
+
+if (!setting) {
+  db.prepare(`
+    INSERT INTO settings
+    (
+      gps_enabled,
+      company_lat,
+      company_lng,
+      gps_radius
+    )
+    VALUES
+    (
+      1,
+      24.7906,
+      120.9969,
+      300
+    )
+  `).run();
+}
 // =========================
 // 打卡
 // =========================
@@ -353,7 +384,51 @@ app.post("/api/employees/bind", (req, res) => {
     message: "LINE ID 綁定成功"
   });
 });
+// =========================
+// GPS設定
+// =========================
 
+app.get("/api/settings", (req, res) => {
+
+  const setting =
+  db.prepare(
+    "SELECT * FROM settings LIMIT 1"
+  ).get();
+
+  res.json(setting);
+
+});
+
+app.post("/api/settings", (req, res) => {
+
+  const {
+    gps_enabled,
+    company_lat,
+    company_lng,
+    gps_radius
+  } = req.body;
+
+  db.prepare(`
+    UPDATE settings
+    SET
+      gps_enabled = ?,
+      company_lat = ?,
+      company_lng = ?,
+      gps_radius = ?
+    WHERE id = 1
+  `).run(
+    gps_enabled,
+    company_lat,
+    company_lng,
+    gps_radius
+  );
+
+  res.json({
+    success: true,
+    message: "GPS設定已儲存"
+  });
+
+});
 // =========================
 // 首頁
 // =========================
