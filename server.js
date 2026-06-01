@@ -800,6 +800,80 @@ app.get("/api/export-monthly", (req, res) => {
   res.send(csv);
 });
 // =========================
+// 薪資總表 API
+// =========================
+
+app.get("/api/salary-report", (req, res) => {
+
+  const employees = db.prepare(
+    "SELECT * FROM employees WHERE status='在職'"
+  ).all();
+
+  const result = employees.map(emp => {
+
+    const baseSalary =
+    Number(emp.base_salary || 27000);
+
+    const fixedAllowance =
+    Number(emp.fixed_allowance || 3000);
+
+    const attendanceBonus =
+    Number(emp.attendance_bonus || 3000);
+
+    const performanceBonus =
+    Number(emp.performance_bonus || 0);
+
+    const overtimePay = 0;
+
+    const grossSalary =
+      baseSalary +
+      fixedAllowance +
+      attendanceBonus +
+      performanceBonus +
+      overtimePay;
+
+    const laborInsurance =
+    Math.round(grossSalary * 0.02);
+
+    const healthInsurance =
+    Math.round(grossSalary * 0.015);
+
+    const laborPension =
+    Math.round(grossSalary * 0.06);
+
+    const netSalary =
+      grossSalary -
+      laborInsurance -
+      healthInsurance;
+
+    return {
+
+      name: emp.name,
+
+      baseSalary,
+      fixedAllowance,
+
+      attendanceBonus,
+      performanceBonus,
+
+      overtimePay,
+
+      grossSalary,
+
+      laborInsurance,
+      healthInsurance,
+      laborPension,
+
+      netSalary
+
+    };
+
+  });
+
+  res.json(result);
+
+});
+// =========================
 // 出勤規則設定 API
 // =========================
 

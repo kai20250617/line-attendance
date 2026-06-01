@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>薪資總表</title>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
+h1{text-align:center;}
+.top{text-align:center;margin-bottom:20px;}
+button{padding:10px 20px;border:none;border-radius:5px;color:white;cursor:pointer;margin:5px;}
+.refresh{background:#4a90e2;}
+.back{background:#2196F3;}
+table{width:100%;border-collapse:collapse;background:white;}
+th{background:#222;color:white;padding:12px;}
+td{border:1px solid #ddd;padding:10px;text-align:center;}
+.gross{color:#1b5e20;font-weight:bold;}
+.deduct{color:#c62828;font-weight:bold;}
+.net{color:#0d47a1;font-weight:bold;}
+</style>
+</head>
+
+<body>
+
+<h1>💰 薪資總表</h1>
+
+<div class="top">
+  <button class="refresh" onclick="loadSalaryReport()">重新整理</button>
+  <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>員工</th>
+  <th>底薪</th>
+  <th>固定津貼</th>
+  <th>加班費</th>
+  <th>全勤獎金</th>
+  <th>績效獎金</th>
+  <th>應發薪資</th>
+  <th>勞保</th>
+  <th>健保</th>
+  <th>勞退提繳</th>
+  <th>實發薪資</th>
+</tr>
+</thead>
+
+<tbody id="salaryTable">
+<tr>
+<td colspan="11">讀取中...</td>
+</tr>
+</tbody>
+</table>
+
+<script>
+if(localStorage.getItem("adminLogin") !== "yes"){
+  window.location.href = "/login.html";
+}
+
+function money(num){
+  return "NT$" + Number(num || 0).toLocaleString("zh-TW");
+}
+
+async function loadSalaryReport(){
+  const tbody = document.getElementById("salaryTable");
+  tbody.innerHTML = "<tr><td colspan='11'>載入中...</td></tr>";
+
+  try{
+    const res = await fetch("/api/salary-report");
+    const data = await res.json();
+
+    if(!data || data.length === 0){
+      tbody.innerHTML = "<tr><td colspan='11'>目前沒有薪資資料</td></tr>";
+      return;
+    }
+
+    tbody.innerHTML = "";
+
+    data.forEach(item=>{
+      tbody.innerHTML += `
+        <tr>
+          <td>${item.name}</td>
+          <td>${money(item.baseSalary)}</td>
+          <td>${money(item.fixedAllowance)}</td>
+          <td>${money(item.overtimePay)}</td>
+          <td>${money(item.attendanceBonus)}</td>
+          <td>${money(item.performanceBonus)}</td>
+          <td class="gross">${money(item.grossSalary)}</td>
+          <td class="deduct">${money(item.laborInsurance)}</td>
+          <td class="deduct">${money(item.healthInsurance)}</td>
+          <td class="deduct">${money(item.laborPension)}</td>
+          <td class="net">${money(item.netSalary)}</td>
+        </tr>
+      `;
+    });
+
+  }catch(error){
+    console.error(error);
+    tbody.innerHTML = "<tr><td colspan='11'>讀取失敗，請確認 /api/salary-report 是否已建立</td></tr>";
+  }
+}
+
+loadSalaryReport();
+</script>
+
+</body>
+</html>
