@@ -61,7 +61,6 @@ async function pushLineMessage(userId, text) {
 
 function calculateDistance(lat1, lng1, lat2, lng2) {
   const R = 6371000;
-
   const toRad = value => value * Math.PI / 180;
 
   const dLat = toRad(lat2 - lat1);
@@ -81,6 +80,18 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
     );
 
   return R * c;
+}
+
+function getTaiwanDateString() {
+  return new Date().toLocaleDateString("zh-TW", {
+    timeZone: "Asia/Taipei"
+  });
+}
+
+function getTaiwanTimeString(date = new Date()) {
+  return date.toLocaleString("zh-TW", {
+    timeZone: "Asia/Taipei"
+  });
 }
 
 // =========================
@@ -162,7 +173,7 @@ if (!setting) {
 // 打卡
 // =========================
 
-app.post("/api/clock", (req, res) => {
+app.post("/api/clock", async (req, res) => {
   const {
     lineUserId,
     name,
@@ -170,6 +181,61 @@ app.post("/api/clock", (req, res) => {
     latitude,
     longitude
   } = req.body;
+
+  if (!lineUserId || !name || !type) {
+    return res.status(400).json({
+      success: false,
+      message: "缺少打卡資料"
+    });
+  }
+
+  const today =
+  getTaiwanDateString();
+
+  const records =
+  db.prepare(
+    "SELECT * FROM attendance WHERE line_user_id = ? ORDER BY id DESC"
+  ).all(lineUserId);
+
+  const todayRecords =
+  records.filter(item => {
+    const itemDate =
+    new Date(item.clock_time)
+    .toLocaleDateString("zh-TW", {
+      timeZone: "Asia/Taipei"
+    });
+
+    return itemDate === today;
+  });
+
+  const hasSameTypeToday =
+  todayRecords.some(
+    item => item.type === type
+  );
+
+  if (hasSameTypeToday) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "今天已經完成「" +
+        type +
+        "」打卡，請勿重複打卡"
+    });
+  }
+
+  if (type === "下班") {
+    const hasClockIn =
+    todayRecords.some(
+      item => item.type === "上班"
+    );
+
+    if (!hasClockIn) {
+      return res.status(400).json({
+        success: false,
+        message: "尚未上班打卡，不能下班打卡"
+      });
+    }
+  }
 
   const gpsSetting =
   db.prepare(
@@ -181,6 +247,8 @@ app.post("/api/clock", (req, res) => {
 
   const userLng =
   Number(longitude);
+
+  let distance = null;
 
   if (
     gpsSetting &&
@@ -198,7 +266,7 @@ app.post("/api/clock", (req, res) => {
       });
     }
 
-    const distance =
+    distance =
     calculateDistance(
       Number(gpsSetting.company_lat),
       Number(gpsSetting.company_lng),
@@ -221,7 +289,10 @@ app.post("/api/clock", (req, res) => {
   }
 
   const now =
-  new Date().toISOString();
+  new Date();
+
+  const nowISO =
+  now.toISOString();
 
   db.prepare(`
     INSERT INTO attendance
@@ -239,15 +310,50 @@ app.post("/api/clock", (req, res) => {
     lineUserId,
     name,
     type,
-    now,
+    nowISO,
     latitude,
     longitude
+  );
+
+  const timeText =
+  getTaiwanTimeString(now);
+
+  await pushLineMessage(
+    lineUserId,
+`✅ 打卡成功
+
+員工：${name}
+類型：${type}
+
+時間：
+${timeText}
+
+狀態：
+已完成打卡`
+  );
+
+  await pushLineMessage(
+    MANAGER_LINE_USER_ID,
+`📍 員工打卡通知
+
+員工：${name}
+類型：${type}
+
+時間：
+${timeText}
+
+距離公司：
+${
+  distance === null
+  ? "未啟用GPS限制"
+  : Math.round(distance) + " 公尺"
+}`
   );
 
   res.json({
     success: true,
     message: "打卡成功",
-    time: now
+    time: nowISO
   });
 });
 
