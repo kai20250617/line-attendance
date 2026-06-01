@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>員工管理</title>
 
 <style>
@@ -126,8 +125,7 @@ async function loadEmployees(){
   const data = await res.json();
 
   if(data.length === 0){
-    tbody.innerHTML =
-    "<tr><td colspan='11'>目前沒有員工資料</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='11'>目前沒有員工資料</td></tr>";
     return;
   }
 
@@ -179,20 +177,6 @@ async function updateStatus(id,status){
 
 loadEmployees();
 </script>
-try {
-  db.prepare("ALTER TABLE employees ADD COLUMN base_salary REAL DEFAULT 27000").run();
-} catch {}
 
-try {
-  db.prepare("ALTER TABLE employees ADD COLUMN fixed_allowance REAL DEFAULT 3000").run();
-} catch {}
-
-try {
-  db.prepare("ALTER TABLE employees ADD COLUMN attendance_bonus REAL DEFAULT 3000").run();
-} catch {}
-
-try {
-  db.prepare("ALTER TABLE employees ADD COLUMN performance_bonus REAL DEFAULT 0").run();
-} catch {}
 </body>
 </html>
