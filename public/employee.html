@@ -7,85 +7,20 @@
 <title>員工管理</title>
 
 <style>
-
-body{
-  font-family:Arial,sans-serif;
-  background:#f5f5f5;
-  padding:20px;
-}
-
-h1{
-  text-align:center;
-}
-
-.box{
-  background:white;
-  padding:20px;
-  border-radius:10px;
-  margin-bottom:20px;
-}
-
-input{
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
-  box-sizing:border-box;
-}
-
-button{
-  padding:8px 15px;
-  border:none;
-  border-radius:5px;
-  color:white;
-  cursor:pointer;
-  margin:3px;
-}
-
-.add{
-  background:#4CAF50;
-}
-
-.leave{
-  background:#e53935;
-}
-
-.active{
-  background:#2196F3;
-}
-
-.logout{
-  background:#e53935;
-}
-.back{background:#2196F3;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:white;
-}
-
-th{
-  background:#222;
-  color:white;
-  padding:12px;
-}
-
-td{
-  border:1px solid #ddd;
-  padding:10px;
-  text-align:center;
-}
-
-.binded{
-  color:green;
-  font-weight:bold;
-}
-
-.unbind{
-  color:red;
-  font-weight:bold;
-}
-
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
+h1{text-align:center;}
+.box{background:white;padding:20px;border-radius:10px;margin-bottom:20px;}
+input{width:100%;padding:10px;margin-bottom:10px;box-sizing:border-box;}
+button{padding:8px 15px;border:none;border-radius:5px;color:white;cursor:pointer;margin:3px;}
+.add{background:#4CAF50;}
+.leave{background:#e53935;}
+.active{background:#2196F3;}
+.back{background:#2196F3;}
+table{width:100%;border-collapse:collapse;background:white;}
+th{background:#222;color:white;padding:12px;}
+td{border:1px solid #ddd;padding:10px;text-align:center;}
+.binded{color:green;font-weight:bold;}
+.unbind{color:red;font-weight:bold;}
 </style>
 </head>
 
@@ -94,165 +29,111 @@ td{
 <h1>👨‍💼 員工管理</h1>
 
 <div class="box">
+  <input id="name" placeholder="員工姓名">
+  <input id="department" placeholder="部門">
+  <input id="position" placeholder="職稱">
+  <input id="hourlyWage" type="number" placeholder="時薪">
 
-  <input
-    id="name"
-    placeholder="員工姓名"
-  >
+  <input id="baseSalary" type="number" value="27000" placeholder="底薪">
+  <input id="fixedAllowance" type="number" value="3000" placeholder="固定津貼">
+  <input id="attendanceBonus" type="number" value="3000" placeholder="全勤獎金">
+  <input id="performanceBonus" type="number" value="0" placeholder="績效獎金">
 
-  <input
-    id="department"
-    placeholder="部門"
-  >
-
-  <input
-    id="position"
-    placeholder="職稱"
-  >
-
-  <input
-    id="hourlyWage"
-    type="number"
-    placeholder="時薪"
-  >
-
-  <button    class="add"    onclick="addEmployee()"  >    新增員工  </button>
-  <button  class="back"  onclick="location.href='/dashboard.html'">返回後台</button>
+  <button class="add" onclick="addEmployee()">新增員工</button>
+  <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
 </div>
 
 <table>
-
 <thead>
 <tr>
-
   <th>姓名</th>
   <th>部門</th>
   <th>職稱</th>
   <th>時薪</th>
+  <th>底薪</th>
+  <th>固定津貼</th>
+  <th>全勤</th>
+  <th>績效</th>
   <th>LINE綁定</th>
   <th>狀態</th>
   <th>操作</th>
-
 </tr>
 </thead>
 
 <tbody id="employeeTable">
-
 <tr>
-<td colspan="7">
-讀取中...
-</td>
+<td colspan="11">讀取中...</td>
 </tr>
-
 </tbody>
-
 </table>
 
 <script>
-
-if(
-  localStorage.getItem("adminLogin")
-  !==
-  "yes"
-){
-  window.location.href =
-  "/login.html";
-}
-
-function logout(){
-
-  localStorage.removeItem(
-    "adminLogin"
-  );
-
-  window.location.href =
-  "/login.html";
-
+if(localStorage.getItem("adminLogin") !== "yes"){
+  window.location.href = "/login.html";
 }
 
 async function addEmployee(){
+  const name = document.getElementById("name").value;
+  const department = document.getElementById("department").value;
+  const position = document.getElementById("position").value;
+  const hourlyWage = document.getElementById("hourlyWage").value;
 
-  const name =
-  document.getElementById(
-    "name"
-  ).value;
-
-  const department =
-  document.getElementById(
-    "department"
-  ).value;
-
-  const position =
-  document.getElementById(
-    "position"
-  ).value;
-
-  const hourlyWage =
-  document.getElementById(
-    "hourlyWage"
-  ).value;
+  const baseSalary = document.getElementById("baseSalary").value;
+  const fixedAllowance = document.getElementById("fixedAllowance").value;
+  const attendanceBonus = document.getElementById("attendanceBonus").value;
+  const performanceBonus = document.getElementById("performanceBonus").value;
 
   if(!name){
-
     alert("請輸入員工姓名");
     return;
-
   }
 
-  await fetch(
-    "/api/employees",
-    {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        lineUserId:"",
-        name:name,
-        department:department,
-        position:position,
-        hourlyWage:hourlyWage
-      })
-    }
-  );
+  await fetch("/api/employees",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      lineUserId:"",
+      name:name,
+      department:department,
+      position:position,
+      hourlyWage:hourlyWage,
+      baseSalary:baseSalary,
+      fixedAllowance:fixedAllowance,
+      attendanceBonus:attendanceBonus,
+      performanceBonus:performanceBonus
+    })
+  });
 
   document.getElementById("name").value="";
   document.getElementById("department").value="";
   document.getElementById("position").value="";
   document.getElementById("hourlyWage").value="";
 
-  loadEmployees();
+  document.getElementById("baseSalary").value="27000";
+  document.getElementById("fixedAllowance").value="3000";
+  document.getElementById("attendanceBonus").value="3000";
+  document.getElementById("performanceBonus").value="0";
 
+  loadEmployees();
 }
 
 async function loadEmployees(){
+  const tbody = document.getElementById("employeeTable");
 
-  const tbody =
-  document.getElementById(
-    "employeeTable"
-  );
+  const res = await fetch("/api/employees");
+  const data = await res.json();
 
-  const res =
-  await fetch(
-    "/api/employees"
-  );
-
-  const data =
-  await res.json();
-
-  if(data.length===0){
-
-    tbody.innerHTML=
-    "<tr><td colspan='7'>目前沒有員工資料</td></tr>";
-
+  if(data.length === 0){
+    tbody.innerHTML =
+    "<tr><td colspan='11'>目前沒有員工資料</td></tr>";
     return;
-
   }
 
-  tbody.innerHTML="";
+  tbody.innerHTML = "";
 
   data.forEach(item=>{
-
     const bindStatus =
     item.line_user_id
     ?
@@ -261,95 +142,57 @@ async function loadEmployees(){
     "<span class='unbind'>❌ 未綁定</span>";
 
     tbody.innerHTML += `
-
       <tr>
-
+        <td>${item.name}</td>
+        <td>${item.department}</td>
+        <td>${item.position}</td>
+        <td>NT$${Number(item.hourly_wage || 0).toLocaleString("zh-TW")}</td>
+        <td>NT$${Number(item.base_salary || 27000).toLocaleString("zh-TW")}</td>
+        <td>NT$${Number(item.fixed_allowance || 3000).toLocaleString("zh-TW")}</td>
+        <td>NT$${Number(item.attendance_bonus || 3000).toLocaleString("zh-TW")}</td>
+        <td>NT$${Number(item.performance_bonus || 0).toLocaleString("zh-TW")}</td>
+        <td>${bindStatus}</td>
+        <td>${item.status}</td>
         <td>
-          ${item.name}
+          <button class="active" onclick="updateStatus(${item.id}, '在職')">在職</button>
+          <button class="leave" onclick="updateStatus(${item.id}, '離職')">離職</button>
         </td>
-
-        <td>
-          ${item.department}
-        </td>
-
-        <td>
-          ${item.position}
-        </td>
-
-        <td>
-          NT$
-          ${Number(item.hourly_wage)
-            .toLocaleString("zh-TW")}
-        </td>
-
-        <td>
-          ${bindStatus}
-        </td>
-
-        <td>
-          ${item.status}
-        </td>
-
-        <td>
-
-          <button
-            class="active"
-            onclick="
-            updateStatus(
-              ${item.id},
-              '在職'
-            )"
-          >
-            在職
-          </button>
-
-          <button
-            class="leave"
-            onclick="
-            updateStatus(
-              ${item.id},
-              '離職'
-            )"
-          >
-            離職
-          </button>
-
-        </td>
-
       </tr>
-
     `;
-
   });
-
 }
 
-async function updateStatus(
-  id,
-  status
-){
-
-  await fetch(
-    "/api/employees/status",
-    {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        id:id,
-        status:status
-      })
-    }
-  );
+async function updateStatus(id,status){
+  await fetch("/api/employees/status",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      id:id,
+      status:status
+    })
+  });
 
   loadEmployees();
-
 }
 
 loadEmployees();
-
 </script>
+try {
+  db.prepare("ALTER TABLE employees ADD COLUMN base_salary REAL DEFAULT 27000").run();
+} catch {}
 
+try {
+  db.prepare("ALTER TABLE employees ADD COLUMN fixed_allowance REAL DEFAULT 3000").run();
+} catch {}
+
+try {
+  db.prepare("ALTER TABLE employees ADD COLUMN attendance_bonus REAL DEFAULT 3000").run();
+} catch {}
+
+try {
+  db.prepare("ALTER TABLE employees ADD COLUMN performance_bonus REAL DEFAULT 0").run();
+} catch {}
 </body>
 </html>

@@ -131,7 +131,14 @@ CREATE TABLE IF NOT EXISTS employees (
   name TEXT,
   department TEXT,
   position TEXT,
+
   hourly_wage REAL,
+
+  base_salary REAL DEFAULT 27000,
+  fixed_allowance REAL DEFAULT 3000,
+  attendance_bonus REAL DEFAULT 3000,
+  performance_bonus REAL DEFAULT 0,
+
   status TEXT DEFAULT '在職'
 )
 `).run();
@@ -525,14 +532,17 @@ ${leave.end_date}
 // =========================
 // 員工管理
 // =========================
-
 app.post("/api/employees", (req, res) => {
   const {
     lineUserId,
     name,
     department,
     position,
-    hourlyWage
+    hourlyWage,
+    baseSalary,
+    fixedAllowance,
+    attendanceBonus,
+    performanceBonus
   } = req.body;
 
   if (!name) {
@@ -550,16 +560,24 @@ app.post("/api/employees", (req, res) => {
       department,
       position,
       hourly_wage,
+      base_salary,
+      fixed_allowance,
+      attendance_bonus,
+      performance_bonus,
       status
     )
     VALUES
-    (?, ?, ?, ?, ?, ?)
+    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     lineUserId || "",
     name,
     department || "",
     position || "",
     Number(hourlyWage || 0),
+    Number(baseSalary || 27000),
+    Number(fixedAllowance || 3000),
+    Number(attendanceBonus || 3000),
+    Number(performanceBonus || 0),
     "在職"
   );
 
