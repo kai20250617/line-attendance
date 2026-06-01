@@ -642,7 +642,110 @@ app.post("/api/settings", (req, res) => {
     message: "GPS設定已儲存"
   });
 });
+// =========================
+// 匯出月薪總表 CSV
+// =========================
 
+app.get("/api/export-monthly", (req, res) => {
+  const attendance = db.prepare(
+    "SELECT * FROM attendance ORDER BY id ASC"
+  ).all();
+
+  const employees = db.prepare(
+    "SELECT * FROM employees"
+  ).all();
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const dayGroups = {};
+
+  attendance.forEach(item => {
+    const d = new Date(item.clock_time);
+
+    if (
+      d.getFullYear() !== year ||
+      d.getMonth() !== month
+    ) {
+      return;
+    }
+
+    const date = d.toLocaleDateString("zh-TW", {
+      timeZone: "Asia/Taipei"
+    });
+
+    const key = item.name + "_" + date;
+
+    if (!dayGroups[key]) {
+      dayGroups[key] = {
+        name: item.name,
+        date: date,
+        start: null,
+        end: null
+      };
+    }
+
+    if (item.type === "上班") {
+      if (
+        !dayGroups[key].start ||
+        new Date(item.clock_time) <
+        new Date(dayGroups[key].start)
+      ) {
+        dayGroups[key].start = item.clock_time;
+      }
+    }
+
+    if (item.type === "下班") {
+      if (
+        !dayGroups[key].end ||
+        new Date(item.clock_time) >
+        new Date(dayGroups[key].end)
+      ) {
+        dayGroups[key].end = item.clock_time;
+      }
+    }
+  });
+
+  const monthly = {};
+
+  Object.values(dayGroups).forEach(day => {
+    if (!monthly[day.name]) {
+      monthly[day.name] = 0;
+    }
+
+    if (day.start && day.end) {
+      const hours =
+        (new Date(day.end) - new Date(day.start)) /
+        1000 / 60 / 60;
+
+      monthly[day.name] += hours;
+    }
+  });
+
+  let csv = "\uFEFF員工,本月總工時,時薪,預估薪資\n";
+
+  Object.keys(monthly).forEach(name => {
+    const emp = employees.find(e => e.name === name);
+    const wage = emp ? Number(emp.hourly_wage || 200) : 200;
+    const hours = monthly[name];
+    const salary = Math.round(hours * wage);
+
+    csv += `${name},${hours.toFixed(2)},${wage},${salary}\n`;
+  });
+
+  res.setHeader(
+    "Content-Type",
+    "text/csv; charset=utf-8"
+  );
+
+  res.setHeader(
+    "Content-Disposition",
+    "attachment; filename=monthly-report.csv"
+  );
+
+  res.send(csv);
+});
 // =========================
 // 測試 LINE
 // =========================
