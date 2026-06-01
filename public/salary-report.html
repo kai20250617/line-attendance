@@ -7,18 +7,70 @@
 <title>薪資總表</title>
 
 <style>
-body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
-h1{text-align:center;}
-.top{text-align:center;margin-bottom:20px;}
-button{padding:10px 20px;border:none;border-radius:5px;color:white;cursor:pointer;margin:5px;}
-.refresh{background:#4a90e2;}
-.back{background:#2196F3;}
-table{width:100%;border-collapse:collapse;background:white;}
-th{background:#222;color:white;padding:12px;}
-td{border:1px solid #ddd;padding:10px;text-align:center;}
-.gross{color:#1b5e20;font-weight:bold;}
-.deduct{color:#c62828;font-weight:bold;}
-.net{color:#0d47a1;font-weight:bold;}
+body{
+  font-family:Arial,sans-serif;
+  background:#f5f5f5;
+  padding:20px;
+}
+
+h1{
+  text-align:center;
+}
+
+.top{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+button{
+  padding:10px 20px;
+  border:none;
+  border-radius:5px;
+  color:white;
+  cursor:pointer;
+  margin:5px;
+}
+
+.refresh{
+  background:#4a90e2;
+}
+
+.back{
+  background:#2196F3;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+}
+
+th{
+  background:#222;
+  color:white;
+  padding:12px;
+}
+
+td{
+  border:1px solid #ddd;
+  padding:10px;
+  text-align:center;
+}
+
+.gross{
+  color:#1b5e20;
+  font-weight:bold;
+}
+
+.deduct{
+  color:#c62828;
+  font-weight:bold;
+}
+
+.net{
+  color:#0d47a1;
+  font-weight:bold;
+}
 </style>
 </head>
 
@@ -60,46 +112,104 @@ if(localStorage.getItem("adminLogin") !== "yes"){
   window.location.href = "/login.html";
 }
 
-function money(num){
-  return "NT$" + Number(num || 0).toLocaleString("zh-TW");
+function money(value){
+  const num = Number(value);
+
+  if(isNaN(num)){
+    return "NT$0";
+  }
+
+  return "NT$" + num.toLocaleString("zh-TW");
 }
 
 async function loadSalaryReport(){
   const tbody = document.getElementById("salaryTable");
-  tbody.innerHTML = "<tr><td colspan='11'>載入中...</td></tr>";
+
+  tbody.innerHTML =
+  "<tr><td colspan='11'>載入中...</td></tr>";
 
   try{
     const res = await fetch("/api/salary-report");
+
+    if(!res.ok){
+      tbody.innerHTML =
+      "<tr><td colspan='11'>API讀取失敗：" + res.status + "</td></tr>";
+      return;
+    }
+
     const data = await res.json();
 
-    if(!data || data.length === 0){
-      tbody.innerHTML = "<tr><td colspan='11'>目前沒有薪資資料</td></tr>";
+    console.log("薪資資料：", data);
+
+    if(!Array.isArray(data)){
+      tbody.innerHTML =
+      "<tr><td colspan='11'>資料格式錯誤，API不是陣列</td></tr>";
+      return;
+    }
+
+    if(data.length === 0){
+      tbody.innerHTML =
+      "<tr><td colspan='11'>目前沒有薪資資料</td></tr>";
       return;
     }
 
     tbody.innerHTML = "";
 
     data.forEach(item=>{
+      const name = item.name || "-";
+
+      const baseSalary =
+      Number(item.baseSalary || 0);
+
+      const fixedAllowance =
+      Number(item.fixedAllowance || 0);
+
+      const overtimePay =
+      Number(item.overtimePay || 0);
+
+      const attendanceBonus =
+      Number(item.attendanceBonus || 0);
+
+      const performanceBonus =
+      Number(item.performanceBonus || 0);
+
+      const grossSalary =
+      Number(item.grossSalary || 0);
+
+      const laborInsurance =
+      Number(item.laborInsurance || 0);
+
+      const healthInsurance =
+      Number(item.healthInsurance || 0);
+
+      const laborPension =
+      Number(item.laborPension || 0);
+
+      const netSalary =
+      Number(item.netSalary || 0);
+
       tbody.innerHTML += `
         <tr>
-          <td>${item.name}</td>
-          <td>${money(item.baseSalary)}</td>
-          <td>${money(item.fixedAllowance)}</td>
-          <td>${money(item.overtimePay)}</td>
-          <td>${money(item.attendanceBonus)}</td>
-          <td>${money(item.performanceBonus)}</td>
-          <td class="gross">${money(item.grossSalary)}</td>
-          <td class="deduct">${money(item.laborInsurance)}</td>
-          <td class="deduct">${money(item.healthInsurance)}</td>
-          <td class="deduct">${money(item.laborPension)}</td>
-          <td class="net">${money(item.netSalary)}</td>
+          <td>${name}</td>
+          <td>${money(baseSalary)}</td>
+          <td>${money(fixedAllowance)}</td>
+          <td>${money(overtimePay)}</td>
+          <td>${money(attendanceBonus)}</td>
+          <td>${money(performanceBonus)}</td>
+          <td class="gross">${money(grossSalary)}</td>
+          <td class="deduct">${money(laborInsurance)}</td>
+          <td class="deduct">${money(healthInsurance)}</td>
+          <td class="deduct">${money(laborPension)}</td>
+          <td class="net">${money(netSalary)}</td>
         </tr>
       `;
     });
 
   }catch(error){
-    console.error(error);
-    tbody.innerHTML = "<tr><td colspan='11'>讀取失敗，請確認 /api/salary-report 是否已建立</td></tr>";
+    console.error("薪資總表錯誤：", error);
+
+    tbody.innerHTML =
+    "<tr><td colspan='11'>讀取失敗，請開啟 F12 Console 查看錯誤</td></tr>";
   }
 }
 
