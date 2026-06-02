@@ -494,7 +494,28 @@ ${
 
   }
 });
+app.get("/api/attendance", async (req, res) => {
 
+  try {
+
+    const result = await pool.query(
+      "SELECT * FROM attendance ORDER BY id DESC"
+    );
+
+    res.json(result.rows);
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取打卡資料失敗"
+    });
+
+  }
+
+});
 // =========================
 // 請假
 // =========================
