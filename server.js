@@ -605,7 +605,66 @@ ${leave.end_date}
 // =========================
 // 員工管理
 // =========================
-app.post("/api/employees", (req, res) => {
+app.post("/api/employees", async (req, res) => {
+
+  const {
+    lineUserId,
+    name,
+    department,
+    position,
+    hourlyWage
+  } = req.body;
+
+  if (!name) {
+    return res.status(400).json({
+      success: false,
+      message: "請輸入員工姓名"
+    });
+  }
+
+  try {
+
+    await pool.query(
+      `
+      INSERT INTO employees
+      (
+        line_user_id,
+        name,
+        department,
+        position,
+        hourly_wage,
+        status
+      )
+      VALUES
+      ($1,$2,$3,$4,$5,$6)
+      `,
+      [
+        lineUserId || "",
+        name,
+        department || "",
+        position || "",
+        Number(hourlyWage || 0),
+        "在職"
+      ]
+    );
+
+    res.json({
+      success: true,
+      message: "員工已新增"
+    });
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"新增員工失敗"
+    });
+
+  }
+
+});
   const {
     lineUserId,
     name,
@@ -660,12 +719,25 @@ app.post("/api/employees", (req, res) => {
   });
 });
 
-app.get("/api/employees", (req, res) => {
-  const rows = db.prepare(
-    "SELECT * FROM employees ORDER BY id DESC"
-  ).all();
+app.get("/api/employees", async (req, res) => {
+  try {
 
-  res.json(rows);
+    const result = await pool.query(
+      "SELECT * FROM employees ORDER BY id DESC"
+    );
+
+    res.json(result.rows);
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取員工資料失敗"
+    });
+
+  }
 });
 
 app.post("/api/employees/status", (req, res) => {
