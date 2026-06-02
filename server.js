@@ -1238,10 +1238,21 @@ app.get("/api/payslip/:id", async (req, res) => {
       healthInsurance;
 
     const doc = new PDFDocument({
+      
       size: "A4",
       margin: 50
     });
+const fontPath = path.join(
+  __dirname,
+  "public",
+  "fonts",
+  "NotoSansTC-Regular.ttf"
+);
 
+console.log("字型路徑:", fontPath);
+console.log("字型存在:", fs.existsSync(fontPath));
+
+doc.font(fontPath);
     const fontPath = path.join(
       __dirname,
       "public",
