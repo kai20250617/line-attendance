@@ -1,4 +1,20 @@
 const express = require("express");
+const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+pool.connect()
+.then(() => {
+  console.log("✅ PostgreSQL Connected");
+})
+.catch(err => {
+  console.error("❌ PostgreSQL Error:", err);
+});
 const Database = require("better-sqlite3");
 const cors = require("cors");
 const path = require("path");
