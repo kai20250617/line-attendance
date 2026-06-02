@@ -1,12 +1,9 @@
-const path = require("path");
-const fs = require("fs");
-const PDFDocument = require("pdfkit");
 const express = require("express");
 const { Pool } = require("pg");
 const cors = require("cors");
 const path = require("path");
-
-const app = express();
+const fs = require("fs");
+const PDFDocument = require("pdfkit");
 
 app.use(cors());
 app.use(express.json());
