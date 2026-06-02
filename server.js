@@ -304,137 +304,149 @@ app.post("/api/clock", async (req, res) => {
     });
   }
 
-  const today =
-  getTaiwanDateString();
+  try {
 
-  const records =
-  db.prepare(
-    "SELECT * FROM attendance WHERE line_user_id = ? ORDER BY id DESC"
-  ).all(lineUserId);
+    const today =
+    getTaiwanDateString();
 
-  const todayRecords =
-  records.filter(item => {
-    const itemDate =
-    new Date(item.clock_time)
-    .toLocaleDateString("zh-TW", {
-      timeZone: "Asia/Taipei"
+    const recordsResult =
+    await pool.query(
+      "SELECT * FROM attendance WHERE line_user_id = $1 ORDER BY id DESC",
+      [lineUserId]
+    );
+
+    const records =
+    recordsResult.rows;
+
+    const todayRecords =
+    records.filter(item => {
+      const itemDate =
+      new Date(item.clock_time)
+      .toLocaleDateString("zh-TW", {
+        timeZone: "Asia/Taipei"
+      });
+
+      return itemDate === today;
     });
 
-    return itemDate === today;
-  });
-
-  const hasSameTypeToday =
-  todayRecords.some(
-    item => item.type === type
-  );
-
-  if (hasSameTypeToday) {
-    return res.status(400).json({
-      success: false,
-      message:
-        "今天已經完成「" +
-        type +
-        "」打卡，請勿重複打卡"
-    });
-  }
-
-  if (type === "下班") {
-    const hasClockIn =
+    const hasSameTypeToday =
     todayRecords.some(
-      item => item.type === "上班"
+      item => item.type === type
     );
 
-    if (!hasClockIn) {
+    if (hasSameTypeToday) {
       return res.status(400).json({
-        success: false,
-        message: "尚未上班打卡，不能下班打卡"
-      });
-    }
-  }
-
-  const gpsSetting =
-  db.prepare(
-    "SELECT * FROM settings LIMIT 1"
-  ).get();
-
-  const userLat =
-  Number(latitude);
-
-  const userLng =
-  Number(longitude);
-
-  let distance = null;
-
-  if (
-    gpsSetting &&
-    Number(gpsSetting.gps_enabled) === 1
-  ) {
-    if (
-      !latitude ||
-      !longitude ||
-      isNaN(userLat) ||
-      isNaN(userLng)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "無法取得定位，請開啟GPS後再打卡"
-      });
-    }
-
-    distance =
-    calculateDistance(
-      Number(gpsSetting.company_lat),
-      Number(gpsSetting.company_lng),
-      userLat,
-      userLng
-    );
-
-    if (
-      distance >
-      Number(gpsSetting.gps_radius)
-    ) {
-      return res.status(403).json({
         success: false,
         message:
-          "不在公司範圍內，無法打卡。目前距離約 " +
-          Math.round(distance) +
-          " 公尺"
+          "今天已經完成「" +
+          type +
+          "」打卡，請勿重複打卡"
       });
     }
-  }
 
-  const now =
-  new Date();
+    if (type === "下班") {
+      const hasClockIn =
+      todayRecords.some(
+        item => item.type === "上班"
+      );
 
-  const nowISO =
-  now.toISOString();
+      if (!hasClockIn) {
+        return res.status(400).json({
+          success: false,
+          message: "尚未上班打卡，不能下班打卡"
+        });
+      }
+    }
 
-  db.prepare(`
-    INSERT INTO attendance
-    (
-      line_user_id,
-      name,
-      type,
-      clock_time,
-      latitude,
-      longitude
-    )
-    VALUES
-    (?, ?, ?, ?, ?, ?)
-  `).run(
-    lineUserId,
-    name,
-    type,
-    nowISO,
-    latitude,
-    longitude
-  );
+    const gpsSettingResult =
+    await pool.query(
+      "SELECT * FROM settings LIMIT 1"
+    );
 
-  const timeText =
-  getTaiwanTimeString(now);
+    const gpsSetting =
+    gpsSettingResult.rows[0];
 
-  await pushLineMessage(
-    lineUserId,
+    const userLat =
+    Number(latitude);
+
+    const userLng =
+    Number(longitude);
+
+    let distance = null;
+
+    if (
+      gpsSetting &&
+      Number(gpsSetting.gps_enabled) === 1
+    ) {
+      if (
+        !latitude ||
+        !longitude ||
+        isNaN(userLat) ||
+        isNaN(userLng)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "無法取得定位，請開啟GPS後再打卡"
+        });
+      }
+
+      distance =
+      calculateDistance(
+        Number(gpsSetting.company_lat),
+        Number(gpsSetting.company_lng),
+        userLat,
+        userLng
+      );
+
+      if (
+        distance >
+        Number(gpsSetting.gps_radius)
+      ) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "不在公司範圍內，無法打卡。目前距離約 " +
+            Math.round(distance) +
+            " 公尺"
+        });
+      }
+    }
+
+    const now =
+    new Date();
+
+    const nowISO =
+    now.toISOString();
+
+    await pool.query(
+      `
+      INSERT INTO attendance
+      (
+        line_user_id,
+        name,
+        type,
+        clock_time,
+        latitude,
+        longitude
+      )
+      VALUES
+      ($1,$2,$3,$4,$5,$6)
+      `,
+      [
+        lineUserId,
+        name,
+        type,
+        nowISO,
+        latitude,
+        longitude
+      ]
+    );
+
+    const timeText =
+    getTaiwanTimeString(now);
+
+    await pushLineMessage(
+      lineUserId,
 `✅ 打卡成功
 
 員工：${name}
@@ -445,10 +457,10 @@ ${timeText}
 
 狀態：
 已完成打卡`
-  );
+    );
 
-  await pushLineMessage(
-    MANAGER_LINE_USER_ID,
+    await pushLineMessage(
+      MANAGER_LINE_USER_ID,
 `📍 員工打卡通知
 
 員工：${name}
@@ -463,36 +475,24 @@ ${
   ? "未啟用GPS限制"
   : Math.round(distance) + " 公尺"
 }`
-  );
-
-  res.json({
-    success: true,
-    message: "打卡成功",
-    time: nowISO
-  });
-});
-
-app.get("/api/attendance", async (req, res) => {
-
-  try {
-
-    const result = await pool.query(
-      "SELECT * FROM attendance ORDER BY id DESC"
     );
 
-    res.json(result.rows);
+    res.json({
+      success: true,
+      message: "打卡成功",
+      time: nowISO
+    });
 
   } catch(err) {
 
     console.error(err);
 
     res.status(500).json({
-      success:false,
-      message:"讀取打卡資料失敗"
+      success: false,
+      message: "打卡失敗，請稍後再試"
     });
 
   }
-
 });
 
 // =========================
