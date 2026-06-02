@@ -1,3 +1,4 @@
+const path = require("path");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const express = require("express");
