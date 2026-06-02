@@ -3,7 +3,6 @@ const fs = require("fs");
 const PDFDocument = require("pdfkit");
 const express = require("express");
 const { Pool } = require("pg");
-const PDFDocument = require("pdfkit");
 const cors = require("cors");
 const path = require("path");
 
