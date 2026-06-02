@@ -693,7 +693,7 @@ app.get("/api/employees", async (req, res) => {
       message: "讀取員工資料失敗"
     });
   }
-});, async (req, res) => {
+}); async (req, res) => {
   try {
 
     const result = await pool.query(
@@ -712,7 +712,7 @@ app.get("/api/employees", async (req, res) => {
     });
 
   }
-});
+};
 
 app.post("/api/employees/status", (req, res) => {
   const { id, status } = req.body;
