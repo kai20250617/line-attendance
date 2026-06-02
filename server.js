@@ -714,26 +714,39 @@ app.get("/api/employees", async (req, res) => {
   }
 };
 
-app.post("/api/employees/status", (req, res) => {
+app.post("/api/employees/status", async (req, res) => {
   const { id, status } = req.body;
 
-  db.prepare(`
-    UPDATE employees
-    SET status = ?
-    WHERE id = ?
-  `).run(status, id);
+  try {
+    await pool.query(
+      `
+      UPDATE employees
+      SET status = $1
+      WHERE id = $2
+      `,
+      [status, id]
+    );
 
-  res.json({
-    success: true,
-    message: "員工狀態已更新"
-  });
+    res.json({
+      success: true,
+      message: "員工狀態已更新"
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "員工狀態更新失敗"
+    });
+  }
 });
 
 // =========================
 // 員工綁定 LINE ID
 // =========================
 
-app.post("/api/employees/bind", (req, res) => {
+app.post("/api/employees/bind", async (req, res) => {
   const {
     name,
     lineUserId
@@ -746,31 +759,41 @@ app.post("/api/employees/bind", (req, res) => {
     });
   }
 
-  const employee =
-  db.prepare(
-    "SELECT * FROM employees WHERE name = ?"
-  ).get(name);
+  try {
+    const employee = await pool.query(
+      "SELECT * FROM employees WHERE name = $1",
+      [name]
+    );
 
-  if (!employee) {
-    return res.status(404).json({
+    if (employee.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "找不到這位員工，請先到員工管理新增"
+      });
+    }
+
+    await pool.query(
+      `
+      UPDATE employees
+      SET line_user_id = $1
+      WHERE name = $2
+      `,
+      [lineUserId, name]
+    );
+
+    res.json({
+      success: true,
+      message: "LINE ID 綁定成功"
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
       success: false,
-      message: "找不到這位員工，請先到員工管理新增"
+      message: "LINE ID 綁定失敗"
     });
   }
-
-  db.prepare(`
-    UPDATE employees
-    SET line_user_id = ?
-    WHERE name = ?
-  `).run(
-    lineUserId,
-    name
-  );
-
-  res.json({
-    success: true,
-    message: "LINE ID 綁定成功"
-  });
 });
 
 // =========================
