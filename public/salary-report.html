@@ -92,6 +92,7 @@ td{
   <th>加班費</th>
   <th>全勤獎金</th>
   <th>績效獎金</th>
+  <th>請假扣款</th>
   <th>應發薪資</th>
   <th>勞保</th>
   <th>健保</th>
@@ -102,7 +103,7 @@ td{
 
 <tbody id="salaryTable">
 <tr>
-<td colspan="11">讀取中...</td>
+<td colspan="12">讀取中...</td>
 </tr>
 </tbody>
 </table>
@@ -119,21 +120,21 @@ function money(value){
     return "NT$0";
   }
 
-  return "NT$" + num.toLocaleString("zh-TW");
+  return "NT$" + Math.round(num).toLocaleString("zh-TW");
 }
 
 async function loadSalaryReport(){
   const tbody = document.getElementById("salaryTable");
 
   tbody.innerHTML =
-  "<tr><td colspan='11'>載入中...</td></tr>";
+  "<tr><td colspan='12'>載入中...</td></tr>";
 
   try{
     const res = await fetch("/api/salary-report");
 
     if(!res.ok){
       tbody.innerHTML =
-      "<tr><td colspan='11'>API讀取失敗：" + res.status + "</td></tr>";
+      "<tr><td colspan='12'>API讀取失敗：" + res.status + "</td></tr>";
       return;
     }
 
@@ -143,13 +144,13 @@ async function loadSalaryReport(){
 
     if(!Array.isArray(data)){
       tbody.innerHTML =
-      "<tr><td colspan='11'>資料格式錯誤，API不是陣列</td></tr>";
+      "<tr><td colspan='12'>資料格式錯誤，API不是陣列</td></tr>";
       return;
     }
 
     if(data.length === 0){
       tbody.innerHTML =
-      "<tr><td colspan='11'>目前沒有薪資資料</td></tr>";
+      "<tr><td colspan='12'>目前沒有薪資資料</td></tr>";
       return;
     }
 
@@ -172,6 +173,9 @@ async function loadSalaryReport(){
 
       const performanceBonus =
       Number(item.performanceBonus || 0);
+
+      const leaveDeduction =
+      Number(item.leaveDeduction || 0);
 
       const grossSalary =
       Number(item.grossSalary || 0);
@@ -196,6 +200,7 @@ async function loadSalaryReport(){
           <td>${money(overtimePay)}</td>
           <td>${money(attendanceBonus)}</td>
           <td>${money(performanceBonus)}</td>
+          <td class="deduct">${money(leaveDeduction)}</td>
           <td class="gross">${money(grossSalary)}</td>
           <td class="deduct">${money(laborInsurance)}</td>
           <td class="deduct">${money(healthInsurance)}</td>
@@ -209,7 +214,7 @@ async function loadSalaryReport(){
     console.error("薪資總表錯誤：", error);
 
     tbody.innerHTML =
-    "<tr><td colspan='11'>讀取失敗，請開啟 F12 Console 查看錯誤</td></tr>";
+    "<tr><td colspan='12'>讀取失敗，請開啟 F12 Console 查看錯誤</td></tr>";
   }
 }
 
