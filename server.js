@@ -897,7 +897,12 @@ app.get("/api/salary-report", async (req, res) => {
       "SELECT * FROM attendance ORDER BY id ASC"
     );
 
+    const leavesResult = await pool.query(
+      "SELECT * FROM leaves WHERE status = '已核准' OR status = '核准'"
+    );
+
     const attendance = attendanceResult.rows;
+    const leaves = leavesResult.rows;
 
     const result = employeesResult.rows.map(emp => {
       const baseSalary = Number(emp.base_salary || 27000);
@@ -906,10 +911,49 @@ app.get("/api/salary-report", async (req, res) => {
       const performanceBonus = Number(emp.performance_bonus || 0);
 
       let overtimePay = 0;
+      let leaveDeduction = 0;
 
       const empRecords = attendance.filter(
         a => a.name === emp.name
       );
+
+      const empLeaves = leaves.filter(
+        l => l.name === emp.name
+      );
+
+      const dailySalary = baseSalary / 30;
+
+      empLeaves.forEach(leave => {
+        const start = new Date(leave.start_date);
+        const end = new Date(leave.end_date);
+
+        const days =
+          Math.floor(
+            (end - start) /
+            (1000 * 60 * 60 * 24)
+          ) + 1;
+
+        switch(leave.leave_type){
+          case "事假":
+            leaveDeduction += dailySalary * days;
+            break;
+
+          case "病假":
+            leaveDeduction += dailySalary * 0.5 * days;
+            break;
+
+          case "曠職":
+            leaveDeduction += dailySalary * days;
+            break;
+
+          case "特休":
+          case "公假":
+            break;
+
+          default:
+            break;
+        }
+      });
 
       const dayGroups = {};
 
@@ -972,13 +1016,15 @@ app.get("/api/salary-report", async (req, res) => {
       });
 
       overtimePay = Math.round(overtimePay);
+      leaveDeduction = Math.round(leaveDeduction);
 
       const grossSalary =
         baseSalary +
         fixedAllowance +
         attendanceBonus +
         performanceBonus +
-        overtimePay;
+        overtimePay -
+        leaveDeduction;
 
       const laborInsurance =
         Math.round(grossSalary * 0.02);
@@ -1001,6 +1047,7 @@ app.get("/api/salary-report", async (req, res) => {
         attendanceBonus,
         performanceBonus,
         overtimePay,
+        leaveDeduction,
         grossSalary,
         laborInsurance,
         healthInsurance,
