@@ -893,12 +893,85 @@ app.get("/api/salary-report", async (req, res) => {
       "SELECT * FROM employees WHERE status = '在職' ORDER BY id DESC"
     );
 
+    const attendanceResult = await pool.query(
+      "SELECT * FROM attendance ORDER BY id ASC"
+    );
+
+    const attendance = attendanceResult.rows;
+
     const result = employeesResult.rows.map(emp => {
       const baseSalary = Number(emp.base_salary || 27000);
       const fixedAllowance = Number(emp.fixed_allowance || 3000);
       const attendanceBonus = Number(emp.attendance_bonus || 3000);
       const performanceBonus = Number(emp.performance_bonus || 0);
-      const overtimePay = 0;
+
+      let overtimePay = 0;
+
+      const empRecords = attendance.filter(
+        a => a.name === emp.name
+      );
+
+      const dayGroups = {};
+
+      empRecords.forEach(item => {
+        const date = new Date(item.clock_time)
+          .toLocaleDateString("zh-TW", {
+            timeZone: "Asia/Taipei"
+          });
+
+        if (!dayGroups[date]) {
+          dayGroups[date] = {
+            start: null,
+            end: null
+          };
+        }
+
+        if (item.type === "上班") {
+          if (
+            !dayGroups[date].start ||
+            new Date(item.clock_time) < new Date(dayGroups[date].start)
+          ) {
+            dayGroups[date].start = item.clock_time;
+          }
+        }
+
+        if (item.type === "下班") {
+          if (
+            !dayGroups[date].end ||
+            new Date(item.clock_time) > new Date(dayGroups[date].end)
+          ) {
+            dayGroups[date].end = item.clock_time;
+          }
+        }
+      });
+
+      Object.values(dayGroups).forEach(day => {
+        if (day.start && day.end) {
+          const totalHours =
+            (new Date(day.end) - new Date(day.start)) /
+            1000 / 60 / 60;
+
+          const normalHours = 8;
+
+          const overtimeHours =
+            Math.max(0, totalHours - normalHours);
+
+          const hourlyRate =
+            Number(emp.hourly_wage || 200);
+
+          const first2Hours =
+            Math.min(overtimeHours, 2);
+
+          const after2Hours =
+            Math.max(0, overtimeHours - 2);
+
+          overtimePay +=
+            (first2Hours * hourlyRate * 1.34) +
+            (after2Hours * hourlyRate * 1.67);
+        }
+      });
+
+      overtimePay = Math.round(overtimePay);
 
       const grossSalary =
         baseSalary +
@@ -907,9 +980,14 @@ app.get("/api/salary-report", async (req, res) => {
         performanceBonus +
         overtimePay;
 
-      const laborInsurance = Math.round(grossSalary * 0.02);
-      const healthInsurance = Math.round(grossSalary * 0.015);
-      const laborPension = Math.round(grossSalary * 0.06);
+      const laborInsurance =
+        Math.round(grossSalary * 0.02);
+
+      const healthInsurance =
+        Math.round(grossSalary * 0.015);
+
+      const laborPension =
+        Math.round(grossSalary * 0.06);
 
       const netSalary =
         grossSalary -
