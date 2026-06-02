@@ -7,7 +7,64 @@ const pool = new Pool({
     rejectUnauthorized: false
   }
 });
+async function createTables() {
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS attendance (
+      id SERIAL PRIMARY KEY,
+      line_user_id TEXT,
+      name TEXT,
+      type TEXT,
+      clock_time TIMESTAMP,
+      latitude REAL,
+      longitude REAL
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS employees (
+      id SERIAL PRIMARY KEY,
+      line_user_id TEXT,
+      name TEXT,
+      department TEXT,
+      position TEXT,
+      hourly_wage REAL,
+      base_salary REAL DEFAULT 27000,
+      fixed_allowance REAL DEFAULT 3000,
+      attendance_bonus REAL DEFAULT 3000,
+      performance_bonus REAL DEFAULT 0,
+      status TEXT DEFAULT '在職'
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS leaves (
+      id SERIAL PRIMARY KEY,
+      line_user_id TEXT,
+      name TEXT,
+      leave_type TEXT,
+      start_date TEXT,
+      end_date TEXT,
+      reason TEXT,
+      status TEXT DEFAULT '待審核',
+      created_at TEXT
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id SERIAL PRIMARY KEY,
+      gps_enabled INTEGER DEFAULT 1,
+      company_lat REAL DEFAULT 24.7906,
+      company_lng REAL DEFAULT 120.9969,
+      gps_radius REAL DEFAULT 300
+    )
+  `);
+
+  console.log("✅ PostgreSQL Tables Ready");
+}
+
+createTables();
 pool.connect()
 .then(() => {
   console.log("✅ PostgreSQL Connected");
