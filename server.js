@@ -605,66 +605,11 @@ ${leave.end_date}
 // =========================
 // 員工管理
 // =========================
+// =========================
+// 員工管理
+// =========================
+
 app.post("/api/employees", async (req, res) => {
-
-  const {
-    lineUserId,
-    name,
-    department,
-    position,
-    hourlyWage
-  } = req.body;
-
-  if (!name) {
-    return res.status(400).json({
-      success: false,
-      message: "請輸入員工姓名"
-    });
-  }
-
-  try {
-
-    await pool.query(
-      `
-      INSERT INTO employees
-      (
-        line_user_id,
-        name,
-        department,
-        position,
-        hourly_wage,
-        status
-      )
-      VALUES
-      ($1,$2,$3,$4,$5,$6)
-      `,
-      [
-        lineUserId || "",
-        name,
-        department || "",
-        position || "",
-        Number(hourlyWage || 0),
-        "在職"
-      ]
-    );
-
-    res.json({
-      success: true,
-      message: "員工已新增"
-    });
-
-  } catch(err) {
-
-    console.error(err);
-
-    res.status(500).json({
-      success:false,
-      message:"新增員工失敗"
-    });
-
-  }
-
-});
   const {
     lineUserId,
     name,
@@ -684,42 +629,71 @@ app.post("/api/employees", async (req, res) => {
     });
   }
 
-  db.prepare(`
-    INSERT INTO employees
-    (
-      line_user_id,
-      name,
-      department,
-      position,
-      hourly_wage,
-      base_salary,
-      fixed_allowance,
-      attendance_bonus,
-      performance_bonus,
-      status
-    )
-    VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    lineUserId || "",
-    name,
-    department || "",
-    position || "",
-    Number(hourlyWage || 0),
-    Number(baseSalary || 27000),
-    Number(fixedAllowance || 3000),
-    Number(attendanceBonus || 3000),
-    Number(performanceBonus || 0),
-    "在職"
-  );
+  try {
+    await pool.query(
+      `
+      INSERT INTO employees
+      (
+        line_user_id,
+        name,
+        department,
+        position,
+        hourly_wage,
+        base_salary,
+        fixed_allowance,
+        attendance_bonus,
+        performance_bonus,
+        status
+      )
+      VALUES
+      ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      `,
+      [
+        lineUserId || "",
+        name,
+        department || "",
+        position || "",
+        Number(hourlyWage || 0),
+        Number(baseSalary || 27000),
+        Number(fixedAllowance || 3000),
+        Number(attendanceBonus || 3000),
+        Number(performanceBonus || 0),
+        "在職"
+      ]
+    );
 
-  res.json({
-    success: true,
-    message: "員工已新增"
-  });
+    res.json({
+      success: true,
+      message: "員工已新增"
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "新增員工失敗"
+    });
+  }
 });
 
 app.get("/api/employees", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM employees ORDER BY id DESC"
+    );
+
+    res.json(result.rows);
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "讀取員工資料失敗"
+    });
+  }
+});, async (req, res) => {
   try {
 
     const result = await pool.query(
