@@ -1318,11 +1318,13 @@ doc.font(fontPath);
 
     doc.end();
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("薪資單產生失敗");
-  }
-});
+  catch (err) {
+  console.error("PDF ERROR:", err);
+
+  res.status(500).send(
+    "薪資單產生失敗：" + err.message
+  );
+}
 
 // =========================
 // 測試 LINE
