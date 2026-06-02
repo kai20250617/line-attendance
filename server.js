@@ -1,5 +1,6 @@
 const express = require("express");
 const { Pool } = require("pg");
+const PDFDocument = require("pdfkit");
 const cors = require("cors");
 const path = require("path");
 
@@ -1067,7 +1068,132 @@ app.get("/api/salary-report", async (req, res) => {
     });
   }
 });
+// =========================
+// PDF 薪資單
+// =========================
 
+app.get("/api/payslip/:id", async (req, res) => {
+  const employeeId = req.params.id;
+
+  try {
+    const employeeResult = await pool.query(
+      "SELECT * FROM employees WHERE id = $1",
+      [employeeId]
+    );
+
+    if (employeeResult.rows.length === 0) {
+      return res.status(404).send("找不到員工");
+    }
+
+    const emp = employeeResult.rows[0];
+
+    const salaryResult = await pool.query(
+      "SELECT * FROM employees WHERE id = $1",
+      [employeeId]
+    );
+
+    const baseSalary = Number(emp.base_salary || 27000);
+    const fixedAllowance = Number(emp.fixed_allowance || 3000);
+    const attendanceBonus = Number(emp.attendance_bonus || 3000);
+    const performanceBonus = Number(emp.performance_bonus || 0);
+    const overtimePay = 0;
+    const leaveDeduction = 0;
+
+    const grossSalary =
+      baseSalary +
+      fixedAllowance +
+      attendanceBonus +
+      performanceBonus +
+      overtimePay -
+      leaveDeduction;
+
+    const laborInsurance = Math.round(grossSalary * 0.02);
+    const healthInsurance = Math.round(grossSalary * 0.015);
+    const laborPension = Math.round(grossSalary * 0.06);
+
+    const netSalary =
+      grossSalary -
+      laborInsurance -
+      healthInsurance;
+
+    const doc = new PDFDocument({
+      size: "A4",
+      margin: 50
+    });
+
+    const filename =
+      `payslip_${emp.name}_${new Date().getFullYear()}_${new Date().getMonth() + 1}.pdf`;
+
+    res.setHeader(
+      "Content-Type",
+      "application/pdf"
+    );
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(filename)}"`
+    );
+
+    doc.pipe(res);
+
+    doc.fontSize(22).text("薪資單 Payslip", {
+      align: "center"
+    });
+
+    doc.moveDown();
+
+    doc.fontSize(12).text(`員工姓名：${emp.name}`);
+    doc.text(`部門：${emp.department || "-"}`);
+    doc.text(`職稱：${emp.position || "-"}`);
+    doc.text(`月份：${new Date().getFullYear()} / ${new Date().getMonth() + 1}`);
+
+    doc.moveDown();
+
+    doc.text("----------------------------------------");
+
+    doc.fontSize(14).text("應發項目");
+    doc.fontSize(12);
+    doc.text(`底薪：NT$ ${baseSalary.toLocaleString("zh-TW")}`);
+    doc.text(`固定津貼：NT$ ${fixedAllowance.toLocaleString("zh-TW")}`);
+    doc.text(`加班費：NT$ ${overtimePay.toLocaleString("zh-TW")}`);
+    doc.text(`全勤獎金：NT$ ${attendanceBonus.toLocaleString("zh-TW")}`);
+    doc.text(`績效獎金：NT$ ${performanceBonus.toLocaleString("zh-TW")}`);
+
+    doc.moveDown();
+
+    doc.fontSize(14).text("扣除項目");
+    doc.fontSize(12);
+    doc.text(`請假扣款：NT$ ${leaveDeduction.toLocaleString("zh-TW")}`);
+    doc.text(`勞保：NT$ ${laborInsurance.toLocaleString("zh-TW")}`);
+    doc.text(`健保：NT$ ${healthInsurance.toLocaleString("zh-TW")}`);
+    doc.text(`勞退提繳：NT$ ${laborPension.toLocaleString("zh-TW")}（公司提繳，不自薪資扣除）`);
+
+    doc.moveDown();
+
+    doc.text("----------------------------------------");
+
+    doc.fontSize(16).text(
+      `應發薪資：NT$ ${grossSalary.toLocaleString("zh-TW")}`
+    );
+
+    doc.fontSize(18).text(
+      `實發薪資：NT$ ${netSalary.toLocaleString("zh-TW")}`,
+      { align: "right" }
+    );
+
+    doc.moveDown();
+
+    doc.fontSize(10).text(
+      "備註：本薪資單為系統自動產生，實際金額仍以公司核定為準。"
+    );
+
+    doc.end();
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("薪資單產生失敗");
+  }
+});
 // =========================
 // 測試 LINE
 // =========================
