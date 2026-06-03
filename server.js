@@ -1568,3 +1568,32 @@ app.listen(PORT, () => {
   console.log("Server Running");
   console.log(`Port: ${PORT}`);
 });
+
+//
+//
+//
+app.get("/api/my-worktime/:lineUserId", async (req, res) => {
+  try {
+    const lineUserId = req.params.lineUserId;
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM attendance
+      WHERE line_user_id = $1
+      ORDER BY clock_time DESC
+      `,
+      [lineUserId]
+    );
+
+    res.json(result.rows);
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取工時失敗"
+    });
+  }
+});
