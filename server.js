@@ -1249,12 +1249,11 @@ const fontPath = path.join(
 console.log("字型路徑:", fontPath);
 console.log("字型存在:", fs.existsSync(fontPath));
 
-doc.font(fontPath);
-   
-    if (fs.existsSync(fontPath)) {
-      doc.font(fontPath);
-    }
-
+if (fs.existsSync(fontPath)) {
+  doc.font(fontPath);
+} else {
+  console.log("找不到字型檔");
+}
     const filename =
       `payslip_${emp.name}_${new Date().getFullYear()}_${new Date().getMonth() + 1}.pdf`;
 
@@ -1318,12 +1317,16 @@ doc.font(fontPath);
 
     doc.end();
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).send(
+  } 
+  catch (err) {
+  console.error("PDF ERROR:", err);
+
+  res.status(500).send(
     "薪資單產生失敗：" + err.message
   );
 }
+});
+
 // =========================
 // 測試 LINE
 // =========================
