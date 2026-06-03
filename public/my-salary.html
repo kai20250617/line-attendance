@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>我的薪資</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
 body{
@@ -35,25 +38,23 @@ body{
   font-weight:bold;
 }
 
-button,a{
+.error{
+  color:red;
+  font-weight:bold;
+}
+
+a{
   display:inline-block;
   padding:12px 20px;
   margin:10px;
-  border:none;
   border-radius:6px;
   background:#4a90e2;
   color:white;
   text-decoration:none;
-  cursor:pointer;
 }
 
 .back{
   background:#2196F3;
-}
-
-.error{
-  color:red;
-  font-weight:bold;
 }
 </style>
 </head>
@@ -63,15 +64,13 @@ button,a{
 <h1>💰 我的薪資</h1>
 
 <div id="content" class="card">
-  讀取中...
+  LINE登入中...
 </div>
 
 <a class="back" href="/attendance.html">返回打卡</a>
 
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
 <script>
-const LIFF_ID = "你的LIFF_ID";
+const LIFF_ID = "2010241581-YtDxQgWd";
 
 async function loadMySalary(){
   const box = document.getElementById("content");
@@ -87,14 +86,18 @@ async function loadMySalary(){
     }
 
     const profile = await liff.getProfile();
-    const lineUserId = profile.userId;
 
-    const res = await fetch("/api/my-salary/" + lineUserId);
+    const res = await fetch(
+      "/api/my-salary/" + profile.userId
+    );
+
     const data = await res.json();
 
     if(!res.ok || data.success === false){
       box.innerHTML =
-      "<div class='error'>" + (data.message || "找不到薪資資料") + "</div>";
+      "<div class='error'>" +
+      (data.message || "找不到薪資資料，請先完成 LINE 綁定") +
+      "</div>";
       return;
     }
 
@@ -137,6 +140,7 @@ async function loadMySalary(){
       <p>應發薪資：NT$${Number(data.grossSalary || 0).toLocaleString("zh-TW")}</p>
       <p>勞保：NT$${Number(data.laborInsurance || 0).toLocaleString("zh-TW")}</p>
       <p>健保：NT$${Number(data.healthInsurance || 0).toLocaleString("zh-TW")}</p>
+      <p>勞退提繳：NT$${Number(data.laborPension || 0).toLocaleString("zh-TW")}</p>
 
       <p class="net">
         實發薪資：NT$${Number(data.netSalary || 0).toLocaleString("zh-TW")}
