@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的薪資</title>
+
+<style>
+body{
+  font-family:Arial,sans-serif;
+  background:#f5f5f5;
+  padding:20px;
+  text-align:center;
+}
+
+.card{
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  max-width:500px;
+  margin:20px auto;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  border-bottom:1px solid #eee;
+  padding:10px 0;
+}
+
+.net{
+  color:#0d47a1;
+  font-size:24px;
+  font-weight:bold;
+}
+
+button,a{
+  display:inline-block;
+  padding:12px 20px;
+  margin:10px;
+  border:none;
+  border-radius:6px;
+  background:#4a90e2;
+  color:white;
+  text-decoration:none;
+  cursor:pointer;
+}
+
+.back{
+  background:#2196F3;
+}
+
+.error{
+  color:red;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<h1>💰 我的薪資</h1>
+
+<div id="content" class="card">
+  讀取中...
+</div>
+
+<a class="back" href="/attendance.html">返回打卡</a>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<script>
+const LIFF_ID = "你的LIFF_ID";
+
+async function loadMySalary(){
+  const box = document.getElementById("content");
+
+  try{
+    await liff.init({
+      liffId: LIFF_ID
+    });
+
+    if(!liff.isLoggedIn()){
+      liff.login();
+      return;
+    }
+
+    const profile = await liff.getProfile();
+    const lineUserId = profile.userId;
+
+    const res = await fetch("/api/my-salary/" + lineUserId);
+    const data = await res.json();
+
+    if(!res.ok || data.success === false){
+      box.innerHTML =
+      "<div class='error'>" + (data.message || "找不到薪資資料") + "</div>";
+      return;
+    }
+
+    box.innerHTML = `
+      <h2>${data.name}</h2>
+      <p>${data.department || "-"} / ${data.position || "-"}</p>
+
+      <div class="row">
+        <span>底薪</span>
+        <strong>NT$${Number(data.baseSalary || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>固定津貼</span>
+        <strong>NT$${Number(data.fixedAllowance || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>加班費</span>
+        <strong>NT$${Number(data.overtimePay || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>全勤獎金</span>
+        <strong>NT$${Number(data.attendanceBonus || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>績效獎金</span>
+        <strong>NT$${Number(data.performanceBonus || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>請假扣款</span>
+        <strong>NT$${Number(data.leaveDeduction || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <hr>
+
+      <p>應發薪資：NT$${Number(data.grossSalary || 0).toLocaleString("zh-TW")}</p>
+      <p>勞保：NT$${Number(data.laborInsurance || 0).toLocaleString("zh-TW")}</p>
+      <p>健保：NT$${Number(data.healthInsurance || 0).toLocaleString("zh-TW")}</p>
+
+      <p class="net">
+        實發薪資：NT$${Number(data.netSalary || 0).toLocaleString("zh-TW")}
+      </p>
+
+      <a href="/api/payslip/${data.id}">
+        下載 PDF 薪資單
+      </a>
+    `;
+
+  }catch(error){
+    console.error(error);
+    box.innerHTML =
+    "<div class='error'>讀取失敗，請稍後再試</div>";
+  }
+}
+
+loadMySalary();
+</script>
+
+</body>
+</html>

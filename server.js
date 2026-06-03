@@ -656,7 +656,103 @@ app.post("/api/employees/bind", async (req, res) => {
     });
   }
 });
+app.get("/api/my-salary/:lineUserId", async (req, res) => {
+  try {
 
+    const lineUserId =
+      req.params.lineUserId;
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM employees
+      WHERE line_user_id = $1
+      LIMIT 1
+      `,
+      [lineUserId]
+    );
+
+    if(result.rows.length === 0){
+      return res.status(404).json({
+        success:false,
+        message:"找不到員工資料"
+      });
+    }
+
+    const emp = result.rows[0];
+
+    const baseSalary =
+      Number(emp.base_salary || 27000);
+
+    const fixedAllowance =
+      Number(emp.fixed_allowance || 3000);
+
+    const attendanceBonus =
+      Number(emp.attendance_bonus || 3000);
+
+    const performanceBonus =
+      Number(emp.performance_bonus || 0);
+
+    const overtimePay =
+      Number(emp.overtime_pay || 0);
+
+    const leaveDeduction =
+      Number(emp.leave_deduction || 0);
+
+    const grossSalary =
+      baseSalary +
+      fixedAllowance +
+      attendanceBonus +
+      performanceBonus +
+      overtimePay -
+      leaveDeduction;
+
+    const laborInsurance =
+      Math.round(grossSalary * 0.02);
+
+    const healthInsurance =
+      Math.round(grossSalary * 0.015);
+
+    const laborPension =
+      Math.round(grossSalary * 0.06);
+
+    const netSalary =
+      grossSalary -
+      laborInsurance -
+      healthInsurance;
+
+    res.json({
+      success:true,
+      id: emp.id,
+      name: emp.name,
+      department: emp.department,
+      position: emp.position,
+
+      baseSalary,
+      fixedAllowance,
+      attendanceBonus,
+      performanceBonus,
+      overtimePay,
+      leaveDeduction,
+
+      grossSalary,
+      laborInsurance,
+      healthInsurance,
+      laborPension,
+      netSalary
+    });
+
+  } catch(err){
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取薪資失敗"
+    });
+
+  }
+});
 // =========================
 // GPS 設定
 // =========================
