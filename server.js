@@ -1124,11 +1124,11 @@ app.get("/api/salary-report", async (req, res) => {
       let leaveDeduction = 0;
 
       const empRecords = attendance.filter(
-        a => a.name === emp.name
+         a => a.line_user_id === emp.line_user_id
       );
 
       const empLeaves = leaves.filter(
-        l => l.name === emp.name
+        l => l.line_user_id === emp.line_user_id
       );
 
       const dailySalary = baseSalary / 30;
@@ -1319,11 +1319,11 @@ app.get("/api/payslip/:id", async (req, res) => {
     let leaveDeduction = 0;
 
     const empRecords = attendance.filter(
-      a => a.name === emp.name
+       a => a.line_user_id === emp.line_user_id
     );
 
     const empLeaves = leaves.filter(
-      l => l.name === emp.name
+        l => l.line_user_id === emp.line_user_id
     );
 
     const dailySalary = baseSalary / 30;
