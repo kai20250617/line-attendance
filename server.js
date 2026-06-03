@@ -622,7 +622,7 @@ app.post("/api/employees/bind", async (req, res) => {
 
   try {
     const employee = await pool.query(
-      "SELECT * FROM employees WHERE name = $1",
+      "SELECT * FROM employees WHERE line_user_id = $1",
       [name]
     );
 
@@ -692,14 +692,14 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
     // =========================
 
     const attendanceResult = await pool.query(
-      `
-      SELECT *
-      FROM attendance
-      WHERE name = $1
-      ORDER BY clock_time ASC
-      `,
-      [emp.name]
-    );
+  `
+  SELECT *
+  FROM attendance
+  WHERE line_user_id = $1
+  ORDER BY clock_time ASC
+  `,
+  [emp.line_user_id]
+);
 
     const records = attendanceResult.rows;
 
