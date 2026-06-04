@@ -768,14 +768,14 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
     // =========================
 
     const leavesResult = await pool.query(
-      `
-      SELECT *
-      FROM leaves
-      WHERE name = $1
-      AND (status = '已核准' OR status = '核准')
-      `,
-      [emp.name]
-    );
+  `
+  SELECT *
+  FROM leaves
+  WHERE line_user_id = $1
+  AND (status = '已核准' OR status = '核准')
+  `,
+  [emp.line_user_id]
+);
 
     const dailySalary =
       baseSalary / 30;
