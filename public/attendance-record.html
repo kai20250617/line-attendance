@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>員工出勤紀錄</title>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:20px;}
+h1{text-align:center;}
+button{padding:10px 20px;font-size:16px;cursor:pointer;background:#4a90e2;color:white;border:none;border-radius:5px;}
+.refresh{text-align:center;margin:20px;}
+table{width:100%;border-collapse:collapse;background:white;}
+th{background:#222;color:white;padding:15px;}
+td{padding:12px;border:1px solid #ddd;text-align:center;}
+.map-btn{background:#4CAF50;color:white;padding:8px 15px;text-decoration:none;border-radius:5px;}
+.logout{background:#e53935;margin-left:10px;}
+</style>
+</head>
+
+<body>
+
+<h1>📋 員工出勤紀錄</h1>
+
+<div class="refresh">
+  <button onclick="loadAttendance()">重新整理</button>
+    <button  class="back"  onclick="location.href='/dashboard.html'">返回後台</button>
+
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>姓名</th>
+  <th>類型</th>
+  <th>日期</th>
+  <th>時間</th>
+  <th>打卡位置</th>
+  <th>地圖</th>
+</tr>
+</thead>
+
+<tbody id="attendanceTable">
+<tr><td colspan="6">讀取中...</td></tr>
+</tbody>
+</table>
+
+<script>
+if(localStorage.getItem("adminLogin") !== "yes"){
+  window.location.href = "/login.html";
+}
+
+function logout(){
+  localStorage.removeItem("adminLogin");
+  window.location.href = "/login.html";
+}
+
+async function getAddress(lat,lng){
+  try{
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+    );
+    const data = await response.json();
+    return data.display_name;
+  }catch(error){
+    return "位置解析失敗";
+  }
+}
+
+async function loadAttendance(){
+  const table = document.getElementById("attendanceTable");
+  table.innerHTML = "<tr><td colspan='6'>載入中...</td></tr>";
+
+  try{
+    const response = await fetch("/api/attendance");
+    const rows = await response.json();
+
+    if(rows.length === 0){
+      table.innerHTML = "<tr><td colspan='6'>目前沒有出勤紀錄</td></tr>";
+      return;
+    }
+
+    table.innerHTML = "";
+
+    for(const row of rows){
+      const date = new Date(row.clock_time);
+      const address = await getAddress(row.latitude,row.longitude);
+
+      table.innerHTML += `
+      <tr>
+        <td>${row.name}</td>
+        <td>${row.type}</td>
+        <td>${date.toLocaleDateString("zh-TW")}</td>
+        <td>${date.toLocaleTimeString("zh-TW")}</td>
+        <td>${address}</td>
+        <td>
+          <a class="map-btn" target="_blank"
+          href="https://maps.google.com/?q=${row.latitude},${row.longitude}">
+          查看地圖
+          </a>
+        </td>
+      </tr>`;
+    }
+  }catch(error){
+    table.innerHTML = "<tr><td colspan='6'>讀取失敗</td></tr>";
+    console.error(error);
+  }
+}
+
+loadAttendance();
+</script>
+
+</body>
+</html>

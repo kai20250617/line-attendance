@@ -4,111 +4,272 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>員工出勤紀錄</title>
+<title>員工打卡</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
-body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:20px;}
-h1{text-align:center;}
-button{padding:10px 20px;font-size:16px;cursor:pointer;background:#4a90e2;color:white;border:none;border-radius:5px;}
-.refresh{text-align:center;margin:20px;}
-table{width:100%;border-collapse:collapse;background:white;}
-th{background:#222;color:white;padding:15px;}
-td{padding:12px;border:1px solid #ddd;text-align:center;}
-.map-btn{background:#4CAF50;color:white;padding:8px 15px;text-decoration:none;border-radius:5px;}
-.logout{background:#e53935;margin-left:10px;}
+body{
+  font-family:Arial,sans-serif;
+  background:#f5f5f5;
+  padding:20px;
+  text-align:center;
+}
+
+.card{
+  background:white;
+  padding:25px;
+  border-radius:12px;
+  max-width:500px;
+  margin:20px auto;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+h1{
+  margin-bottom:10px;
+}
+
+.name{
+  font-size:22px;
+  font-weight:bold;
+  color:#333;
+}
+
+.status{
+  margin-top:15px;
+  color:#555;
+  line-height:1.8;
+}
+
+button{
+  width:90%;
+  padding:16px;
+  margin:10px 0;
+  border:none;
+  border-radius:10px;
+  color:white;
+  font-size:22px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.clockin{
+  background:#2e7d32;
+}
+
+.clockout{
+  background:#e53935;
+}
+
+.refresh{
+  background:#1976d2;
+}
+
+.error{
+  color:red;
+  font-weight:bold;
+}
+
+.success{
+  color:green;
+  font-weight:bold;
+}
+
+.small{
+  font-size:13px;
+  color:#777;
+}
 </style>
 </head>
 
 <body>
 
-<h1>📋 員工出勤紀錄</h1>
+<h1>🕒 員工打卡</h1>
 
-<div class="refresh">
-  <button onclick="loadAttendance()">重新整理</button>
-    <button  class="back"  onclick="location.href='/dashboard.html'">返回後台</button>
+<div class="card">
+
+  <div id="employeeName" class="name">
+    LINE登入中...
+  </div>
+
+  <div id="status" class="status">
+    請稍候...
+  </div>
+
+  <button class="clockin" onclick="clock('上班')">
+    🟢 上班打卡
+  </button>
+
+  <button class="clockout" onclick="clock('下班')">
+    🔴 下班打卡
+  </button>
+
+  <button class="refresh" onclick="location.reload()">
+    🔄 重新整理
+  </button>
+
+  <p class="small">
+    打卡時會取得 GPS 位置
+  </p>
 
 </div>
 
-<table>
-<thead>
-<tr>
-  <th>姓名</th>
-  <th>類型</th>
-  <th>日期</th>
-  <th>時間</th>
-  <th>打卡位置</th>
-  <th>地圖</th>
-</tr>
-</thead>
-
-<tbody id="attendanceTable">
-<tr><td colspan="6">讀取中...</td></tr>
-</tbody>
-</table>
-
 <script>
-if(localStorage.getItem("adminLogin") !== "yes"){
-  window.location.href = "/login.html";
-}
+const LIFF_ID = "2010241581-YtDxQgWd";
 
-function logout(){
-  localStorage.removeItem("adminLogin");
-  window.location.href = "/login.html";
-}
+let profile = null;
+let employee = null;
 
-async function getAddress(lat,lng){
-  try{
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-    );
-    const data = await response.json();
-    return data.display_name;
-  }catch(error){
-    return "位置解析失敗";
-  }
-}
-
-async function loadAttendance(){
-  const table = document.getElementById("attendanceTable");
-  table.innerHTML = "<tr><td colspan='6'>載入中...</td></tr>";
+async function init(){
+  const nameBox = document.getElementById("employeeName");
+  const statusBox = document.getElementById("status");
 
   try{
-    const response = await fetch("/api/attendance");
-    const rows = await response.json();
+    await liff.init({
+      liffId: LIFF_ID
+    });
 
-    if(rows.length === 0){
-      table.innerHTML = "<tr><td colspan='6'>目前沒有出勤紀錄</td></tr>";
+    if(!liff.isLoggedIn()){
+      liff.login();
       return;
     }
 
-    table.innerHTML = "";
+    profile = await liff.getProfile();
 
-    for(const row of rows){
-      const date = new Date(row.clock_time);
-      const address = await getAddress(row.latitude,row.longitude);
+    const res = await fetch(
+      "/api/check-employee/" + profile.userId
+    );
 
-      table.innerHTML += `
-      <tr>
-        <td>${row.name}</td>
-        <td>${row.type}</td>
-        <td>${date.toLocaleDateString("zh-TW")}</td>
-        <td>${date.toLocaleTimeString("zh-TW")}</td>
-        <td>${address}</td>
-        <td>
-          <a class="map-btn" target="_blank"
-          href="https://maps.google.com/?q=${row.latitude},${row.longitude}">
-          查看地圖
-          </a>
-        </td>
-      </tr>`;
+    const data = await res.json();
+
+    if(!data.success || !data.isEmployee){
+      nameBox.innerHTML =
+      "<span class='error'>您不是員工</span>";
+
+      statusBox.innerHTML =
+      "請先完成員工 LINE 綁定，或聯絡管理員。";
+
+      return;
     }
+
+    employee = data.employee;
+
+    nameBox.innerHTML =
+    employee.name;
+
+    statusBox.innerHTML =
+    `
+    部門：${employee.department || "-"}<br>
+    職稱：${employee.position || "-"}<br>
+    狀態：可以打卡
+    `;
+
   }catch(error){
-    table.innerHTML = "<tr><td colspan='6'>讀取失敗</td></tr>";
     console.error(error);
+
+    nameBox.innerHTML =
+    "<span class='error'>登入失敗</span>";
+
+    statusBox.innerHTML =
+    "請使用 LINE 開啟此頁面。";
   }
 }
 
-loadAttendance();
+function getLocation(){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation){
+      reject("此裝置不支援定位");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      position=>{
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+      },
+      error=>{
+        reject("無法取得定位，請開啟 GPS 權限");
+      },
+      {
+        enableHighAccuracy:true,
+        timeout:10000,
+        maximumAge:0
+      }
+    );
+  });
+}
+
+async function clock(type){
+  const statusBox = document.getElementById("status");
+
+  if(!profile || !employee){
+    alert("尚未完成 LINE 登入或員工驗證");
+    return;
+  }
+
+  try{
+    statusBox.innerHTML =
+    "正在取得定位...";
+
+    const location =
+    await getLocation();
+
+    statusBox.innerHTML =
+    "正在送出打卡資料...";
+
+    const res =
+    await fetch(
+      "/api/clock",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          lineUserId: profile.userId,
+          name: employee.name,
+          type: type,
+          latitude: location.latitude,
+          longitude: location.longitude
+        })
+      }
+    );
+
+    const data =
+    await res.json();
+
+    if(!res.ok || data.success === false){
+      statusBox.innerHTML =
+      "<span class='error'>" +
+      (data.message || "打卡失敗") +
+      "</span>";
+      return;
+    }
+
+    const now =
+    new Date().toLocaleString("zh-TW", {
+      timeZone:"Asia/Taipei"
+    });
+
+    statusBox.innerHTML =
+    `
+    <span class="success">✅ ${type}打卡成功</span><br>
+    時間：${now}<br>
+    緯度：${location.latitude}<br>
+    經度：${location.longitude}
+    `;
+
+  }catch(error){
+    console.error(error);
+
+    statusBox.innerHTML =
+    "<span class='error'>" + error + "</span>";
+  }
+}
+
+init();
 </script>
 
 </body>
