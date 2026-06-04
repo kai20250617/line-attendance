@@ -24,25 +24,51 @@ body{
   border-radius:12px;
   box-shadow:0 2px 8px rgba(0,0,0,.1);
 }
-</style>
 
+a,button{
+  display:inline-block;
+  margin-top:15px;
+  padding:12px 20px;
+  border:none;
+  border-radius:8px;
+  background:#4a90e2;
+  color:white;
+  text-decoration:none;
+  font-size:16px;
+}
+</style>
 </head>
 
 <body>
 
-<div class="box">
+<div class="box" id="box">
   <h2>系統登入中...</h2>
   <p>請稍候</p>
 </div>
 
 <script>
-
 const LIFF_ID = "2010241581-YtDxQgWd";
 
+function goCustomer(){
+  location.href = "/customer-menu.html";
+}
+
+function goEmployee(){
+  location.href = "/employee-menu.html";
+}
+
 async function init(){
+  const box = document.getElementById("box");
+
+  const timer = setTimeout(() => {
+    box.innerHTML = `
+      <h2>登入時間較久</h2>
+      <p>若您是客戶，請直接進入客戶專區。</p>
+      <a href="/customer-menu.html">進入客戶專區</a>
+    `;
+  }, 5000);
 
   try{
-
     await liff.init({
       liffId: LIFF_ID
     });
@@ -52,51 +78,35 @@ async function init(){
       return;
     }
 
-    const profile =
-      await liff.getProfile();
+    const profile = await liff.getProfile();
 
-    const res =
-      await fetch(
-        "/api/check-employee/" +
-        profile.userId
-      );
+    const res = await fetch(
+      "/api/check-employee/" + profile.userId
+    );
 
-    const data =
-      await res.json();
+    const data = await res.json();
 
-    if(
-      data.success &&
-      data.isEmployee
-    ){
+    clearTimeout(timer);
 
-      location.href =
-      "/employee-menu.html";
-
+    if(data.success && data.isEmployee){
+      goEmployee();
     }else{
-
-      location.href =
-      "/customer-menu.html";
-
+      goCustomer();
     }
 
   }catch(err){
-
     console.error(err);
+    clearTimeout(timer);
 
-    document.body.innerHTML =
-    `
-    <div class="box">
-      <h2>系統錯誤</h2>
-      <p>請稍後再試</p>
-    </div>
+    box.innerHTML = `
+      <h2>無法完成 LINE 身分判斷</h2>
+      <p>如果您是客戶，請直接進入客戶專區。</p>
+      <a href="/customer-menu.html">進入客戶專區</a>
     `;
-
   }
-
 }
 
 init();
-
 </script>
 
 </body>
