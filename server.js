@@ -1551,7 +1551,55 @@ app.get("/test-line", async (req, res) => {
     message: "測試通知已送出"
   });
 });
+// =========================
+// 判斷是否為員工
+// =========================
 
+app.get("/api/check-employee/:lineUserId", async (req, res) => {
+  try {
+    const lineUserId = req.params.lineUserId;
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM employees
+      WHERE line_user_id = $1
+      AND status = '在職'
+      LIMIT 1
+      `,
+      [lineUserId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        success: true,
+        isEmployee: false,
+        message: "不是員工"
+      });
+    }
+
+    const emp = result.rows[0];
+
+    res.json({
+      success: true,
+      isEmployee: true,
+      employee: {
+        id: emp.id,
+        name: emp.name,
+        department: emp.department,
+        position: emp.position
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "身份檢查失敗"
+    });
+  }
+});
 // =========================
 // 首頁
 // =========================
