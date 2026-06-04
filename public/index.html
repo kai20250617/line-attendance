@@ -3,294 +3,95 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>員工打卡系統</title>
+<title>系統登入中...</title>
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
-
 body{
-    font-family: Arial, sans-serif;
-    text-align:center;
-    padding:30px;
+  font-family:Arial,sans-serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  background:#f5f5f5;
 }
 
-h1{
-    margin-bottom:20px;
+.box{
+  text-align:center;
+  background:white;
+  padding:30px;
+  border-radius:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
 }
-
-button{
-    padding:12px 25px;
-    font-size:18px;
-    margin:10px;
-    cursor:pointer;
-}
-
-.info{
-    margin:10px;
-    font-size:18px;
-}
-
-.success{
-    color:green;
-    font-weight:bold;
-}
-
-.error{
-    color:red;
-}
-
-.location-box{
-    margin-top:15px;
-    padding:15px;
-    border:1px solid #ddd;
-    border-radius:10px;
-    background:#f8f8f8;
-}
-
 </style>
 
 </head>
+
 <body>
 
-<h1>員工打卡系統</h1>
-
-<div class="info" id="employeeName">
-LINE登入中...
+<div class="box">
+  <h2>系統登入中...</h2>
+  <p>請稍候</p>
 </div>
-
-<div class="location-box">
-
-<div id="gpsStatus">
-定位中...
-</div>
-
-<br>
-
-<div id="gpsAccuracy">
-GPS精準度：
-</div>
-
-</div>
-
-<br>
-
-<button onclick="getLocation()">
-重新定位
-</button>
-
-<br><br>
-
-<button onclick="clock('上班')">
-上班打卡
-</button>
-
-<button onclick="clock('下班')">
-下班打卡
-</button>
-
-<p id="status"></p>
 
 <script>
 
 const LIFF_ID = "2010241581-YtDxQgWd";
 
-let profile = null;
-
-let latitude = null;
-let longitude = null;
-let accuracy = null;
-
-let address = "";
-
 async function init(){
 
-    try{
+  try{
 
-        await liff.init({
-            liffId: LIFF_ID
-        });
+    await liff.init({
+      liffId: LIFF_ID
+    });
 
-        if(!liff.isLoggedIn()){
-
-            liff.login();
-            return;
-
-        }
-
-        profile = await liff.getProfile();
-
-        document.getElementById("employeeName").innerHTML =
-        "員工：<b>" + profile.displayName + "</b>";
-
-        getLocation();
-
-    }
-    catch(err){
-
-        console.error(err);
-
-        document.getElementById("status").innerHTML =
-        "<span class='error'>LINE初始化失敗</span>";
-
+    if(!liff.isLoggedIn()){
+      liff.login();
+      return;
     }
 
-}
+    const profile =
+      await liff.getProfile();
 
-function getLocation(){
+    const res =
+      await fetch(
+        "/api/check-employee/" +
+        profile.userId
+      );
 
-    document.getElementById("gpsStatus").innerHTML =
-    "正在取得定位...";
+    const data =
+      await res.json();
 
-    navigator.geolocation.getCurrentPosition(
+    if(
+      data.success &&
+      data.isEmployee
+    ){
 
-        async function(position){
+      location.href =
+      "/employee-menu.html";
 
-            latitude =
-            position.coords.latitude;
+    }else{
 
-            longitude =
-            position.coords.longitude;
-
-            accuracy =
-            position.coords.accuracy;
-
-            await getAddress(latitude, longitude);
-
-            document.getElementById("gpsAccuracy").innerHTML =
-            "GPS精準度：約 " +
-            Math.round(accuracy) +
-            " 公尺";
-
-        },
-
-        function(error){
-
-            document.getElementById("gpsStatus").innerHTML =
-            "<span class='error'>定位失敗，請開啟GPS權限</span>";
-
-            console.log(error);
-
-        },
-
-        {
-            enableHighAccuracy:true,
-            timeout:10000,
-            maximumAge:0
-        }
-
-    );
-
-}
-
-async function getAddress(lat, lng){
-
-    try{
-
-        const response =
-        await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-        );
-
-        const data =
-        await response.json();
-
-        address =
-        data.display_name;
-
-        document.getElementById("gpsStatus").innerHTML =
-        "📍目前位置：<br><br>" +
-        address;
-
-    }
-    catch(error){
-
-        document.getElementById("gpsStatus").innerHTML =
-        "位置解析失敗";
+      location.href =
+      "/customer-menu.html";
 
     }
 
-}
+  }catch(err){
 
-async function clock(type){
+    console.error(err);
 
-    if(!profile){
+    document.body.innerHTML =
+    `
+    <div class="box">
+      <h2>系統錯誤</h2>
+      <p>請稍後再試</p>
+    </div>
+    `;
 
-        alert("LINE尚未登入");
-        return;
-
-    }
-
-    if(latitude === null){
-
-        alert("尚未取得GPS定位");
-        return;
-
-    }
-
-    try{
-
-        const response =
-        await fetch("/api/clock",{
-
-            method:"POST",
-
-            headers:{
-                "Content-Type":"application/json"
-            },
-
-            body:JSON.stringify({
-
-                lineUserId:profile.userId,
-                name:profile.displayName,
-                type:type,
-
-                latitude:latitude,
-                longitude:longitude
-
-            })
-
-        });
-
-        const data =
-        await response.json();
-
-        document.getElementById("status").innerHTML =
-        "<span class='success'>"+
-        data.message+
-        "</span><br><br>" +
-
-        "打卡類型：" +
-        type +
-
-        "<br>" +
-
-        "打卡時間：" +
-        new Date().toLocaleString("zh-TW") +
-
-        "<br><br>" +
-
-        "📍" +
-        address +
-
-        "<br><br>" +
-
-        "<a target='_blank' href='https://maps.google.com/?q="
-        + latitude +
-        "," +
-        longitude +
-        "'>查看Google地圖</a>";
-
-    }
-    catch(error){
-
-        console.error(error);
-
-        document.getElementById("status").innerHTML =
-        "<span class='error'>打卡失敗</span>";
-
-    }
+  }
 
 }
 
