@@ -3,111 +3,60 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>系統登入中...</title>
-
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<title>Aurum House</title>
 
 <style>
 body{
   font-family:Arial,sans-serif;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
   background:#f5f5f5;
+  padding:20px;
+  text-align:center;
 }
 
-.box{
-  text-align:center;
+.card{
   background:white;
-  padding:30px;
+  padding:25px;
   border-radius:12px;
+  max-width:500px;
+  margin:80px auto;
   box-shadow:0 2px 8px rgba(0,0,0,.1);
 }
 
-a,button{
-  display:inline-block;
-  margin-top:15px;
-  padding:12px 20px;
-  border:none;
+a{
+  display:block;
+  padding:16px;
+  margin:12px 0;
   border-radius:8px;
-  background:#4a90e2;
   color:white;
   text-decoration:none;
-  font-size:16px;
+  font-size:20px;
+  font-weight:bold;
+}
+
+.employee{
+  background:#1976d2;
+}
+
+.customer{
+  background:#d4af37;
 }
 </style>
 </head>
 
 <body>
 
-<div class="box" id="box">
-  <h2>系統登入中...</h2>
-  <p>請稍候</p>
+<div class="card">
+  <h1>Aurum House</h1>
+  <p>請選擇身分</p>
+
+  <a class="employee" href="/employee-menu.html">
+    👨‍💼 員工入口
+  </a>
+
+  <a class="customer" href="/customer-menu.html">
+    🛒 客戶入口
+  </a>
 </div>
-
-<script>
-const LIFF_ID = "2010241581-YtDxQgWd";
-
-function goCustomer(){
-  location.href = "/customer-menu.html";
-}
-
-function goEmployee(){
-  location.href = "/employee-menu.html";
-}
-
-async function init(){
-  const box = document.getElementById("box");
-
-  const timer = setTimeout(() => {
-    box.innerHTML = `
-      <h2>登入時間較久</h2>
-      <p>若您是客戶，請直接進入客戶專區。</p>
-      <a href="/customer-menu.html">進入客戶專區</a>
-    `;
-  }, 5000);
-
-  try{
-    await liff.init({
-      liffId: LIFF_ID
-    });
-
-    if(!liff.isLoggedIn()){
-      liff.login();
-      return;
-    }
-
-    const profile = await liff.getProfile();
-
-    const res = await fetch(
-      "/api/check-employee/" + profile.userId
-    );
-
-    const data = await res.json();
-
-    clearTimeout(timer);
-
-    if(data.success && data.isEmployee){
-      goEmployee();
-    }else{
-      goCustomer();
-    }
-
-  }catch(err){
-    console.error(err);
-    clearTimeout(timer);
-
-    box.innerHTML = `
-      <h2>無法完成 LINE 身分判斷</h2>
-      <p>如果您是客戶，請直接進入客戶專區。</p>
-      <a href="/customer-menu.html">進入客戶專區</a>
-    `;
-  }
-}
-
-init();
-</script>
 
 </body>
 </html>
