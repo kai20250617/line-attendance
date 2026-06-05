@@ -243,10 +243,10 @@ CREATE TABLE IF NOT EXISTS settings (
 db.prepare(`
 CREATE TABLE IF NOT EXISTS rules (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  work_start TEXT DEFAULT '08:00',
-  work_end TEXT DEFAULT '17:00',
+  work_start TEXT DEFAULT '09:00',
+  work_end TEXT DEFAULT '16:00',
   break_hours REAL DEFAULT 1,
-  overtime_start TEXT DEFAULT '17:30'
+  overtime_start TEXT DEFAULT '16:30'
 )
 `).run();
 
@@ -265,10 +265,10 @@ if (!rule) {
     )
     VALUES
     (
-      '08:00',
-      '17:00',
+      '09:00',
+      '16:00',
       1,
-      '17:30'
+      '16:30'
     )
   `).run();
 }
@@ -1292,7 +1292,10 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 
     const baseSalary = Number(emp.base_salary || 27000);
     const fixedAllowance = Number(emp.fixed_allowance || 3000);
-    const attendanceBonus = Number(emp.attendance_bonus || 3000);
+    let attendanceBonus = Number(emp.attendance_bonus || 3000);
+
+let lateCount = 0;
+let earlyLeaveCount = 0;
     const performanceBonus = Number(emp.performance_bonus || 0);
 
     let overtimePay = 0;
@@ -1336,21 +1339,63 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
     });
 
     Object.values(dayGroups).forEach(day => {
-      if (day.start && day.end) {
-        const totalHours =
-          (new Date(day.end) - new Date(day.start)) / 1000 / 60 / 60;
 
-        const overtimeHours = Math.max(0, totalHours - 8);
-        const hourlyRate = Number(emp.hourly_wage || 200);
+  if (day.start && day.end) {
 
-        const first2Hours = Math.min(overtimeHours, 2);
-        const after2Hours = Math.max(0, overtimeHours - 2);
+    const startTime = new Date(day.start);
+    const endTime = new Date(day.end);
 
-        overtimePay +=
-          first2Hours * hourlyRate * 1.34 +
-          after2Hours * hourlyRate * 1.67;
-      }
-    });
+    const workStartHour = 9;
+    const workStartMinute = 0;
+
+    const workEndHour = 16;
+    const workEndMinute = 0;
+
+    const startMinutes =
+      startTime.getHours() * 60 +
+      startTime.getMinutes();
+
+    const endMinutes =
+      endTime.getHours() * 60 +
+      endTime.getMinutes();
+
+    const ruleStartMinutes =
+      workStartHour * 60 +
+      workStartMinute;
+
+    const ruleEndMinutes =
+      workEndHour * 60 +
+      workEndMinute;
+
+    if (startMinutes > ruleStartMinutes) {
+      lateCount++;
+    }
+
+    if (endMinutes < ruleEndMinutes) {
+      earlyLeaveCount++;
+    }
+
+    const totalHours =
+      (endTime - startTime) / 1000 / 60 / 60;
+
+    const overtimeHours =
+      Math.max(0, totalHours - 6);
+
+    const hourlyRate =
+      Number(emp.hourly_wage || 200);
+
+    const first2Hours =
+      Math.min(overtimeHours, 2);
+
+    const after2Hours =
+      Math.max(0, overtimeHours - 2);
+
+    overtimePay +=
+      first2Hours * hourlyRate * 1.34 +
+      after2Hours * hourlyRate * 1.67;
+  }
+
+});
 
     overtimePay = Math.round(overtimePay);
 
@@ -1391,6 +1436,18 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 
     leaveDeduction = Math.round(leaveDeduction);
 
+    // =========================
+// 全勤獎金判斷
+// =========================
+
+if (
+  lateCount > 0 ||
+  earlyLeaveCount > 0 ||
+  leaveDeduction > 0
+) {
+  attendanceBonus = 0;
+}
+
     const grossSalary =
       baseSalary +
       fixedAllowance +
@@ -1409,23 +1466,31 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
       healthInsurance;
 
     res.json({
-      success:true,
-      id: emp.id,
-      name: emp.name,
-      department: emp.department,
-      position: emp.position,
-      baseSalary,
-      fixedAllowance,
-      attendanceBonus,
-      performanceBonus,
-      overtimePay,
-      leaveDeduction,
-      grossSalary,
-      laborInsurance,
-      healthInsurance,
-      laborPension,
-      netSalary
-    });
+  success:true,
+  id: emp.id,
+  name: emp.name,
+  department: emp.department,
+  position: emp.position,
+
+  lateCount,
+  earlyLeaveCount,
+
+  baseSalary,
+  fixedAllowance,
+  attendanceBonus,
+  performanceBonus,
+
+  overtimePay,
+  leaveDeduction,
+
+  grossSalary,
+
+  laborInsurance,
+  healthInsurance,
+  laborPension,
+
+  netSalary
+});
 
   } catch (err) {
     console.error(err);
@@ -1435,164 +1500,7 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
     });
   }
 });
-// =========================
-// 補打卡申請
-// =========================
 
-app.post("/api/clock-request", async (req, res) => {
-  try {
-    const {
-      lineUserId,
-      name,
-      clockType,
-      clockTime,
-      reason
-    } = req.body;
-
-    if (!lineUserId || !name || !clockType || !clockTime || !reason) {
-      return res.status(400).json({
-        success:false,
-        message:"資料不完整"
-      });
-    }
-
-    await pool.query(
-      `
-      INSERT INTO clock_requests
-      (line_user_id, name, clock_type, clock_time, reason, status, created_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
-      `,
-      [
-        lineUserId,
-        name,
-        clockType,
-        clockTime,
-        reason,
-        "待審核",
-        new Date().toISOString()
-      ]
-    );
-
-    await pushLineMessage(
-      MANAGER_LINE_USER_ID,
-`🕒 新補打卡申請
-
-員工：${name}
-類型：${clockType}
-時間：${clockTime}
-
-原因：
-${reason}
-
-請至後台審核：
-https://line-attendance-blt1.onrender.com/clock-request-admin.html`
-    );
-
-    res.json({
-      success:true,
-      message:"補打卡申請已送出"
-    });
-
-  } catch(err) {
-    console.error(err);
-    res.status(500).json({
-      success:false,
-      message:"補打卡申請失敗"
-    });
-  }
-});
-
-
-// =========================
-// 讀取補打卡申請
-// =========================
-
-app.get("/api/clock-requests", async (req, res) => {
-  try {
-    const result = await pool.query(
-      "SELECT * FROM clock_requests ORDER BY id DESC"
-    );
-
-    res.json(result.rows);
-
-  } catch(err) {
-    console.error(err);
-    res.status(500).json({
-      success:false,
-      message:"讀取補打卡申請失敗"
-    });
-  }
-});
-
-
-// =========================
-// 審核補打卡
-// =========================
-
-app.post("/api/clock-request/status", async (req, res) => {
-  try {
-    const { id, status } = req.body;
-
-    const requestResult = await pool.query(
-      "SELECT * FROM clock_requests WHERE id = $1",
-      [id]
-    );
-
-    if (requestResult.rows.length === 0) {
-      return res.status(404).json({
-        success:false,
-        message:"找不到補打卡申請"
-      });
-    }
-
-    const request = requestResult.rows[0];
-
-    await pool.query(
-      "UPDATE clock_requests SET status = $1 WHERE id = $2",
-      [status, id]
-    );
-
-    if (status === "已核准" || status === "核准") {
-      await pool.query(
-        `
-        INSERT INTO attendance
-        (line_user_id, name, type, clock_time, latitude, longitude)
-        VALUES ($1,$2,$3,$4,$5,$6)
-        `,
-        [
-          request.line_user_id,
-          request.name,
-          request.clock_type,
-          request.clock_time,
-          null,
-          null
-        ]
-      );
-    }
-
-    await pushLineMessage(
-      request.line_user_id,
-`📢 補打卡審核結果
-
-類型：${request.clock_type}
-時間：${request.clock_time}
-
-狀態：${status}`
-    );
-
-    res.json({
-      success:true,
-      message:"補打卡狀態已更新"
-    });
-
-  } catch(err) {
-    console.error(err);
-    res.status(500).json({
-      success:false,
-      message:"補打卡審核失敗"
-    });
-  }
-});
 app.listen(PORT, () => {
   console.log("Server Running");
   console.log(`Port: ${PORT}`);
