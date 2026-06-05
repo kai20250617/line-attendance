@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const PDFDocument = require("pdfkit");
 const express = require("express");
 const { Pool } = require("pg");
@@ -1528,7 +1530,18 @@ app.get("/api/payslip/:id", async (req, res) => {
       size: "A4",
       margin: 50
     });
+const fontPath = path.join(
+  __dirname,
+  "public",
+  "fonts",
+  "NotoSansTC-Regular.ttf"
+);
 
+if (fs.existsSync(fontPath)) {
+  doc.font(fontPath);
+} else {
+  console.log("找不到中文字型：", fontPath);
+}
     const filename =
       `payslip_${emp.name}.pdf`;
 
