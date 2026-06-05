@@ -1721,7 +1721,3 @@ app.listen(PORT, () => {
   console.log(`Port: ${PORT}`);
 });
 
-app.listen(PORT, () => {
-  console.log("Server Running");
-  console.log(`Port: ${PORT}`);
-});
