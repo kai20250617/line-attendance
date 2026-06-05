@@ -677,3 +677,30 @@ app.post("/api/clock", async (req, res) => {
     await pushLineMessage(
 
       MANAGER_LINE_USER_ID,
+      `📍 員工打卡通知
+
+員工：${name}
+
+類型：${type}
+
+時間：${timeText}
+
+距離公司：
+${distance === null ? "未啟用GPS限制" : Math.round(distance) + " 公尺"}`
+    );
+
+    res.json({
+      success: true,
+      message: "打卡成功",
+      time: now
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "打卡失敗，請稍後再試"
+    });
+  }
+});
