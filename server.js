@@ -1223,6 +1223,200 @@ app.get("/api/check-employee/:lineUserId", async (req, res) => {
     });
   }
 });
+app.get("/api/my-worktime/:lineUserId", async (req, res) => {
+  try {
+    const lineUserId = req.params.lineUserId;
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM attendance
+      WHERE line_user_id = $1
+      ORDER BY clock_time ASC
+      `,
+      [lineUserId]
+    );
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success:false,
+      message:"讀取工時失敗"
+    });
+  }
+});
+
+app.get("/api/my-salary/:lineUserId", async (req, res) => {
+  try {
+    const lineUserId = req.params.lineUserId;
+
+    const empResult = await pool.query(
+      `
+      SELECT *
+      FROM employees
+      WHERE line_user_id = $1
+      AND status = '在職'
+      LIMIT 1
+      `,
+      [lineUserId]
+    );
+
+    if (empResult.rows.length === 0) {
+      return res.status(404).json({
+        success:false,
+        message:"找不到員工資料"
+      });
+    }
+
+    const emp = empResult.rows[0];
+
+    const baseSalary = Number(emp.base_salary || 27000);
+    const fixedAllowance = Number(emp.fixed_allowance || 3000);
+    const attendanceBonus = Number(emp.attendance_bonus || 3000);
+    const performanceBonus = Number(emp.performance_bonus || 0);
+
+    let overtimePay = 0;
+    let leaveDeduction = 0;
+
+    const attendanceResult = await pool.query(
+      `
+      SELECT *
+      FROM attendance
+      WHERE line_user_id = $1
+      ORDER BY clock_time ASC
+      `,
+      [lineUserId]
+    );
+
+    const dayGroups = {};
+
+    attendanceResult.rows.forEach(item => {
+      const date = new Date(item.clock_time).toLocaleDateString("zh-TW", {
+        timeZone:"Asia/Taipei"
+      });
+
+      if (!dayGroups[date]) {
+        dayGroups[date] = {
+          start:null,
+          end:null
+        };
+      }
+
+      if (item.type === "上班") {
+        if (!dayGroups[date].start || new Date(item.clock_time) < new Date(dayGroups[date].start)) {
+          dayGroups[date].start = item.clock_time;
+        }
+      }
+
+      if (item.type === "下班") {
+        if (!dayGroups[date].end || new Date(item.clock_time) > new Date(dayGroups[date].end)) {
+          dayGroups[date].end = item.clock_time;
+        }
+      }
+    });
+
+    Object.values(dayGroups).forEach(day => {
+      if (day.start && day.end) {
+        const totalHours =
+          (new Date(day.end) - new Date(day.start)) / 1000 / 60 / 60;
+
+        const overtimeHours = Math.max(0, totalHours - 8);
+        const hourlyRate = Number(emp.hourly_wage || 200);
+
+        const first2Hours = Math.min(overtimeHours, 2);
+        const after2Hours = Math.max(0, overtimeHours - 2);
+
+        overtimePay +=
+          first2Hours * hourlyRate * 1.34 +
+          after2Hours * hourlyRate * 1.67;
+      }
+    });
+
+    overtimePay = Math.round(overtimePay);
+
+    const leavesResult = await pool.query(
+      `
+      SELECT *
+      FROM leaves
+      WHERE line_user_id = $1
+      AND (status = '已核准' OR status = '核准')
+      `,
+      [lineUserId]
+    );
+
+    const dailySalary = baseSalary / 30;
+
+    leavesResult.rows.forEach(leave => {
+      const start = new Date(leave.start_date);
+      const end = new Date(leave.end_date);
+
+      const days =
+        Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+      switch (leave.leave_type) {
+        case "事假":
+          leaveDeduction += dailySalary * days;
+          break;
+        case "病假":
+          leaveDeduction += dailySalary * 0.5 * days;
+          break;
+        case "曠職":
+          leaveDeduction += dailySalary * days;
+          break;
+        case "特休":
+        case "公假":
+          break;
+      }
+    });
+
+    leaveDeduction = Math.round(leaveDeduction);
+
+    const grossSalary =
+      baseSalary +
+      fixedAllowance +
+      attendanceBonus +
+      performanceBonus +
+      overtimePay -
+      leaveDeduction;
+
+    const laborInsurance = Math.round(grossSalary * 0.02);
+    const healthInsurance = Math.round(grossSalary * 0.015);
+    const laborPension = Math.round(grossSalary * 0.06);
+
+    const netSalary =
+      grossSalary -
+      laborInsurance -
+      healthInsurance;
+
+    res.json({
+      success:true,
+      id: emp.id,
+      name: emp.name,
+      department: emp.department,
+      position: emp.position,
+      baseSalary,
+      fixedAllowance,
+      attendanceBonus,
+      performanceBonus,
+      overtimePay,
+      leaveDeduction,
+      grossSalary,
+      laborInsurance,
+      healthInsurance,
+      laborPension,
+      netSalary
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success:false,
+      message:"讀取薪資失敗"
+    });
+  }
+});
 app.listen(PORT, () => {
   console.log("Server Running");
   console.log(`Port: ${PORT}`);
