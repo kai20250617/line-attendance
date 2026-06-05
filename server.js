@@ -656,33 +656,25 @@ app.post("/api/clock", async (req, res) => {
 
     );
 
-    const timeText = getTaiwanTimeString(now);
+        const timeText = getTaiwanTimeString(now);
 
     await pushLineMessage(
-
       lineUserId,
-
 `✅ 打卡成功
 
 員工：${name}
-
 類型：${type}
-
 時間：${timeText}
 
 狀態：已完成打卡`
-
     );
 
     await pushLineMessage(
-
       MANAGER_LINE_USER_ID,
-      `📍 員工打卡通知
+`📍 員工打卡通知
 
 員工：${name}
-
 類型：${type}
-
 時間：${timeText}
 
 距離公司：
