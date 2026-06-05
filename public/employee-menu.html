@@ -96,13 +96,17 @@ async function init(){
         profile.userId
       );
 
-    const data = await res.json();
+    const data =
+      await res.json();
 
-if(!data.exists){
-  location.href =
-  "https://line-attendance-blt1.onrender.com/customer-menu.html";
-  return;
-}
+    if(!data.exists){
+
+      location.href =
+      "https://line-attendance-blt1.onrender.com/customer-menu.html";
+
+      return;
+    }
+
     box.innerHTML = `
       <h2>${data.employee.name}</h2>
 
@@ -137,6 +141,10 @@ if(!data.exists){
            href="https://line-attendance-blt1.onrender.com/my-salary.html">
           💰 我的薪資
         </a>
+
+        <a class="orange" href="https://line-attendance-blt1.onrender.com/clock-request.html">
+  🕒 補打卡
+</a>
 
         <a class="gray"
            href="https://line-attendance-blt1.onrender.com/bind.html">

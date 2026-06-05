@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>補打卡申請</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+body{
+  font-family:Arial,sans-serif;
+  background:#f5f5f5;
+  padding:20px;
+}
+
+.card{
+  background:white;
+  max-width:500px;
+  margin:auto;
+  padding:25px;
+  border-radius:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+h1{
+  text-align:center;
+}
+
+input,select,textarea{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  margin-bottom:15px;
+  border:1px solid #ccc;
+  border-radius:8px;
+  box-sizing:border-box;
+}
+
+button{
+  width:100%;
+  background:#ff9800;
+  color:white;
+  border:none;
+  padding:15px;
+  border-radius:8px;
+  font-size:18px;
+}
+
+.result{
+  text-align:center;
+  margin-top:15px;
+  font-weight:bold;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<h1>🕒 補打卡申請</h1>
+
+<label>補打卡類型</label>
+
+<select id="clockType">
+  <option value="上班">上班</option>
+  <option value="下班">下班</option>
+</select>
+
+<label>補打卡時間</label>
+
+<input type="datetime-local" id="clockTime">
+
+<label>原因</label>
+
+<textarea
+id="reason"
+rows="4"
+placeholder="請輸入補打卡原因"></textarea>
+
+<button onclick="submitRequest()">
+送出申請
+</button>
+
+<div id="result" class="result"></div>
+
+</div>
+
+<script>
+
+const LIFF_ID = "2010241581-YtDxQgWd";
+
+async function submitRequest(){
+
+  try{
+
+    await liff.init({
+      liffId: LIFF_ID
+    });
+
+    const profile =
+    await liff.getProfile();
+
+    const empRes =
+    await fetch(
+      "/api/check-employee/" +
+      profile.userId
+    );
+
+    const empData =
+    await empRes.json();
+
+    if(!empData.isEmployee){
+      alert("非員工無法使用");
+      return;
+    }
+
+    const clockType =
+    document.getElementById("clockType").value;
+
+    const clockTime =
+    document.getElementById("clockTime").value;
+
+    const reason =
+    document.getElementById("reason").value;
+
+    const response =
+    await fetch(
+      "/api/clock-request",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          lineUserId:profile.userId,
+          name:empData.employee.name,
+          clockType,
+          clockTime,
+          reason
+        })
+      }
+    );
+
+    const result =
+    await response.json();
+
+    document.getElementById("result")
+    .innerHTML = result.message;
+
+  }catch(err){
+
+    console.error(err);
+
+    document.getElementById("result")
+    .innerHTML = "送出失敗";
+
+  }
+
+}
+</script>
+
+</body>
+</html>
