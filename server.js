@@ -50,7 +50,18 @@ async function createTables() {
       created_at TEXT
     )
   `);
-
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS clock_requests (
+      id SERIAL PRIMARY KEY,
+      line_user_id TEXT,
+      name TEXT,
+      clock_type TEXT,
+      clock_time TEXT,
+      reason TEXT,
+      status TEXT DEFAULT '待審核',
+      created_at TEXT
+    )
+  `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS settings (
       id SERIAL PRIMARY KEY,
@@ -306,8 +317,67 @@ app.post("/api/clock", async (req, res) => {
 
   try {
 
-    const today =
-    getTaiwanDateString();
+  const today =
+  getTaiwanDateString();
+
+  // =========================
+  // 打卡時間限制
+  // =========================
+
+  const taipeiNow = new Date(
+    new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Taipei"
+    })
+  );
+
+  const currentHour =
+  taipeiNow.getHours();
+
+  if (currentHour < 8) {
+    return res.status(403).json({
+      success:false,
+      message:"08:00後才能打卡"
+    });
+  }
+
+  // =========================
+  // 今日請假禁止打卡
+  // =========================
+
+  const leaveResult =
+  await pool.query(
+    `
+    SELECT *
+    FROM leaves
+    WHERE line_user_id = $1
+    AND (
+      status = '已核准'
+      OR
+      status = '核准'
+    )
+    `,
+    [lineUserId]
+  );
+
+  const todayISO =
+  taipeiNow.toISOString().split("T")[0];
+
+  for (const leave of leaveResult.rows) {
+
+    if (
+      todayISO >= leave.start_date &&
+      todayISO <= leave.end_date
+    ) {
+      return res.status(403).json({
+        success:false,
+        message:
+        "今日已請假（" +
+        leave.leave_type +
+        "），無法打卡"
+      });
+    }
+
+  }
 
     const recordsResult =
     await pool.query(
@@ -744,26 +814,7 @@ app.get("/api/employees", async (req, res) => {
       message: "讀取員工資料失敗"
     });
   }
-}); async (req, res) => {
-  try {
-
-    const result = await pool.query(
-      "SELECT * FROM employees ORDER BY id DESC"
-    );
-
-    res.json(result.rows);
-
-  } catch(err) {
-
-    console.error(err);
-
-    res.status(500).json({
-      success:false,
-      message:"讀取員工資料失敗"
-    });
-
-  }
-};
+}); 
 
 app.post("/api/employees/status", async (req, res) => {
   const { id, status } = req.body;
