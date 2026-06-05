@@ -1192,7 +1192,37 @@ app.get("/", (req, res) => {
 
 const PORT =
 process.env.PORT || 3000;
+app.get("/api/check-employee/:lineUserId", async (req, res) => {
+  try {
+    const { lineUserId } = req.params;
 
+    const result = await pool.query(
+      `SELECT * FROM employees WHERE line_user_id = $1 AND status = '在職'`,
+      [lineUserId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        success: false,
+        exists: false,
+        message: "查無此員工，請先綁定或聯絡管理員"
+      });
+    }
+
+    res.json({
+      success: true,
+      exists: true,
+      employee: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error("check employee error:", err);
+    res.status(500).json({
+      success: false,
+      message: "檢查員工失敗"
+    });
+  }
+});
 app.listen(PORT, () => {
   console.log("Server Running");
   console.log(`Port: ${PORT}`);
