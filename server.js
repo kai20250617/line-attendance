@@ -244,9 +244,9 @@ db.prepare(`
 CREATE TABLE IF NOT EXISTS rules (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   work_start TEXT DEFAULT '09:00',
-  work_end TEXT DEFAULT '16:00',
+  work_end TEXT DEFAULT '18:00',
   break_hours REAL DEFAULT 1,
-  overtime_start TEXT DEFAULT '16:30'
+  overtime_start TEXT DEFAULT '18:30'
 )
 `).run();
 
@@ -266,9 +266,9 @@ if (!rule) {
     VALUES
     (
       '09:00',
-      '16:00',
+      '18:00',
       1,
-      '16:30'
+      '18:30'
     )
   `).run();
 }
