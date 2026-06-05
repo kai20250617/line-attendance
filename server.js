@@ -78,7 +78,17 @@ async function createTables() {
       gps_radius REAL DEFAULT 300
     )
   `);
-
+await pool.query(`
+CREATE TABLE IF NOT EXISTS salary_history (
+  id SERIAL PRIMARY KEY,
+  employee_id INTEGER,
+  employee_name TEXT,
+  salary_month TEXT,
+  gross_salary REAL,
+  net_salary REAL,
+  created_at TIMESTAMP DEFAULT NOW()
+)
+`);
   console.log("✅ PostgreSQL Tables Ready");
 }
 
@@ -1611,6 +1621,106 @@ if (fs.existsSync(fontPath)) {
     res.status(500).send("薪資單產生失敗：" + err.message);
   }
 });
+
+// =========================
+// 月結薪資
+// =========================
+
+app.post("/api/salary-close", async (req, res) => {
+
+  try {
+
+    const employees = await pool.query(
+      "SELECT * FROM employees WHERE status='在職'"
+    );
+
+    for(const emp of employees.rows){
+
+      const grossSalary =
+        Number(emp.base_salary || 27000) +
+        Number(emp.fixed_allowance || 3000) +
+        Number(emp.attendance_bonus || 0) +
+        Number(emp.performance_bonus || 0);
+
+      const laborInsurance =
+        Math.round(grossSalary * 0.02);
+
+      const healthInsurance =
+        Math.round(grossSalary * 0.015);
+
+      const netSalary =
+        grossSalary -
+        laborInsurance -
+        healthInsurance;
+
+      await pool.query(
+        `
+        INSERT INTO salary_history
+        (
+          employee_id,
+          employee_name,
+          salary_month,
+          gross_salary,
+          net_salary
+        )
+        VALUES
+        ($1,$2,$3,$4,$5)
+        `,
+        [
+          emp.id,
+          emp.name,
+          new Date().toISOString().slice(0,7),
+          grossSalary,
+          netSalary
+        ]
+      );
+
+      if(emp.line_user_id){
+
+        await pushLineMessage(
+          emp.line_user_id,
+`💰 薪資結算通知
+
+員工：${emp.name}
+
+實發薪資：
+NT$${netSalary.toLocaleString("zh-TW")}
+
+請至系統查看薪資單`
+        );
+
+      }
+
+    }
+
+    res.json({
+      success:true,
+      message:"薪資結算完成"
+    });
+
+  } catch(err){
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"薪資結算失敗"
+    });
+
+  }
+
+});
+
+
+// =========================
+// 啟動伺服器
+// =========================
+
+app.listen(PORT, () => {
+  console.log("Server Running");
+  console.log(`Port: ${PORT}`);
+});
+
 app.listen(PORT, () => {
   console.log("Server Running");
   console.log(`Port: ${PORT}`);
