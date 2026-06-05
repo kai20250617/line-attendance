@@ -98,7 +98,6 @@ process.env.LINE_CHANNEL_ACCESS_TOKEN;
 const MANAGER_LINE_USER_ID =
 process.env.MANAGER_LINE_USER_ID;
 
-const app = express();
 
 app.use(cors());
 app.use(express.json());
