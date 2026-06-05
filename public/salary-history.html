@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>薪資歷史</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
+h1{text-align:center;}
+.top{text-align:center;margin-bottom:20px;}
+a{display:inline-block;background:#222;color:white;padding:12px 20px;border-radius:8px;text-decoration:none;}
+table{width:100%;border-collapse:collapse;background:white;}
+th{background:#222;color:white;padding:12px;}
+td{border:1px solid #ddd;padding:10px;text-align:center;}
+</style>
+</head>
+<body>
+
+<h1>📄 薪資歷史</h1>
+
+<div class="top">
+  <a href="/dashboard.html">返回後台</a>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>月份</th>
+  <th>員工</th>
+  <th>應發薪資</th>
+  <th>實發薪資</th>
+  <th>結算時間</th>
+</tr>
+</thead>
+<tbody id="tbody">
+<tr><td colspan="5">讀取中...</td></tr>
+</tbody>
+</table>
+
+<script>
+if(localStorage.getItem("adminLogin") !== "yes"){
+  window.location.href = "/login.html";
+}
+
+async function loadHistory(){
+  const tbody = document.getElementById("tbody");
+
+  try{
+    const res = await fetch("/api/salary-history");
+    const data = await res.json();
+
+    if(!Array.isArray(data) || data.length === 0){
+      tbody.innerHTML = "<tr><td colspan='5'>目前沒有薪資歷史</td></tr>";
+      return;
+    }
+
+    tbody.innerHTML = "";
+
+    data.forEach(item=>{
+      tbody.innerHTML += `
+        <tr>
+          <td>${item.salary_month || "-"}</td>
+          <td>${item.employee_name || "-"}</td>
+          <td>NT$${Number(item.gross_salary || 0).toLocaleString("zh-TW")}</td>
+          <td>NT$${Number(item.net_salary || 0).toLocaleString("zh-TW")}</td>
+          <td>${item.created_at ? new Date(item.created_at).toLocaleString("zh-TW") : "-"}</td>
+        </tr>
+      `;
+    });
+
+  }catch(error){
+    console.error(error);
+    tbody.innerHTML = "<tr><td colspan='5'>讀取失敗</td></tr>";
+  }
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>

@@ -1710,8 +1710,26 @@ NT$${netSalary.toLocaleString("zh-TW")}
   }
 
 });
+// =========================
+// 月結薪資
+// =========================
+app.get("/api/salary-history", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM salary_history ORDER BY id DESC"
+    );
 
+    res.json(result.rows);
 
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取薪資歷史失敗"
+    });
+  }
+});
 // =========================
 // 啟動伺服器
 // =========================
