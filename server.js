@@ -91,7 +91,6 @@ pool.connect()
   console.error("❌ PostgreSQL Error:", err);
 });
 const Database = require("better-sqlite3");
-const cors = require("cors");
 
 const LINE_CHANNEL_ACCESS_TOKEN =
 process.env.LINE_CHANNEL_ACCESS_TOKEN;
