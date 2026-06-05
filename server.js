@@ -680,3 +680,10 @@ await pushLineMessage(
 距離公司：
 ${distance === null ? "未啟用GPS限制" : Math.round(distance) + " 公尺"}`
 );
+
+res.json({
+  success: true,
+  message: "打卡成功",
+  time: now
+});
+``
