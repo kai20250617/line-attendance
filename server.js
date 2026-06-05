@@ -339,7 +339,61 @@ app.get("/api/attendance", async (req, res) => {
     });
   }
 });
+// =========================
+// 打卡時間限制
+// 08:00 ~ 24:00
+// =========================
 
+const taipeiNow = new Date(
+  new Date().toLocaleString("en-US", {
+    timeZone: "Asia/Taipei"
+  })
+);
+
+const currentHour = taipeiNow.getHours();
+
+if (currentHour < 8) {
+  return res.status(403).json({
+    success: false,
+    message: "打卡時間未開始（08:00後才能打卡）"
+  });
+}
+// =========================
+// 今日請假禁止打卡
+// =========================
+
+const leaveResult = await pool.query(
+  `
+  SELECT *
+  FROM leaves
+  WHERE line_user_id = $1
+  AND (status = '已核准' OR status = '核准')
+  `,
+  [lineUserId]
+);
+
+const todayDate = new Date(
+  taipeiNow.toLocaleDateString("en-CA")
+);
+
+for (const leave of leaveResult.rows) {
+
+  const start = new Date(leave.start_date);
+  const end = new Date(leave.end_date);
+
+  if (
+    todayDate >= start &&
+    todayDate <= end
+  ) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "您今日已請假（" +
+        leave.leave_type +
+        "），無法打卡"
+    });
+  }
+}
 // =========================
 // 請假
 // =========================
