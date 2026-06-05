@@ -1635,6 +1635,24 @@ app.post("/api/salary-close", async (req, res) => {
     const salaryMonth = new Date().toISOString().slice(0, 7);
 
     for (const emp of employees.rows) {
+
+      const exists = await pool.query(
+`
+SELECT *
+FROM salary_history
+WHERE employee_id = $1
+AND salary_month = $2
+`,
+[
+  emp.id,
+  salaryMonth
+]
+);
+
+if (exists.rows.length > 0) {
+  continue;
+}
+
       if (!emp.line_user_id) {
         continue;
       }
