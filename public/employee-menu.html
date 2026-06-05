@@ -14,11 +14,6 @@ body{
   padding:20px;
   text-align:center;
 }
-
-h1{
-  margin-bottom:10px;
-}
-
 .card{
   background:white;
   border-radius:12px;
@@ -27,35 +22,46 @@ h1{
   margin:20px auto;
   box-shadow:0 2px 8px rgba(0,0,0,.1);
 }
-
+.stats{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin:15px 0;
+}
+.stat{
+  background:#f1f5f9;
+  border-radius:10px;
+  padding:12px;
+}
+.stat strong{
+  display:block;
+  font-size:20px;
+  color:#0d47a1;
+  margin-top:5px;
+}
 .grid{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:12px;
   margin-top:20px;
 }
-
 a{
   display:block;
-  padding:18px 10px;
+  padding:16px 10px;
   border-radius:10px;
   background:#4a90e2;
   color:white;
   text-decoration:none;
-  font-size:20px;
+  font-size:18px;
   font-weight:bold;
 }
-
 .green{background:#2e7d32;}
 .orange{background:#f57c00;}
 .purple{background:#6a1b9a;}
 .teal{background:#00897b;}
 .gray{background:#455a64;}
-
-.error{
-  color:red;
-  font-weight:bold;
-}
+.red{background:#c62828;}
+.error{color:red;font-weight:bold;}
 </style>
 </head>
 
@@ -68,105 +74,127 @@ a{
 </div>
 
 <script>
-
 const LIFF_ID = "2010241581-YtDxQgWd";
 
 async function init(){
-
-  const box =
-    document.getElementById("box");
+  const box = document.getElementById("box");
 
   try{
-
-    await liff.init({
-      liffId: LIFF_ID
-    });
+    await liff.init({ liffId: LIFF_ID });
 
     if(!liff.isLoggedIn()){
       liff.login();
       return;
     }
 
-    const profile =
-      await liff.getProfile();
+    const profile = await liff.getProfile();
 
-    const res =
-      await fetch(
-        "https://line-attendance-blt1.onrender.com/api/check-employee/" +
-        profile.userId
-      );
+    const empRes = await fetch("/api/check-employee/" + profile.userId);
+    const empData = await empRes.json();
 
-    const data =
-      await res.json();
-
-    if(!data.exists){
-
-      location.href =
-      "https://line-attendance-blt1.onrender.com/customer-menu.html";
-
+    if(!empData.isEmployee){
+      location.href = "/customer-menu.html";
       return;
     }
 
-    box.innerHTML = `
-      <h2>${data.employee.name}</h2>
+    const salaryRes = await fetch("/api/my-salary/" + profile.userId);
+    const salary = await salaryRes.json();
 
-      <p>
-        ${data.employee.department || "-"}
-        /
-        ${data.employee.position || "-"}
-      </p>
+    const workRes = await fetch("/api/my-worktime/" + profile.userId);
+    const workData = await workRes.json();
+
+    let totalHours = 0;
+
+    if(Array.isArray(workData)){
+      const groups = {};
+
+      workData.forEach(item=>{
+        const date = new Date(item.clock_time).toLocaleDateString("zh-TW", {
+          timeZone:"Asia/Taipei"
+        });
+
+        if(!groups[date]){
+          groups[date] = {
+            start:null,
+            end:null
+          };
+        }
+
+        if(item.type === "上班"){
+          if(!groups[date].start || new Date(item.clock_time) < new Date(groups[date].start)){
+            groups[date].start = item.clock_time;
+          }
+        }
+
+        if(item.type === "下班"){
+          if(!groups[date].end || new Date(item.clock_time) > new Date(groups[date].end)){
+            groups[date].end = item.clock_time;
+          }
+        }
+      });
+
+      Object.values(groups).forEach(day=>{
+        if(day.start && day.end){
+          totalHours +=
+          (new Date(day.end) - new Date(day.start)) / 1000 / 60 / 60;
+        }
+      });
+    }
+
+    const leaveDays =
+      Number(salary.leaveDeduction || 0) > 0
+      ? Math.round(Number(salary.leaveDeduction || 0) / (Number(salary.baseSalary || 27000) / 30))
+      : 0;
+
+    const attendanceStatus =
+      Number(salary.attendanceBonus || 0) > 0
+      ? "✅ 符合"
+      : "❌ 不符合";
+
+    box.innerHTML = `
+      <h2>${empData.employee.name}</h2>
+      <p>${empData.employee.department || "-"} / ${empData.employee.position || "-"}</p>
+
+      <div class="stats">
+        <div class="stat">
+          本月工時
+          <strong>${totalHours.toFixed(1)} 小時</strong>
+        </div>
+
+        <div class="stat">
+          預估薪資
+          <strong>NT$${Number(salary.netSalary || 0).toLocaleString("zh-TW")}</strong>
+        </div>
+
+        <div class="stat">
+          本月請假
+          <strong>${leaveDays} 天</strong>
+        </div>
+
+        <div class="stat">
+          全勤資格
+          <strong>${attendanceStatus}</strong>
+        </div>
+      </div>
 
       <div class="grid">
-
-        <a href="https://line-attendance-blt1.onrender.com/attendance.html">
-          🕒 我要打卡
-        </a>
-
-        <a class="green"
-           href="https://line-attendance-blt1.onrender.com/leave.html">
-          📝 我要請假
-        </a>
-
-        <a class="purple"
-           href="https://line-attendance-blt1.onrender.com/my-leave.html">
-          📋 請假紀錄
-        </a>
-
-        <a class="teal"
-           href="https://line-attendance-blt1.onrender.com/worktime.html">
-          ⏰ 我的工時
-        </a>
-
-        <a class="orange"
-           href="https://line-attendance-blt1.onrender.com/my-salary.html">
-          💰 我的薪資
-        </a>
-
-        <a class="orange" href="https://line-attendance-blt1.onrender.com/clock-request.html">
-  🕒 補打卡
-</a>
-
-        <a class="gray"
-           href="https://line-attendance-blt1.onrender.com/bind.html">
-          🔗 LINE綁定
-        </a>
-
+        <a href="/attendance.html">🕒 我要打卡</a>
+        <a class="green" href="/leave.html">📝 我要請假</a>
+        <a class="orange" href="/clock-request.html">🕒 補打卡</a>
+        <a class="purple" href="/my-leave.html">📋 請假紀錄</a>
+        <a class="teal" href="/worktime.html">⏰ 我的工時</a>
+        <a class="gray" href="/my-salary.html">💰 我的薪資</a>
       </div>
     `;
 
   }catch(err){
-
     console.error(err);
-
     box.innerHTML =
     "<div class='error'>讀取失敗，請稍後再試</div>";
-
   }
-
 }
 
 init();
-
 </script>
 
 </body>
