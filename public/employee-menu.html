@@ -96,17 +96,13 @@ async function init(){
         profile.userId
       );
 
-    const data =
-      await res.json();
+    const data = await res.json();
 
-    if(!data.isEmployee){
-
-      location.href =
-      "https://line-attendance-blt1.onrender.com/customer-menu.html";
-
-      return;
-    }
-
+if(!data.exists){
+  location.href =
+  "https://line-attendance-blt1.onrender.com/customer-menu.html";
+  return;
+}
     box.innerHTML = `
       <h2>${data.employee.name}</h2>
 
