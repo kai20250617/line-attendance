@@ -1,3 +1,4 @@
+const PDFDocument = require("pdfkit");
 const express = require("express");
 const { Pool } = require("pg");
 
@@ -1498,7 +1499,104 @@ if (
     });
   }
 });
+app.get("/api/payslip/:id", async (req, res) => {
+  try {
+    const employeeId = req.params.id;
 
+    const empResult = await pool.query(
+      "SELECT * FROM employees WHERE id = $1",
+      [employeeId]
+    );
+
+    if (empResult.rows.length === 0) {
+      return res.status(404).send("找不到員工");
+    }
+
+    const emp = empResult.rows[0];
+
+    const salaryRes = await fetch(
+      `https://line-attendance-blt1.onrender.com/api/my-salary/${emp.line_user_id}`
+    );
+
+    const salary = await salaryRes.json();
+
+    if (!salary.success) {
+      return res.status(500).send("薪資資料讀取失敗");
+    }
+
+    const doc = new PDFDocument({
+      size: "A4",
+      margin: 50
+    });
+
+    const filename =
+      `payslip_${emp.name}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(filename)}"`
+    );
+
+    doc.pipe(res);
+
+    doc.fontSize(22).text("薪資單", {
+      align: "center"
+    });
+
+    doc.moveDown();
+
+    doc.fontSize(12);
+    doc.text(`員工姓名：${salary.name}`);
+    doc.text(`部門：${salary.department || "-"}`);
+    doc.text(`職稱：${salary.position || "-"}`);
+    doc.text(`月份：${new Date().getFullYear()} / ${new Date().getMonth() + 1}`);
+
+    doc.moveDown();
+    doc.text("----------------------------------------");
+
+    doc.fontSize(14).text("應發項目");
+    doc.fontSize(12);
+    doc.text(`底薪：NT$ ${salary.baseSalary.toLocaleString("zh-TW")}`);
+    doc.text(`固定津貼：NT$ ${salary.fixedAllowance.toLocaleString("zh-TW")}`);
+    doc.text(`加班費：NT$ ${salary.overtimePay.toLocaleString("zh-TW")}`);
+    doc.text(`全勤獎金：NT$ ${salary.attendanceBonus.toLocaleString("zh-TW")}`);
+    doc.text(`績效獎金：NT$ ${salary.performanceBonus.toLocaleString("zh-TW")}`);
+
+    doc.moveDown();
+
+    doc.fontSize(14).text("扣除項目");
+    doc.fontSize(12);
+    doc.text(`請假扣款：NT$ ${salary.leaveDeduction.toLocaleString("zh-TW")}`);
+    doc.text(`勞保：NT$ ${salary.laborInsurance.toLocaleString("zh-TW")}`);
+    doc.text(`健保：NT$ ${salary.healthInsurance.toLocaleString("zh-TW")}`);
+    doc.text(`勞退提繳：NT$ ${salary.laborPension.toLocaleString("zh-TW")}（公司提繳，不自薪資扣除）`);
+
+    doc.moveDown();
+    doc.text("----------------------------------------");
+
+    doc.fontSize(16).text(
+      `應發薪資：NT$ ${salary.grossSalary.toLocaleString("zh-TW")}`
+    );
+
+    doc.fontSize(18).text(
+      `實發薪資：NT$ ${salary.netSalary.toLocaleString("zh-TW")}`,
+      { align: "right" }
+    );
+
+    doc.moveDown();
+
+    doc.fontSize(10).text(
+      "備註：本薪資單為系統自動產生，實際金額仍以公司核定為準。"
+    );
+
+    doc.end();
+
+  } catch (err) {
+    console.error("PDF ERROR:", err);
+    res.status(500).send("薪資單產生失敗：" + err.message);
+  }
+});
 app.listen(PORT, () => {
   console.log("Server Running");
   console.log(`Port: ${PORT}`);
