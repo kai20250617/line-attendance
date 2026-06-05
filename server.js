@@ -1627,31 +1627,27 @@ if (fs.existsSync(fontPath)) {
 // =========================
 
 app.post("/api/salary-close", async (req, res) => {
-
   try {
-
     const employees = await pool.query(
       "SELECT * FROM employees WHERE status='在職'"
     );
 
-    for(const emp of employees.rows){
+    const salaryMonth = new Date().toISOString().slice(0, 7);
 
-      const grossSalary =
-        Number(emp.base_salary || 27000) +
-        Number(emp.fixed_allowance || 3000) +
-        Number(emp.attendance_bonus || 0) +
-        Number(emp.performance_bonus || 0);
+    for (const emp of employees.rows) {
+      if (!emp.line_user_id) {
+        continue;
+      }
 
-      const laborInsurance =
-        Math.round(grossSalary * 0.02);
+      const salaryRes = await fetch(
+        `https://line-attendance-blt1.onrender.com/api/my-salary/${emp.line_user_id}`
+      );
 
-      const healthInsurance =
-        Math.round(grossSalary * 0.015);
+      const salary = await salaryRes.json();
 
-      const netSalary =
-        grossSalary -
-        laborInsurance -
-        healthInsurance;
+      if (!salary.success) {
+        continue;
+      }
 
       await pool.query(
         `
@@ -1669,46 +1665,42 @@ app.post("/api/salary-close", async (req, res) => {
         [
           emp.id,
           emp.name,
-          new Date().toISOString().slice(0,7),
-          grossSalary,
-          netSalary
+          salaryMonth,
+          salary.grossSalary,
+          salary.netSalary
         ]
       );
 
-      if(emp.line_user_id){
-
-        await pushLineMessage(
-          emp.line_user_id,
+      await pushLineMessage(
+        emp.line_user_id,
 `💰 薪資結算通知
 
 員工：${emp.name}
+月份：${salaryMonth}
+
+應發薪資：
+NT$${Number(salary.grossSalary || 0).toLocaleString("zh-TW")}
 
 實發薪資：
-NT$${netSalary.toLocaleString("zh-TW")}
+NT$${Number(salary.netSalary || 0).toLocaleString("zh-TW")}
 
 請至系統查看薪資單`
-        );
-
-      }
-
+      );
     }
 
     res.json({
       success:true,
-      message:"薪資結算完成"
+      message:"薪資結算完成，金額已依照我的薪資計算"
     });
 
-  } catch(err){
-
+  } catch(err) {
     console.error(err);
 
     res.status(500).json({
       success:false,
       message:"薪資結算失敗"
     });
-
   }
-
 });
 // =========================
 // 月結薪資
