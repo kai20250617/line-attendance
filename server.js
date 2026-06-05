@@ -78,6 +78,16 @@ async function createTables() {
       gps_radius REAL DEFAULT 300
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rules (
+      id SERIAL PRIMARY KEY,
+      work_start TEXT DEFAULT '09:00',
+      work_end TEXT DEFAULT '16:00',
+      break_hours REAL DEFAULT 1,
+      overtime_start TEXT DEFAULT '16:30'
+    )
+  `);
 await pool.query(`
 CREATE TABLE IF NOT EXISTS salary_history (
   id SERIAL PRIMARY KEY,
@@ -89,6 +99,30 @@ CREATE TABLE IF NOT EXISTS salary_history (
   created_at TIMESTAMP DEFAULT NOW()
 )
 `);
+  const settingResult = await pool.query(
+    "SELECT * FROM settings LIMIT 1"
+  );
+
+  if (settingResult.rows.length === 0) {
+    await pool.query(`
+      INSERT INTO settings
+      (gps_enabled, company_lat, company_lng, gps_radius)
+      VALUES (1, 24.7906, 120.9969, 300)
+    `);
+  }
+
+  const ruleResult = await pool.query(
+    "SELECT * FROM rules LIMIT 1"
+  );
+
+  if (ruleResult.rows.length === 0) {
+    await pool.query(`
+      INSERT INTO rules
+      (work_start, work_end, break_hours, overtime_start)
+      VALUES ('09:00', '16:00', 1, '16:30')
+    `);
+  }
+
   console.log("✅ PostgreSQL Tables Ready");
 }
 
@@ -100,7 +134,7 @@ pool.connect()
 .catch(err => {
   console.error("❌ PostgreSQL Error:", err);
 });
-const Database = require("better-sqlite3");
+
 
 const LINE_CHANNEL_ACCESS_TOKEN =
 process.env.LINE_CHANNEL_ACCESS_TOKEN;
@@ -113,7 +147,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-const db = new Database("attendance.db");
+
 
 // =========================
 // LINE 推播通知
@@ -190,123 +224,6 @@ function getTaiwanTimeString(date = new Date()) {
   return date.toLocaleString("zh-TW", {
     timeZone: "Asia/Taipei"
   });
-}
-
-// =========================
-// 資料表
-// =========================
-
-db.prepare(`
-CREATE TABLE IF NOT EXISTS attendance (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  line_user_id TEXT,
-  name TEXT,
-  type TEXT,
-  clock_time TEXT,
-  latitude REAL,
-  longitude REAL
-)
-`).run();
-
-db.prepare(`
-CREATE TABLE IF NOT EXISTS leaves (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  line_user_id TEXT,
-  name TEXT,
-  leave_type TEXT,
-  start_date TEXT,
-  end_date TEXT,
-  reason TEXT,
-  status TEXT DEFAULT '待審核',
-  created_at TEXT
-)
-`).run();
-
-db.prepare(`
-CREATE TABLE IF NOT EXISTS employees (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  line_user_id TEXT,
-  name TEXT,
-  department TEXT,
-  position TEXT,
-
-  hourly_wage REAL,
-
-  base_salary REAL DEFAULT 27000,
-  fixed_allowance REAL DEFAULT 3000,
-  attendance_bonus REAL DEFAULT 3000,
-  performance_bonus REAL DEFAULT 0,
-
-  status TEXT DEFAULT '在職'
-)
-`).run();
-
-db.prepare(`
-CREATE TABLE IF NOT EXISTS settings (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  gps_enabled INTEGER DEFAULT 1,
-  company_lat REAL DEFAULT 24.7906,
-  company_lng REAL DEFAULT 120.9969,
-  gps_radius REAL DEFAULT 300
-)
-`).run();
-// =========================
-// 出勤規則資料表
-// =========================
-
-db.prepare(`
-CREATE TABLE IF NOT EXISTS rules (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  work_start TEXT DEFAULT '09:00',
-  work_end TEXT DEFAULT '18:00',
-  break_hours REAL DEFAULT 1,
-  overtime_start TEXT DEFAULT '18:30'
-)
-`).run();
-
-const rule = db.prepare(
-  "SELECT * FROM rules LIMIT 1"
-).get();
-
-if (!rule) {
-  db.prepare(`
-    INSERT INTO rules
-    (
-      work_start,
-      work_end,
-      break_hours,
-      overtime_start
-    )
-    VALUES
-    (
-      '09:00',
-      '18:00',
-      1,
-      '18:30'
-    )
-  `).run();
-}
-const setting = db.prepare(
-  "SELECT * FROM settings LIMIT 1"
-).get();
-
-if (!setting) {
-  db.prepare(`
-    INSERT INTO settings
-    (
-      gps_enabled,
-      company_lat,
-      company_lng,
-      gps_radius
-    )
-    VALUES
-    (
-      1,
-      24.7906,
-      120.9969,
-      300
-    )
-  `).run();
 }
 
 // =========================
@@ -614,36 +531,45 @@ app.post("/api/leave", async (req, res) => {
     reason
   } = req.body;
 
-  const now =
-  new Date().toISOString();
+  if (!lineUserId || !name || !leaveType || !startDate || !endDate) {
+    return res.status(400).json({
+      success: false,
+      message: "請假資料不完整"
+    });
+  }
 
-  db.prepare(`
-    INSERT INTO leaves
-    (
-      line_user_id,
-      name,
-      leave_type,
-      start_date,
-      end_date,
-      reason,
-      status,
-      created_at
-    )
-    VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    lineUserId,
-    name,
-    leaveType,
-    startDate,
-    endDate,
-    reason,
-    "待審核",
-    now
-  );
+  try {
+    const now = new Date().toISOString();
 
-  await pushLineMessage(
-    MANAGER_LINE_USER_ID,
+    await pool.query(
+      `
+      INSERT INTO leaves
+      (
+        line_user_id,
+        name,
+        leave_type,
+        start_date,
+        end_date,
+        reason,
+        status,
+        created_at
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      `,
+      [
+        lineUserId,
+        name,
+        leaveType,
+        startDate,
+        endDate,
+        reason || "",
+        "待審核",
+        now
+      ]
+    );
+
+    await pushLineMessage(
+      MANAGER_LINE_USER_ID,
 `📌 新請假申請
 
 員工：${name}
@@ -655,16 +581,25 @@ ${startDate}
 ${endDate}
 
 原因：
-${reason}
+${reason || "-"}
 
 請至後台審核：
 https://line-attendance-blt1.onrender.com/leave-admin.html`
-  );
+    );
 
-  res.json({
-    success: true,
-    message: "請假申請已送出"
-  });
+    res.json({
+      success: true,
+      message: "請假申請已送出"
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "請假送出失敗"
+    });
+  }
 });
 
 app.get("/api/leaves", async (req, res) => {
@@ -704,19 +639,33 @@ app.post("/api/leave/status", async (req, res) => {
     });
   }
 
-  const leave = db.prepare(
-    "SELECT * FROM leaves WHERE id = ?"
-  ).get(id);
+  try {
+    const leaveResult = await pool.query(
+      "SELECT * FROM leaves WHERE id = $1",
+      [id]
+    );
 
-  db.prepare(`
-    UPDATE leaves
-    SET status = ?
-    WHERE id = ?
-  `).run(status, id);
+    if (leaveResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "找不到請假資料"
+      });
+    }
 
-  if (leave && leave.line_user_id) {
-    await pushLineMessage(
-      leave.line_user_id,
+    const leave = leaveResult.rows[0];
+
+    await pool.query(
+      `
+      UPDATE leaves
+      SET status = $1
+      WHERE id = $2
+      `,
+      [status, id]
+    );
+
+    if (leave && leave.line_user_id) {
+      await pushLineMessage(
+        leave.line_user_id,
 `📢 請假審核結果
 
 員工：${leave.name}
@@ -728,13 +677,22 @@ ${leave.start_date}
 ${leave.end_date}
 
 狀態：${status}`
-    );
-  }
+      );
+    }
 
-  res.json({
-    success: true,
-    message: "請假狀態已更新"
-  });
+    res.json({
+      success: true,
+      message: "請假狀態已更新"
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "請假狀態更新失敗"
+    });
+  }
 });
 
 // =========================
@@ -916,16 +874,25 @@ app.post("/api/employees/bind", async (req, res) => {
 // GPS設定
 // =========================
 
-app.get("/api/settings", (req, res) => {
-  const setting =
-  db.prepare(
-    "SELECT * FROM settings LIMIT 1"
-  ).get();
+app.get("/api/settings", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM settings ORDER BY id ASC LIMIT 1"
+    );
 
-  res.json(setting);
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "讀取GPS設定失敗"
+    });
+  }
 });
 
-app.post("/api/settings", (req, res) => {
+app.post("/api/settings", async (req, res) => {
   const {
     gps_enabled,
     company_lat,
@@ -933,221 +900,243 @@ app.post("/api/settings", (req, res) => {
     gps_radius
   } = req.body;
 
-  db.prepare(`
-    UPDATE settings
-    SET
-      gps_enabled = ?,
-      company_lat = ?,
-      company_lng = ?,
-      gps_radius = ?
-    WHERE id = 1
-  `).run(
-    gps_enabled,
-    company_lat,
-    company_lng,
-    gps_radius
-  );
+  try {
+    const exists = await pool.query(
+      "SELECT * FROM settings ORDER BY id ASC LIMIT 1"
+    );
 
-  res.json({
-    success: true,
-    message: "GPS設定已儲存"
-  });
+    if (exists.rows.length === 0) {
+      await pool.query(
+        `
+        INSERT INTO settings
+        (gps_enabled, company_lat, company_lng, gps_radius)
+        VALUES ($1,$2,$3,$4)
+        `,
+        [
+          Number(gps_enabled),
+          Number(company_lat),
+          Number(company_lng),
+          Number(gps_radius)
+        ]
+      );
+    } else {
+      await pool.query(
+        `
+        UPDATE settings
+        SET
+          gps_enabled = $1,
+          company_lat = $2,
+          company_lng = $3,
+          gps_radius = $4
+        WHERE id = $5
+        `,
+        [
+          Number(gps_enabled),
+          Number(company_lat),
+          Number(company_lng),
+          Number(gps_radius),
+          exists.rows[0].id
+        ]
+      );
+    }
+
+    res.json({
+      success: true,
+      message: "GPS設定已儲存"
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "GPS設定儲存失敗"
+    });
+  }
 });
 // =========================
 // 匯出月薪總表 CSV
 // =========================
 
-app.get("/api/export-monthly", (req, res) => {
-  const attendance = db.prepare(
-    "SELECT * FROM attendance ORDER BY id ASC"
-  ).all();
+app.get("/api/export-monthly", async (req, res) => {
+  try {
+    const attendanceResult = await pool.query(
+      "SELECT * FROM attendance ORDER BY id ASC"
+    );
 
-  const employees = db.prepare(
-    "SELECT * FROM employees"
-  ).all();
+    const employeesResult = await pool.query(
+      "SELECT * FROM employees"
+    );
 
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+    const attendance = attendanceResult.rows;
+    const employees = employeesResult.rows;
 
-  const dayGroups = {};
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
 
-  attendance.forEach(item => {
-    const d = new Date(item.clock_time);
+    const dayGroups = {};
 
-    if (
-      d.getFullYear() !== year ||
-      d.getMonth() !== month
-    ) {
-      return;
-    }
+    attendance.forEach(item => {
+      const d = new Date(item.clock_time);
 
-    const date = d.toLocaleDateString("zh-TW", {
-      timeZone: "Asia/Taipei"
+      if (
+        d.getFullYear() !== year ||
+        d.getMonth() !== month
+      ) {
+        return;
+      }
+
+      const date = d.toLocaleDateString("zh-TW", {
+        timeZone: "Asia/Taipei"
+      });
+
+      const key = item.line_user_id + "_" + date;
+
+      if (!dayGroups[key]) {
+        dayGroups[key] = {
+          line_user_id: item.line_user_id,
+          name: item.name,
+          date: date,
+          start: null,
+          end: null
+        };
+      }
+
+      if (item.type === "上班") {
+        if (
+          !dayGroups[key].start ||
+          new Date(item.clock_time) < new Date(dayGroups[key].start)
+        ) {
+          dayGroups[key].start = item.clock_time;
+        }
+      }
+
+      if (item.type === "下班") {
+        if (
+          !dayGroups[key].end ||
+          new Date(item.clock_time) > new Date(dayGroups[key].end)
+        ) {
+          dayGroups[key].end = item.clock_time;
+        }
+      }
     });
 
-    const key = item.name + "_" + date;
+    const monthly = {};
 
-    if (!dayGroups[key]) {
-      dayGroups[key] = {
-        name: item.name,
-        date: date,
-        start: null,
-        end: null
-      };
-    }
+    Object.values(dayGroups).forEach(day => {
+      const key = day.line_user_id || day.name;
 
-    if (item.type === "上班") {
-      if (
-        !dayGroups[key].start ||
-        new Date(item.clock_time) <
-        new Date(dayGroups[key].start)
-      ) {
-        dayGroups[key].start = item.clock_time;
+      if (!monthly[key]) {
+        monthly[key] = {
+          name: day.name,
+          line_user_id: day.line_user_id,
+          hours: 0
+        };
       }
-    }
 
-    if (item.type === "下班") {
-      if (
-        !dayGroups[key].end ||
-        new Date(item.clock_time) >
-        new Date(dayGroups[key].end)
-      ) {
-        dayGroups[key].end = item.clock_time;
+      if (day.start && day.end) {
+        const hours =
+          (new Date(day.end) - new Date(day.start)) /
+          1000 / 60 / 60;
+
+        monthly[key].hours += hours;
       }
-    }
-  });
+    });
 
-  const monthly = {};
+    let csv = "\uFEFF員工,本月總工時,時薪,預估薪資\n";
 
-  Object.values(dayGroups).forEach(day => {
-    if (!monthly[day.name]) {
-      monthly[day.name] = 0;
-    }
+    Object.values(monthly).forEach(item => {
+      const emp = employees.find(e =>
+        e.line_user_id === item.line_user_id ||
+        e.name === item.name
+      );
 
-    if (day.start && day.end) {
-      const hours =
-        (new Date(day.end) - new Date(day.start)) /
-        1000 / 60 / 60;
+      const wage = emp ? Number(emp.hourly_wage || 200) : 200;
+      const salary = Math.round(item.hours * wage);
 
-      monthly[day.name] += hours;
-    }
-  });
+      csv += `${item.name},${item.hours.toFixed(2)},${wage},${salary}\n`;
+    });
 
-  let csv = "\uFEFF員工,本月總工時,時薪,預估薪資\n";
+    res.setHeader(
+      "Content-Type",
+      "text/csv; charset=utf-8"
+    );
 
-  Object.keys(monthly).forEach(name => {
-    const emp = employees.find(e => e.name === name);
-    const wage = emp ? Number(emp.hourly_wage || 200) : 200;
-    const hours = monthly[name];
-    const salary = Math.round(hours * wage);
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=monthly-report.csv"
+    );
 
-    csv += `${name},${hours.toFixed(2)},${wage},${salary}\n`;
-  });
+    res.send(csv);
 
-  res.setHeader(
-    "Content-Type",
-    "text/csv; charset=utf-8"
-  );
-
-  res.setHeader(
-    "Content-Disposition",
-    "attachment; filename=monthly-report.csv"
-  );
-
-  res.send(csv);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("匯出失敗");
+  }
 });
 // =========================
 // 薪資總表 API
 // =========================
 
-app.get("/api/salary-report", (req, res) => {
+app.get("/api/salary-report", async (req, res) => {
+  try {
+    const employeesResult = await pool.query(
+      "SELECT * FROM employees WHERE status = '在職' ORDER BY id DESC"
+    );
 
-  const employees = db.prepare(
-    "SELECT * FROM employees WHERE status='在職'"
-  ).all();
+    const result = [];
 
-  const result = employees.map(emp => {
+    for (const emp of employeesResult.rows) {
+      if (!emp.line_user_id) {
+        continue;
+      }
 
-    const baseSalary =
-    Number(emp.base_salary || 27000);
+      const salaryRes = await fetch(
+        `https://line-attendance-blt1.onrender.com/api/my-salary/${emp.line_user_id}`
+      );
 
-    const fixedAllowance =
-    Number(emp.fixed_allowance || 3000);
+      const salary = await salaryRes.json();
 
-    const attendanceBonus =
-    Number(emp.attendance_bonus || 3000);
+      if (salary.success) {
+        result.push(salary);
+      }
+    }
 
-    const performanceBonus =
-    Number(emp.performance_bonus || 0);
+    res.json(result);
 
-    const overtimePay = 0;
+  } catch (err) {
+    console.error(err);
 
-    const grossSalary =
-      baseSalary +
-      fixedAllowance +
-      attendanceBonus +
-      performanceBonus +
-      overtimePay;
-
-    const laborInsurance =
-    Math.round(grossSalary * 0.02);
-
-    const healthInsurance =
-    Math.round(grossSalary * 0.015);
-
-    const laborPension =
-    Math.round(grossSalary * 0.06);
-
-    const netSalary =
-      grossSalary -
-      laborInsurance -
-      healthInsurance;
-
-    return {
-
-      name: emp.name,
-
-      baseSalary,
-      fixedAllowance,
-
-      attendanceBonus,
-      performanceBonus,
-
-      overtimePay,
-
-      grossSalary,
-
-      laborInsurance,
-      healthInsurance,
-      laborPension,
-
-      netSalary
-
-    };
-
-  });
-
-  res.json(result);
-
+    res.status(500).json({
+      success: false,
+      message: "讀取薪資總表失敗"
+    });
+  }
 });
 // =========================
 // 出勤規則設定 API
 // =========================
 
-app.get("/api/rules", (req, res) => {
+app.get("/api/rules", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
+    );
 
-  const rule =
-  db.prepare(
-    "SELECT * FROM rules LIMIT 1"
-  ).get();
+    res.json(result.rows[0]);
 
-  res.json(rule);
+  } catch (err) {
+    console.error(err);
 
+    res.status(500).json({
+      success: false,
+      message: "讀取出勤規則失敗"
+    });
+  }
 });
 
-app.post("/api/rules", (req, res) => {
-
+app.post("/api/rules", async (req, res) => {
   const {
     work_start,
     work_end,
@@ -1155,26 +1144,59 @@ app.post("/api/rules", (req, res) => {
     overtime_start
   } = req.body;
 
-  db.prepare(`
-    UPDATE rules
-    SET
-      work_start = ?,
-      work_end = ?,
-      break_hours = ?,
-      overtime_start = ?
-    WHERE id = 1
-  `).run(
-    work_start,
-    work_end,
-    Number(break_hours),
-    overtime_start
-  );
+  try {
+    const exists = await pool.query(
+      "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
+    );
 
-  res.json({
-    success:true,
-    message:"出勤規則已儲存"
-  });
+    if (exists.rows.length === 0) {
+      await pool.query(
+        `
+        INSERT INTO rules
+        (work_start, work_end, break_hours, overtime_start)
+        VALUES ($1,$2,$3,$4)
+        `,
+        [
+          work_start || "09:00",
+          work_end || "16:00",
+          Number(break_hours || 1),
+          overtime_start || "16:30"
+        ]
+      );
+    } else {
+      await pool.query(
+        `
+        UPDATE rules
+        SET
+          work_start = $1,
+          work_end = $2,
+          break_hours = $3,
+          overtime_start = $4
+        WHERE id = $5
+        `,
+        [
+          work_start || "09:00",
+          work_end || "16:00",
+          Number(break_hours || 1),
+          overtime_start || "16:30",
+          exists.rows[0].id
+        ]
+      );
+    }
 
+    res.json({
+      success: true,
+      message: "出勤規則已儲存"
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "出勤規則儲存失敗"
+    });
+  }
 });
 // =========================
 // 測試 LINE
