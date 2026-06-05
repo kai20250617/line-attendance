@@ -65,6 +65,18 @@ async function createTables() {
     )
   `);
 
+    await pool.query(`
+    CREATE TABLE IF NOT EXISTS clock_requests (
+      id SERIAL PRIMARY KEY,
+      line_user_id TEXT,
+      name TEXT,
+      clock_type TEXT,
+      clock_time TEXT,
+      reason TEXT,
+      status TEXT DEFAULT '待審核',
+      created_at TEXT
+    )
+  `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS settings (
       id SERIAL PRIMARY KEY,
