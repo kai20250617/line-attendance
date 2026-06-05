@@ -1469,8 +1469,6 @@ if (
   success:true,
   id: emp.id,
   name: emp.name,
-  department: emp.department,
-  position: emp.position,
 
   lateCount,
   earlyLeaveCount,
