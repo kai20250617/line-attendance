@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>月結薪資</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;text-align:center;}
+.card{background:white;max-width:500px;margin:60px auto;padding:30px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+button{background:#c62828;color:white;border:none;padding:15px 25px;border-radius:8px;font-size:20px;font-weight:bold;}
+a{display:inline-block;margin-top:20px;color:white;background:#222;padding:12px 20px;border-radius:8px;text-decoration:none;}
+.result{margin-top:20px;font-weight:bold;}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>💰 月結薪資</h1>
+  <p>按下後會結算所有在職員工薪資，並發送 LINE 通知。</p>
+
+  <button onclick="closeSalary()">開始月結</button>
+
+  <div id="result" class="result"></div>
+
+  <a href="/dashboard.html">返回後台</a>
+</div>
+
+<script>
+if(localStorage.getItem("adminLogin") !== "yes"){
+  window.location.href = "/login.html";
+}
+
+async function closeSalary(){
+  if(!confirm("確定要執行本月薪資結算嗎？")){
+    return;
+  }
+
+  const resultBox = document.getElementById("result");
+  resultBox.innerHTML = "結算中，請稍候...";
+
+  try{
+    const res = await fetch("/api/salary-close", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      }
+    });
+
+    const data = await res.json();
+
+    resultBox.innerHTML =
+      data.message || "完成";
+
+  }catch(error){
+    console.error(error);
+    resultBox.innerHTML = "月結失敗";
+  }
+}
+</script>
+
+</body>
+</html>
