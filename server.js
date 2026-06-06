@@ -2004,6 +2004,16 @@ app.post("/api/clock-request/status", async (req, res) => {
     );
 
     if (status === "已核准" || status === "核准") {
+
+      const clockType = request.clock_type;
+
+      if (clockType !== "上班" && clockType !== "下班") {
+        return res.status(400).json({
+          success:false,
+          message:"補打卡類型錯誤，只能是上班或下班"
+        });
+      }
+
       const duplicate = await pool.query(
         `
         SELECT *
@@ -2015,7 +2025,7 @@ app.post("/api/clock-request/status", async (req, res) => {
         `,
         [
           request.line_user_id,
-          request.clock_type,
+          clockType,
           request.clock_time
         ]
       );
@@ -2038,7 +2048,7 @@ app.post("/api/clock-request/status", async (req, res) => {
           [
             request.line_user_id,
             request.name,
-            request.clock_type,
+            clockType,
             request.clock_time,
             null,
             null
