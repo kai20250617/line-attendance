@@ -1869,6 +1869,11 @@ app.post("/api/clock-request", async (req, res) => {
       reason
     } = req.body;
 
+    const fixedClockTime =
+  clockTime && !clockTime.includes("+08:00")
+    ? clockTime + ":00+08:00"
+    : clockTime;
+
     if (!lineUserId || !name || !clockType || !clockTime || !reason) {
       return res.status(400).json({
         success:false,
