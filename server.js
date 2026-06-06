@@ -2259,14 +2259,36 @@ app.put("/api/attendance-admin/:id", async (req, res) => {
 // 出勤統計報表
 // =========================
 
+function getTaipeiMinutes(value) {
+  const d = new Date(value);
+
+  const parts = new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).formatToParts(d);
+
+  const hour = Number(parts.find(p => p.type === "hour").value);
+  const minute = Number(parts.find(p => p.type === "minute").value);
+
+  return hour * 60 + minute;
+}
+
+function getTaipeiDate(value) {
+  const d = new Date(value);
+
+  return new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(d);
+}
+
 app.get("/api/attendance-report", async (req, res) => {
   try {
-    const {
-      name,
-      department,
-      startDate,
-      endDate
-    } = req.query;
+    const { name, department, startDate, endDate } = req.query;
 
     let empSql = `
       SELECT *
@@ -2300,12 +2322,12 @@ app.get("/api/attendance-report", async (req, res) => {
 
     if (startDate) {
       attParams.push(startDate);
-      attSql += ` AND DATE(clock_time) >= $${attParams.length}`;
+      attSql += ` AND DATE(clock_time AT TIME ZONE 'Asia/Taipei') >= $${attParams.length}`;
     }
 
     if (endDate) {
       attParams.push(endDate);
-      attSql += ` AND DATE(clock_time) <= $${attParams.length}`;
+      attSql += ` AND DATE(clock_time AT TIME ZONE 'Asia/Taipei') <= $${attParams.length}`;
     }
 
     attSql += ` ORDER BY clock_time ASC`;
@@ -2314,7 +2336,7 @@ app.get("/api/attendance-report", async (req, res) => {
 
     const result = [];
 
-    employees.rows.forEach(emp => {
+    for (const emp of employees.rows) {
       let totalHours = 0;
       let lateCount = 0;
       let earlyLeaveCount = 0;
@@ -2323,16 +2345,14 @@ app.get("/api/attendance-report", async (req, res) => {
       const dayGroups = {};
 
       attendance.rows
-        .filter(x => x.line_user_id === emp.line_user_id)
+        .filter(item => item.line_user_id === emp.line_user_id)
         .forEach(item => {
-          const date = new Date(item.clock_time).toLocaleDateString("zh-TW", {
-            timeZone:"Asia/Taipei"
-          });
+          const date = getTaipeiDate(item.clock_time);
 
           if (!dayGroups[date]) {
             dayGroups[date] = {
-              start:null,
-              end:null
+              start: null,
+              end: null
             };
           }
 
@@ -2351,19 +2371,18 @@ app.get("/api/attendance-report", async (req, res) => {
 
       Object.values(dayGroups).forEach(day => {
         if (day.start && day.end) {
-          workDays++;
-
           const start = new Date(day.start);
           const end = new Date(day.end);
 
           const hours = (end - start) / 1000 / 60 / 60;
 
           if (hours > 0) {
+            workDays++;
             totalHours += hours;
           }
 
-          const startMinutes = start.getHours() * 60 + start.getMinutes();
-          const endMinutes = end.getHours() * 60 + end.getMinutes();
+          const startMinutes = getTaipeiMinutes(day.start);
+          const endMinutes = getTaipeiMinutes(day.end);
 
           const ruleStartMinutes = 9 * 60;
           const ruleEndMinutes = 18 * 60;
@@ -2387,7 +2406,7 @@ app.get("/api/attendance-report", async (req, res) => {
         lateCount,
         earlyLeaveCount
       });
-    });
+    }
 
     res.json(result);
 
