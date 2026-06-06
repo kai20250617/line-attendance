@@ -1336,6 +1336,20 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
     let leaveDeduction = 0;
     let totalWorkHours = 0;
 
+    let attendanceBonus = Number(emp.attendance_bonus || 3000);
+const performanceBonus = Number(emp.performance_bonus || 0);
+
+let lateCount = 0;
+let earlyLeaveCount = 0;
+let overtimePay = 0;
+let leaveDeduction = 0;
+let totalWorkHours = 0;
+
+// =========================
+// 全勤資格
+// =========================
+let attendanceQualified = true;
+
     const attendanceResult = await pool.query(
       `
       SELECT *
@@ -1485,6 +1499,19 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 
     leaveDeduction = Math.round(leaveDeduction);
 
+    // =========================
+// 全勤獎金判斷
+// =========================
+
+attendanceQualified =
+  lateCount === 0 &&
+  earlyLeaveCount === 0 &&
+  leaveDeduction === 0;
+
+if (!attendanceQualified) {
+  attendanceBonus = 0;
+}
+
     const grossSalary =
       baseSalary +
       fixedAllowance +
@@ -1556,52 +1583,7 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 
 
 
-// =========================
-// 全勤獎金判斷
-// =========================
 
-
-
-const attendanceQualified =
-  lateCount === 0 &&
-  earlyLeaveCount === 0 &&
-  leaveDeduction === 0;
-
-
-if (!attendanceQualified) {
-  attendanceBonus = 0;
-}
-
-// =========================
-// 薪資計算
-// =========================
-
-// 應發薪資
-const grossSalary =
-  baseSalary +
-  fixedAllowance +
-  attendanceBonus +
-  performanceBonus +
-  overtimePay;
-
-// 勞保
-const laborInsurance =
-  Math.round(grossSalary * 0.02);
-
-// 健保
-const healthInsurance =
-  Math.round(grossSalary * 0.015);
-
-// 勞退（公司提撥）
-const laborPension =
-  Math.round(grossSalary * 0.06);
-
-// 實發薪資
-const netSalary =
-  grossSalary -
-  leaveDeduction -
-  laborInsurance -
-  healthInsurance;
 
 // =========================
 // PDF 產生 API
