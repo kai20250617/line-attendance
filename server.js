@@ -1553,8 +1553,7 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 });
 
 
-// 確保 attendanceBonus 是用 let 宣告，後面才能修改
-let attendanceBonus = 3000; // 假設原本的值
+
 
 // =========================
 // 全勤獎金判斷
