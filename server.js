@@ -1431,14 +1431,27 @@ let earlyLeaveCount = 0;
 
   if (day.start && day.end) {
 
+    const ruleResult = await pool.query(
+  "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
+);
+
+const rule = ruleResult.rows[0] || {};
+
+const workStart = rule.work_start || "09:00";
+const workEnd = rule.work_end || "18:00";
+const breakHours = Number(rule.break_hours || 1);
+const lateAllowance = Number(rule.late_allowance || 0);
+const earlyAllowance = Number(rule.early_allowance || 0);
+
+const [workStartHour, workStartMinute] =
+workStart.split(":").map(Number);
+
+const [workEndHour, workEndMinute] =
+workEnd.split(":").map(Number);
+
     const startTime = new Date(day.start);
     const endTime = new Date(day.end);
 
-    const workStartHour = 9;
-    const workStartMinute = 0;
-
-    const workEndHour = 16;
-    const workEndMinute = 0;
 
     const startMinutes =
       startTime.getHours() * 60 +
@@ -1449,12 +1462,14 @@ let earlyLeaveCount = 0;
       endTime.getMinutes();
 
     const ruleStartMinutes =
-      workStartHour * 60 +
-      workStartMinute;
+  workStartHour * 60 +
+  workStartMinute +
+  lateAllowance;
 
-    const ruleEndMinutes =
-      workEndHour * 60 +
-      workEndMinute;
+const ruleEndMinutes =
+  workEndHour * 60 +
+  workEndMinute -
+  earlyAllowance;
 
     if (startMinutes > ruleStartMinutes) {
       lateCount++;
@@ -1467,8 +1482,16 @@ let earlyLeaveCount = 0;
     const totalHours =
       (endTime - startTime) / 1000 / 60 / 60;
 
-    const overtimeHours =
-      Math.max(0, totalHours - 6);
+  const standardHours =
+  Math.max(
+    0,
+    ((workEndHour * 60 + workEndMinute) -
+     (workStartHour * 60 + workStartMinute)) / 60 -
+    breakHours
+  );
+
+const overtimeHours =
+  Math.max(0, totalHours - standardHours);
 
     const hourlyRate =
       Number(emp.hourly_wage || 200);
@@ -2430,8 +2453,7 @@ app.get("/api/attendance-report", async (req, res) => {
           const startMinutes = getTaipeiMinutes(day.start);
           const endMinutes = getTaipeiMinutes(day.end);
 
-          const ruleStartMinutes = 9 * 60;
-          const ruleEndMinutes = 18 * 60;
+          const rules = await getAttendanceRules();
 
           if (startMinutes > ruleStartMinutes) {
             lateCount++;
