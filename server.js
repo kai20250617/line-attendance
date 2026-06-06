@@ -2108,6 +2108,54 @@ app.post("/api/clock-request/status", async (req, res) => {
 });
 
 // =========================
+// 出勤管理
+// =========================
+
+app.get("/api/attendance-admin", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT *
+      FROM attendance
+      ORDER BY id DESC
+    `);
+
+    res.json(result.rows);
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取出勤失敗"
+    });
+  }
+});
+
+app.delete("/api/attendance-admin/:id", async (req, res) => {
+  try {
+    await pool.query(
+      `
+      DELETE FROM attendance
+      WHERE id = $1
+      `,
+      [req.params.id]
+    );
+
+    res.json({
+      success:true,
+      message:"出勤資料已刪除"
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"刪除出勤失敗"
+    });
+  }
+});
+// =========================
 // 啟動伺服器
 // =========================
 
