@@ -129,45 +129,63 @@ CREATE TABLE IF NOT EXISTS salary_history (
   created_at TIMESTAMP DEFAULT NOW()
 )
 `);
-  const settingResult = await pool.query(
-    "SELECT * FROM settings LIMIT 1"
-  );
 
-  if (settingResult.rows.length === 0) {
-    await pool.query(`
-      INSERT INTO settings
-      (gps_enabled, company_lat, company_lng, gps_radius)
-      VALUES (1, 24.7906, 120.9969, 300)
-    `);
-  }
+await pool.query(`
+  ALTER TABLE employees
+  ADD COLUMN IF NOT EXISTS bind_code VARCHAR(50)
+`);
 
-  const ruleResult = await pool.query(
-    "SELECT * FROM rules LIMIT 1"
-  );
+await pool.query(`
+  ALTER TABLE employees
+  ADD COLUMN IF NOT EXISTS bind_status VARCHAR(20) DEFAULT '未綁定'
+`);
 
-  if (ruleResult.rows.length === 0) {
-    await pool.query(`
-      INSERT INTO rules
-      (work_start, work_end, break_hours, overtime_start)
-      VALUES ('09:00', '16:00', 1, '16:30')
-    `);
-  }
+await pool.query(`
+  ALTER TABLE employees
+  ADD COLUMN IF NOT EXISTS line_display_name VARCHAR(100)
+`);
 
-  console.log("✅ PostgreSQL Tables Ready");
+await pool.query(`
+  ALTER TABLE employees
+  ADD COLUMN IF NOT EXISTS bound_at TIMESTAMP
+`);
+
+const settingResult = await pool.query(
+  "SELECT * FROM settings LIMIT 1"
+);
+
+if (settingResult.rows.length === 0) {
+  await pool.query(`
+    INSERT INTO settings
+    (gps_enabled, company_lat, company_lng, gps_radius)
+    VALUES (1, 24.7906, 120.9969, 300)
+  `);
 }
 
+const ruleResult = await pool.query(
+  "SELECT * FROM rules LIMIT 1"
+);
 
+if (ruleResult.rows.length === 0) {
+  await pool.query(`
+    INSERT INTO rules
+    (work_start, work_end, break_hours, overtime_start)
+    VALUES ('09:00', '18:00', 1, '18:30')
+  `);
+}
+
+console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
-createTables();
+}
+
 pool.connect()
 .then(() => {
   console.log("✅ PostgreSQL Connected");
+  return createTables();
 })
 .catch(err => {
   console.error("❌ PostgreSQL Error:", err);
 });
-
-
 const LINE_CHANNEL_ACCESS_TOKEN =
 process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
