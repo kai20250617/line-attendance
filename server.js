@@ -1643,64 +1643,20 @@ if (fs.existsSync(fontPath)) {
     res.status(500).send("薪資單產生失敗：" + err.message);
   }
 });
-
 // =========================
 // 月結薪資
 // =========================
 
-app.get("/api/salary-history", async (req, res) => {
+app.post("/api/salary-close", async (req, res) => {
   try {
-    const { month, name } = req.query;
+    const employees = await pool.query(
+      "SELECT * FROM employees WHERE status='在職'"
+    );
 
-    let sql = `
-      SELECT *
-      FROM salary_history
-      WHERE 1 = 1
-    `;
+    const salaryMonth =
+      req.body.salaryMonth || new Date().toISOString().slice(0, 7);
 
-    const params = [];
-
-    if (month) {
-      params.push(month);
-      sql += ` AND salary_month = $${params.length}`;
-    }
-
-    if (name) {
-      params.push("%" + name + "%");
-      sql += ` AND employee_name ILIKE $${params.length}`;
-    }
-
-    sql += " ORDER BY id DESC";
-
-    const result = await pool.query(sql, params);
-
-    res.json(result.rows);
-
-  } catch(err) {
-    console.error(err);
-
-    res.status(500).json({
-      success:false,
-      message:"讀取薪資歷史失敗"
-    });
-  }
-});
-`
-SELECT *
-FROM salary_history
-WHERE employee_id = $1
-AND salary_month = $2
-`,
-[
-  emp.id,
-  salaryMonth
-]
-);
-
-if (exists.rows.length > 0) {
-  continue;
-}
-
+    for (const emp of employees.rows) {
       if (!emp.line_user_id) {
         continue;
       }
@@ -1715,27 +1671,62 @@ if (exists.rows.length > 0) {
         continue;
       }
 
-      await pool.query(
+      const exists = await pool.query(
         `
-        INSERT INTO salary_history
-        (
-          employee_id,
-          employee_name,
-          salary_month,
-          gross_salary,
-          net_salary
-        )
-        VALUES
-        ($1,$2,$3,$4,$5)
+        SELECT *
+        FROM salary_history
+        WHERE employee_id = $1
+        AND salary_month = $2
         `,
         [
           emp.id,
-          emp.name,
-          salaryMonth,
-          salary.grossSalary,
-          salary.netSalary
+          salaryMonth
         ]
       );
+
+      if (exists.rows.length > 0) {
+        await pool.query(
+          `
+          UPDATE salary_history
+          SET
+            employee_name = $1,
+            gross_salary = $2,
+            net_salary = $3,
+            created_at = NOW()
+          WHERE employee_id = $4
+          AND salary_month = $5
+          `,
+          [
+            emp.name,
+            salary.grossSalary,
+            salary.netSalary,
+            emp.id,
+            salaryMonth
+          ]
+        );
+      } else {
+        await pool.query(
+          `
+          INSERT INTO salary_history
+          (
+            employee_id,
+            employee_name,
+            salary_month,
+            gross_salary,
+            net_salary
+          )
+          VALUES
+          ($1,$2,$3,$4,$5)
+          `,
+          [
+            emp.id,
+            emp.name,
+            salaryMonth,
+            salary.grossSalary,
+            salary.netSalary
+          ]
+        );
+      }
 
       await pushLineMessage(
         emp.line_user_id,
@@ -1756,7 +1747,7 @@ NT$${Number(salary.netSalary || 0).toLocaleString("zh-TW")}
 
     res.json({
       success:true,
-      message:"薪資結算完成，金額已依照我的薪資計算"
+      message:"薪資結算完成，已更新薪資歷史"
     });
 
   } catch(err) {
@@ -1768,9 +1759,12 @@ NT$${Number(salary.netSalary || 0).toLocaleString("zh-TW")}
     });
   }
 });
+
+
 // =========================
-// 月結薪資
+// 薪資歷史
 // =========================
+
 app.get("/api/salary-history", async (req, res) => {
   try {
     const { month, name } = req.query;
@@ -1808,7 +1802,6 @@ app.get("/api/salary-history", async (req, res) => {
     });
   }
 });
-
 // =========================
 // 啟動伺服器
 // =========================
