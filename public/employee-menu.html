@@ -108,8 +108,24 @@ async function init(){
       return;
     }
 
-    step = "取得LINE Profile";
-    const profile = await liff.getProfile();
+step = "取得LINE Profile";
+
+let profile;
+
+try{
+  profile = await liff.getProfile();
+}catch(err){
+  if(
+    String(err.message || "").includes("access token expired") ||
+    String(err.message || "").includes("The access token expired")
+  ){
+    liff.logout();
+    liff.login();
+    return;
+  }
+
+  throw err;
+}
 
     if(!profile || !profile.userId){
       throw new Error("沒有取得 LINE User ID");
