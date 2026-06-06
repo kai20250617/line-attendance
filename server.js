@@ -235,7 +235,57 @@ function getTaiwanTimeString(date = new Date()) {
     timeZone: "Asia/Taipei"
   });
 }
+// =========================
+// 檢查是否為員工
+// =========================
 
+app.get("/api/check-employee/:lineUserId", async (req, res) => {
+  try {
+    const lineUserId = req.params.lineUserId;
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM employees
+      WHERE line_user_id = $1
+      AND status = '在職'
+      LIMIT 1
+      `,
+      [lineUserId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        success:true,
+        isEmployee:false,
+        message:"不是員工"
+      });
+    }
+
+    const emp = result.rows[0];
+
+    res.json({
+      success:true,
+      isEmployee:true,
+      employee:{
+        id:emp.id,
+        name:emp.name,
+        department:emp.department,
+        position:emp.position,
+        line_user_id:emp.line_user_id
+      }
+    });
+
+  } catch(err) {
+    console.error("check employee error:", err);
+
+    res.status(500).json({
+      success:false,
+      isEmployee:false,
+      message:"員工身份檢查失敗"
+    });
+  }
+});
 // =========================
 // 我的工時
 // =========================
