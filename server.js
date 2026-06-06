@@ -1559,8 +1559,6 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 // 全勤獎金判斷
 // =========================
 
-// 從員工資料抓取全勤獎金
-let attendanceBonus =  Number(emp.attendance_bonus || 3000);
 
 // 是否符合全勤
 const attendanceQualified =
