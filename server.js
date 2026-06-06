@@ -1338,7 +1338,7 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 
 
 
-    
+
 
 // =========================
 // 全勤資格
@@ -2550,7 +2550,8 @@ app.get("/api/attendance-report", async (req, res) => {
 // =========================
 // 啟動伺服器
 // =========================
-
+const PORT =
+process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server Running");
   console.log(`Port: ${PORT}`);
