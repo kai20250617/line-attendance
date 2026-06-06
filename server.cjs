@@ -1716,7 +1716,12 @@ app.get("/api/payslip/:id", async (req, res) => {
     const employeeId = req.params.id;
 
     const empResult = await pool.query(
-      "SELECT * FROM employees WHERE id = $1",
+      `
+      SELECT *
+      FROM employees
+      WHERE id = $1
+      LIMIT 1
+      `,
       [employeeId]
     );
 
@@ -1726,8 +1731,16 @@ app.get("/api/payslip/:id", async (req, res) => {
 
     const emp = empResult.rows[0];
 
+    if (!emp.line_user_id) {
+      return res.status(400).send("此員工尚未綁定 LINE，無法產生薪資單");
+    }
+
+    const baseUrl =
+      process.env.BASE_URL ||
+      "https://line-attendance-blt1.onrender.com";
+
     const salaryRes = await fetch(
-      `https://line-attendance-blt1.onrender.com/api/my-salary/${emp.line_user_id}`
+      `${baseUrl}/api/my-salary/${emp.line_user_id}`
     );
 
     const salary = await salaryRes.json();
@@ -1736,8 +1749,13 @@ app.get("/api/payslip/:id", async (req, res) => {
       return res.status(500).send("薪資資料讀取失敗");
     }
 
-    // 檢查字型是否存在，不存在就提早攔截，避免產生亂碼 PDF
-    const fontPath = path.join(__dirname, "public", "fonts", "NotoSansTC-Regular.ttf");
+    const fontPath = path.join(
+      __dirname,
+      "public",
+      "fonts",
+      "NotoSansTC-Regular.ttf"
+    );
+
     if (!fs.existsSync(fontPath)) {
       return res.status(500).send("系統錯誤：伺服器缺失中文字型，無法產生薪資單");
     }
@@ -1746,13 +1764,12 @@ app.get("/api/payslip/:id", async (req, res) => {
       size: "A4",
       margin: 50
     });
-    
-    // 載入字型
+
     doc.font(fontPath);
 
-    const filename = `payslip_${emp.name}.pdf`;
+    const filename =
+      `payslip_${salary.name || emp.name}.pdf`;
 
-    // 【修正】先設定安全且支援中文的 Header，再執行 pipe
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
@@ -1761,8 +1778,10 @@ app.get("/api/payslip/:id", async (req, res) => {
 
     doc.pipe(res);
 
-    // --- PDF 內容繪製 ---
-    doc.fontSize(22).text("薪資單", { align: "center" });
+    doc.fontSize(22).text("薪資單", {
+      align: "center"
+    });
+
     doc.moveDown();
 
     doc.fontSize(12);
@@ -1774,46 +1793,50 @@ app.get("/api/payslip/:id", async (req, res) => {
     doc.moveDown();
     doc.text("----------------------------------------");
 
-    // 加上安全防護 || 0，避免 null 導致 toLocaleString 崩潰
     doc.fontSize(14).text("應發項目");
     doc.fontSize(12);
-    doc.text(`底薪：NT$ ${(salary.baseSalary || 0).toLocaleString("zh-TW")}`);
-    doc.text(`固定津貼：NT$ ${(salary.fixedAllowance || 0).toLocaleString("zh-TW")}`);
-    doc.text(`加班費：NT$ ${(salary.overtimePay || 0).toLocaleString("zh-TW")}`);
-    doc.text(`全勤獎金：NT$ ${(salary.attendanceBonus || 0).toLocaleString("zh-TW")}`);
-    doc.text(`績效獎金：NT$ ${(salary.performanceBonus || 0).toLocaleString("zh-TW")}`);
+    doc.text(`底薪：NT$ ${Number(salary.baseSalary || 0).toLocaleString("zh-TW")}`);
+    doc.text(`固定津貼：NT$ ${Number(salary.fixedAllowance || 0).toLocaleString("zh-TW")}`);
+    doc.text(`加班費：NT$ ${Number(salary.overtimePay || 0).toLocaleString("zh-TW")}`);
+    doc.text(`全勤獎金：NT$ ${Number(salary.attendanceBonus || 0).toLocaleString("zh-TW")}`);
+    doc.text(`績效獎金：NT$ ${Number(salary.performanceBonus || 0).toLocaleString("zh-TW")}`);
 
     doc.moveDown();
 
     doc.fontSize(14).text("扣除項目");
     doc.fontSize(12);
-    doc.text(`請假扣款：NT$ ${(salary.leaveDeduction || 0).toLocaleString("zh-TW")}`);
-    doc.text(`勞保：NT$ ${(salary.laborInsurance || 0).toLocaleString("zh-TW")}`);
-    doc.text(`健保：NT$ ${(salary.healthInsurance || 0).toLocaleString("zh-TW")}`);
-    doc.text(`勞退提繳：NT$ ${(salary.laborPension || 0).toLocaleString("zh-TW")}（公司提繳，不自薪資扣除）`);
+    doc.text(`請假扣款：NT$ ${Number(salary.leaveDeduction || 0).toLocaleString("zh-TW")}`);
+    doc.text(`勞保：NT$ ${Number(salary.laborInsurance || 0).toLocaleString("zh-TW")}`);
+    doc.text(`健保：NT$ ${Number(salary.healthInsurance || 0).toLocaleString("zh-TW")}`);
+    doc.text(`勞退提繳：NT$ ${Number(salary.laborPension || 0).toLocaleString("zh-TW")}（公司提繳，不自薪資扣除）`);
 
     doc.moveDown();
     doc.text("----------------------------------------");
 
-    // 此時的總額與明細就會完全對得上了！
     doc.fontSize(16).text(
-      `應發薪資：NT$ ${(salary.grossSalary || 0).toLocaleString("zh-TW")}`
-    );
-
-    doc.fontSize(18).text(
-      `實發薪資：NT$ ${(salary.netSalary || 0).toLocaleString("zh-TW")}`,
-      { align: "right" }
+      `應發薪資：NT$ ${Number(salary.grossSalary || 0).toLocaleString("zh-TW")}`
     );
 
     doc.moveDown();
-    doc.fontSize(10).text("備註：本薪資單為系統自動產生，實際金額仍以公司核定為準。");
+
+    doc.fontSize(18).text(
+      `實發薪資：NT$ ${Number(salary.netSalary || 0).toLocaleString("zh-TW")}`,
+      {
+        align: "right"
+      }
+    );
+
+    doc.moveDown();
+
+    doc.fontSize(10).text(
+      "備註：本薪資單為系統自動產生，實際金額仍以公司核定為準。"
+    );
 
     doc.end();
 
   } catch (err) {
     console.error("PDF ERROR:", err);
-    // 注意：如果 doc.pipe(res) 已經送出部分資料，這裡的 res.status 也可能失效，
-    // 但因為我們把 pipe 往後移了，所以在字型或資料出錯時，這裡能完美捕捉並回傳錯誤訊息。
+
     if (!res.headersSent) {
       res.status(500).send("薪資單產生失敗：" + err.message);
     }
