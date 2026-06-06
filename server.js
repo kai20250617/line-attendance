@@ -1554,19 +1554,20 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 
 
 
+let attendanceBonus = Number(emp.attendance_bonus || 3000);
 
 // =========================
 // 全勤獎金判斷
 // =========================
 
 
-// 是否符合全勤
+
 const attendanceQualified =
   lateCount === 0 &&
   earlyLeaveCount === 0 &&
   leaveDeduction === 0;
 
-// 不符合全勤則取消全勤獎金
+
 if (!attendanceQualified) {
   attendanceBonus = 0;
 }
