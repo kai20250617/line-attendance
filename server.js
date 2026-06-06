@@ -1551,7 +1551,9 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
     });
   }
 });
-    // =========================
+
+
+// =========================
 // 全勤獎金判斷
 // =========================
 
@@ -1580,33 +1582,31 @@ if (
       laborInsurance -
       healthInsurance;
 
-    res.json({
-  success:true,
-  id: emp.id,
-  name: emp.name,
-
-  lateCount,
-  earlyLeaveCount,
-
-  baseSalary,
-  fixedAllowance,
-  attendanceBonus,
-  performanceBonus,
-
-  overtimePay,
-  leaveDeduction,
-
-  grossSalary,
-
-  laborInsurance,
-  healthInsurance,
-  laborPension,
-
-  netSalary
-});
+        res.json({
+      success:true,
+      name: emp.name,
+      department: emp.department || "-",
+      position: emp.position || "-",
+      salaryMonth: new Date().toISOString().slice(0,7),
+      totalWorkHours: Number(totalWorkHours.toFixed(2)),
+      baseSalary,
+      fixedAllowance,
+      attendanceBonus,
+      performanceBonus,
+      overtimePay,
+      leaveDeduction,
+      lateCount,
+      earlyLeaveCount,
+      grossSalary,
+      laborInsurance,
+      healthInsurance,
+      laborPension,
+      netSalary
+    });
 
   } catch (err) {
     console.error(err);
+
     res.status(500).json({
       success:false,
       message:"讀取薪資失敗"
