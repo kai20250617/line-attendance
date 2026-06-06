@@ -1650,9 +1650,12 @@ if (!attendanceQualified) {
 
     res.json({
   success:true,
+  test123:"我是最新版本",
   employeeId: emp.id,
 
   name:emp.name,
+  ...
+});
   department:emp.department || "-",
   position:emp.position || "-",
   salaryMonth:new Date().toISOString().slice(0,7),
