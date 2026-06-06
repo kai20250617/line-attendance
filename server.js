@@ -1856,6 +1856,22 @@ app.get("/api/my-salary-history/:lineUserId", async (req, res) => {
 });
 
 // =========================
+// 函式工具
+// =========================
+function taiwanLocalToUTC(value) {
+  if (!value) return null;
+
+  if (value.includes("+08:00")) {
+    return new Date(value).toISOString();
+  }
+
+  if (value.endsWith("Z")) {
+    return value;
+  }
+
+  return new Date(value + ":00+08:00").toISOString();
+}
+// =========================
 // 補打卡申請
 // =========================
 
@@ -1869,17 +1885,14 @@ app.post("/api/clock-request", async (req, res) => {
       reason
     } = req.body;
 
-    const fixedClockTime =
-  clockTime && !clockTime.includes("+08:00")
-    ? clockTime + ":00+08:00"
-    : clockTime;
-
     if (!lineUserId || !name || !clockType || !clockTime || !reason) {
       return res.status(400).json({
         success:false,
         message:"資料不完整"
       });
     }
+
+    const fixedClockTime = taiwanLocalToUTC(clockTime);
 
     await pool.query(
       `
@@ -1900,7 +1913,7 @@ app.post("/api/clock-request", async (req, res) => {
         lineUserId,
         name,
         clockType,
-        clockTime,
+        fixedClockTime,
         reason,
         "待審核",
         new Date().toISOString()
@@ -1937,7 +1950,6 @@ https://line-attendance-blt1.onrender.com/clock-request-admin.html`
   }
 });
 
-
 // =========================
 // 讀取補打卡申請
 // =========================
@@ -1968,7 +1980,6 @@ app.get("/api/clock-requests", async (req, res) => {
 // =========================
 // 補打卡審核
 // =========================
-
 app.post("/api/clock-request/status", async (req, res) => {
   try {
     const { id, status } = req.body;
@@ -1999,6 +2010,15 @@ app.post("/api/clock-request/status", async (req, res) => {
 
     const request = requestResult.rows[0];
 
+    const clockType = String(request.clock_type || "").trim();
+
+    if (clockType !== "上班" && clockType !== "下班") {
+      return res.status(400).json({
+        success:false,
+        message:"補打卡類型錯誤：" + clockType
+      });
+    }
+
     await pool.query(
       `
       UPDATE clock_requests
@@ -2009,15 +2029,7 @@ app.post("/api/clock-request/status", async (req, res) => {
     );
 
     if (status === "已核准" || status === "核准") {
-
-      const clockType = request.clock_type;
-
-      if (clockType !== "上班" && clockType !== "下班") {
-        return res.status(400).json({
-          success:false,
-          message:"補打卡類型錯誤，只能是上班或下班"
-        });
-      }
+      const fixedClockTime = taiwanLocalToUTC(request.clock_time);
 
       const duplicate = await pool.query(
         `
@@ -2031,7 +2043,7 @@ app.post("/api/clock-request/status", async (req, res) => {
         [
           request.line_user_id,
           clockType,
-          request.clock_time
+          fixedClockTime
         ]
       );
 
@@ -2054,7 +2066,7 @@ app.post("/api/clock-request/status", async (req, res) => {
             request.line_user_id,
             request.name,
             clockType,
-            request.clock_time,
+            fixedClockTime,
             null,
             null
           ]
@@ -2067,7 +2079,7 @@ app.post("/api/clock-request/status", async (req, res) => {
 `📢 補打卡審核結果
 
 員工：${request.name}
-類型：${request.clock_type}
+類型：${clockType}
 時間：${request.clock_time}
 
 狀態：${status}`
