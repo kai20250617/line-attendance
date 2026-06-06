@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出勤統計報表</title>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
+h1{text-align:center;}
+.top{text-align:center;margin-bottom:20px;}
+input,button{padding:10px;margin:4px;border-radius:6px;border:1px solid #ccc;}
+button{color:white;border:none;cursor:pointer;}
+.search{background:#1976d2;}
+.clear{background:#555;}
+.back{background:#222;}
+.table-wrap{overflow-x:auto;background:white;}
+table{width:100%;min-width:850px;border-collapse:collapse;background:white;}
+th{background:#222;color:white;padding:12px;}
+td{border:1px solid #ddd;padding:10px;text-align:center;}
+.bad{color:red;font-weight:bold;}
+.good{color:green;font-weight:bold;}
+</style>
+</head>
+
+<body>
+
+<h1>📊 出勤統計報表</h1>
+
+<div class="top">
+  <input type="text" id="name" placeholder="員工姓名">
+  <input type="text" id="department" placeholder="部門">
+  <input type="date" id="startDate">
+  <input type="date" id="endDate">
+
+  <button class="search" onclick="loadReport()">查詢</button>
+  <button class="clear" onclick="clearFilter()">清除</button>
+  <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+  <th>員工</th>
+  <th>部門</th>
+  <th>職稱</th>
+  <th>出勤天數</th>
+  <th>總工時</th>
+  <th>遲到次數</th>
+  <th>早退次數</th>
+</tr>
+</thead>
+
+<tbody id="tbody">
+<tr>
+  <td colspan="7">讀取中...</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<script>
+if(localStorage.getItem("adminLogin") !== "yes"){
+  window.location.href = "/login.html";
+}
+
+async function loadReport(){
+  const tbody = document.getElementById("tbody");
+
+  tbody.innerHTML =
+  "<tr><td colspan='7'>讀取中...</td></tr>";
+
+  const params = new URLSearchParams();
+
+  const name = document.getElementById("name").value.trim();
+  const department = document.getElementById("department").value.trim();
+  const startDate = document.getElementById("startDate").value;
+  const endDate = document.getElementById("endDate").value;
+
+  if(name) params.append("name", name);
+  if(department) params.append("department", department);
+  if(startDate) params.append("startDate", startDate);
+  if(endDate) params.append("endDate", endDate);
+
+  try{
+    let url = "/api/attendance-report";
+
+    if(params.toString()){
+      url += "?" + params.toString();
+    }
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if(!Array.isArray(data) || data.length === 0){
+      tbody.innerHTML =
+      "<tr><td colspan='7'>目前沒有報表資料</td></tr>";
+      return;
+    }
+
+    tbody.innerHTML = "";
+
+    data.forEach(item=>{
+      tbody.innerHTML += `
+        <tr>
+          <td>${item.name || "-"}</td>
+          <td>${item.department || "-"}</td>
+          <td>${item.position || "-"}</td>
+          <td>${item.workDays || 0}</td>
+          <td>${item.totalHours || "0.00"}</td>
+          <td class="${Number(item.lateCount)>0 ? "bad" : "good"}">${item.lateCount || 0}</td>
+          <td class="${Number(item.earlyLeaveCount)>0 ? "bad" : "good"}">${item.earlyLeaveCount || 0}</td>
+        </tr>
+      `;
+    });
+
+  }catch(err){
+    console.error(err);
+    tbody.innerHTML =
+    "<tr><td colspan='7'>讀取失敗</td></tr>";
+  }
+}
+
+function clearFilter(){
+  document.getElementById("name").value = "";
+  document.getElementById("department").value = "";
+  document.getElementById("startDate").value = "";
+  document.getElementById("endDate").value = "";
+
+  loadReport();
+}
+
+loadReport();
+</script>
+
+</body>
+</html>

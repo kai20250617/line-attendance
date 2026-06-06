@@ -2254,6 +2254,124 @@ app.put("/api/attendance-admin/:id", async (req, res) => {
     });
   }
 });
+
+// =========================
+// 出勤統計報表
+// =========================
+
+app.get("/api/attendance-report", async (req, res) => {
+  try {
+
+    const employees = await pool.query(`
+      SELECT *
+      FROM employees
+      WHERE status = '在職'
+      ORDER BY name
+    `);
+
+    const attendance = await pool.query(`
+      SELECT *
+      FROM attendance
+      ORDER BY clock_time ASC
+    `);
+
+    const result = [];
+
+    employees.rows.forEach(emp => {
+
+      let totalHours = 0;
+      let lateCount = 0;
+      let earlyLeaveCount = 0;
+
+      const dayGroups = {};
+
+      attendance.rows
+      .filter(x => x.line_user_id === emp.line_user_id)
+      .forEach(item => {
+
+        const date =
+        new Date(item.clock_time)
+        .toLocaleDateString("zh-TW",{
+          timeZone:"Asia/Taipei"
+        });
+
+        if(!dayGroups[date]){
+          dayGroups[date] = {
+            start:null,
+            end:null
+          };
+        }
+
+        if(item.type === "上班"){
+          dayGroups[date].start = item.clock_time;
+        }
+
+        if(item.type === "下班"){
+          dayGroups[date].end = item.clock_time;
+        }
+
+      });
+
+      Object.values(dayGroups).forEach(day => {
+
+        if(day.start && day.end){
+
+          const start =
+          new Date(day.start);
+
+          const end =
+          new Date(day.end);
+
+          const hours =
+          (end - start) /
+          1000 / 60 / 60;
+
+          totalHours += hours;
+
+          if(
+            start.getHours() > 9 ||
+            (
+              start.getHours() === 9 &&
+              start.getMinutes() > 0
+            )
+          ){
+            lateCount++;
+          }
+
+          if(
+            end.getHours() < 16
+          ){
+            earlyLeaveCount++;
+          }
+
+        }
+
+      });
+
+      result.push({
+        name: emp.name,
+        department: emp.department,
+        position: emp.position,
+        totalHours: totalHours.toFixed(2),
+        lateCount,
+        earlyLeaveCount
+      });
+
+    });
+
+    res.json(result);
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取報表失敗"
+    });
+
+  }
+});
 // =========================
 // 啟動伺服器
 // =========================
