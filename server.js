@@ -83,9 +83,9 @@ async function createTables() {
     CREATE TABLE IF NOT EXISTS rules (
       id SERIAL PRIMARY KEY,
       work_start TEXT DEFAULT '09:00',
-      work_end TEXT DEFAULT '16:00',
+      work_end TEXT DEFAULT '18:00',
       break_hours REAL DEFAULT 1,
-      overtime_start TEXT DEFAULT '16:30'
+      overtime_start TEXT DEFAULT '18:30'
     )
   `);
 await pool.query(`
@@ -1165,9 +1165,9 @@ app.post("/api/rules", async (req, res) => {
         `,
         [
           work_start || "09:00",
-          work_end || "16:00",
+          work_end || "18:00",
           Number(break_hours || 1),
-          overtime_start || "16:30"
+          overtime_start || "18:30"
         ]
       );
     } else {
@@ -1183,9 +1183,9 @@ app.post("/api/rules", async (req, res) => {
         `,
         [
           work_start || "09:00",
-          work_end || "16:00",
+          work_end || "18:00",
           Number(break_hours || 1),
-          overtime_start || "16:30",
+          overtime_start || "18:30",
           exists.rows[0].id
         ]
       );
@@ -2261,115 +2261,143 @@ app.put("/api/attendance-admin/:id", async (req, res) => {
 
 app.get("/api/attendance-report", async (req, res) => {
   try {
+    const {
+      name,
+      department,
+      startDate,
+      endDate
+    } = req.query;
 
-    const employees = await pool.query(`
+    let empSql = `
       SELECT *
       FROM employees
       WHERE status = '在職'
-      ORDER BY name
-    `);
+    `;
 
-    const attendance = await pool.query(`
+    const empParams = [];
+
+    if (name) {
+      empParams.push("%" + name + "%");
+      empSql += ` AND name ILIKE $${empParams.length}`;
+    }
+
+    if (department) {
+      empParams.push("%" + department + "%");
+      empSql += ` AND department ILIKE $${empParams.length}`;
+    }
+
+    empSql += ` ORDER BY name`;
+
+    const employees = await pool.query(empSql, empParams);
+
+    let attSql = `
       SELECT *
       FROM attendance
-      ORDER BY clock_time ASC
-    `);
+      WHERE 1 = 1
+    `;
+
+    const attParams = [];
+
+    if (startDate) {
+      attParams.push(startDate);
+      attSql += ` AND DATE(clock_time) >= $${attParams.length}`;
+    }
+
+    if (endDate) {
+      attParams.push(endDate);
+      attSql += ` AND DATE(clock_time) <= $${attParams.length}`;
+    }
+
+    attSql += ` ORDER BY clock_time ASC`;
+
+    const attendance = await pool.query(attSql, attParams);
 
     const result = [];
 
     employees.rows.forEach(emp => {
-
       let totalHours = 0;
       let lateCount = 0;
       let earlyLeaveCount = 0;
+      let workDays = 0;
 
       const dayGroups = {};
 
       attendance.rows
-      .filter(x => x.line_user_id === emp.line_user_id)
-      .forEach(item => {
+        .filter(x => x.line_user_id === emp.line_user_id)
+        .forEach(item => {
+          const date = new Date(item.clock_time).toLocaleDateString("zh-TW", {
+            timeZone:"Asia/Taipei"
+          });
 
-        const date =
-        new Date(item.clock_time)
-        .toLocaleDateString("zh-TW",{
-          timeZone:"Asia/Taipei"
+          if (!dayGroups[date]) {
+            dayGroups[date] = {
+              start:null,
+              end:null
+            };
+          }
+
+          if (item.type === "上班") {
+            if (!dayGroups[date].start || new Date(item.clock_time) < new Date(dayGroups[date].start)) {
+              dayGroups[date].start = item.clock_time;
+            }
+          }
+
+          if (item.type === "下班") {
+            if (!dayGroups[date].end || new Date(item.clock_time) > new Date(dayGroups[date].end)) {
+              dayGroups[date].end = item.clock_time;
+            }
+          }
         });
 
-        if(!dayGroups[date]){
-          dayGroups[date] = {
-            start:null,
-            end:null
-          };
-        }
-
-        if(item.type === "上班"){
-          dayGroups[date].start = item.clock_time;
-        }
-
-        if(item.type === "下班"){
-          dayGroups[date].end = item.clock_time;
-        }
-
-      });
-
       Object.values(dayGroups).forEach(day => {
+        if (day.start && day.end) {
+          workDays++;
 
-        if(day.start && day.end){
+          const start = new Date(day.start);
+          const end = new Date(day.end);
 
-          const start =
-          new Date(day.start);
+          const hours = (end - start) / 1000 / 60 / 60;
 
-          const end =
-          new Date(day.end);
+          if (hours > 0) {
+            totalHours += hours;
+          }
 
-          const hours =
-          (end - start) /
-          1000 / 60 / 60;
+          const startMinutes = start.getHours() * 60 + start.getMinutes();
+          const endMinutes = end.getHours() * 60 + end.getMinutes();
 
-          totalHours += hours;
+          const ruleStartMinutes = 9 * 60;
+          const ruleEndMinutes = 18 * 60;
 
-          if(
-            start.getHours() > 9 ||
-            (
-              start.getHours() === 9 &&
-              start.getMinutes() > 0
-            )
-          ){
+          if (startMinutes > ruleStartMinutes) {
             lateCount++;
           }
 
-          if(
-            end.getHours() < 16
-          ){
+          if (endMinutes < ruleEndMinutes) {
             earlyLeaveCount++;
           }
-
         }
-
       });
 
       result.push({
         name: emp.name,
-        department: emp.department,
-        position: emp.position,
+        department: emp.department || "-",
+        position: emp.position || "-",
+        workDays,
         totalHours: totalHours.toFixed(2),
         lateCount,
         earlyLeaveCount
       });
-
     });
 
     res.json(result);
 
   } catch(err) {
-
     console.error(err);
 
     res.status(500).json({
       success:false,
-      message:"讀取報表失敗"
+      message:"讀取出勤報表失敗"
     });
-
   }
 });
 // =========================
