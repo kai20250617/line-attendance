@@ -2696,7 +2696,7 @@ app.post("/api/generate-bind-code/:id", async (req, res) => {
     });
 
   } catch(err) {
-    console.error(err);
+    console.error("產生綁定碼錯誤:", err);
 
     res.status(500).json({
       success:false,
@@ -2725,6 +2725,9 @@ app.post("/api/bind-line", async (req, res) => {
       });
     }
 
+    const cleanCode =
+      String(bindCode).trim();
+
     const result = await pool.query(
       `
       SELECT *
@@ -2733,22 +2736,25 @@ app.post("/api/bind-line", async (req, res) => {
       AND status = '在職'
       LIMIT 1
       `,
-      [bindCode]
+      [cleanCode]
     );
 
     if (result.rows.length === 0) {
       return res.json({
         success:false,
-        message:"綁定碼錯誤或員工不存在"
+        message:"綁定碼錯誤、已失效或員工不存在"
       });
     }
 
     const emp = result.rows[0];
 
-    if (emp.line_user_id) {
+    if (
+      emp.line_user_id &&
+      emp.line_user_id !== lineUserId
+    ) {
       return res.json({
         success:false,
-        message:"此員工已經綁定LINE"
+        message:"此員工已被其他LINE帳號綁定"
       });
     }
 
@@ -2759,7 +2765,8 @@ app.post("/api/bind-line", async (req, res) => {
         line_user_id = $1,
         bind_status = '已綁定',
         line_display_name = $2,
-        bound_at = NOW()
+        bound_at = NOW(),
+        bind_code = NULL
       WHERE id = $3
       `,
       [
@@ -2776,7 +2783,7 @@ app.post("/api/bind-line", async (req, res) => {
     });
 
   } catch(err) {
-    console.error(err);
+    console.error("LINE綁定錯誤:", err);
 
     res.status(500).json({
       success:false,
