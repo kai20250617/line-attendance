@@ -62,7 +62,13 @@ a{
 .gray{background:#455a64;}
 .red{background:#c62828;}
 .error{color:red;font-weight:bold;}
-.red{background:#c62828;}
+.debug{
+  margin-top:10px;
+  color:red;
+  font-size:14px;
+  word-break:break-all;
+  line-height:1.6;
+}
 </style>
 </head>
 
@@ -77,35 +83,67 @@ a{
 <script>
 const LIFF_ID = "2010241581-YtDxQgWd";
 
-async function init(){
-  const box = document.getElementById("box");
+async function getJson(url){
+  const res = await fetch(url);
+  const text = await res.text();
 
   try{
-    await liff.init({ liffId: LIFF_ID });
-if(!liff.isLoggedIn()){
-  liff.login();
-  return;
+    return JSON.parse(text);
+  }catch(err){
+    throw new Error("API不是JSON：" + url + " / " + text.slice(0,120));
+  }
 }
 
+async function init(){
+  const box = document.getElementById("box");
+  let step = "開始";
+
+  try{
+    step = "LIFF初始化";
+    await liff.init({ liffId: LIFF_ID });
+
+    step = "檢查登入";
+    if(!liff.isLoggedIn()){
+      liff.login();
+      return;
+    }
+
+    step = "取得LINE Profile";
     const profile = await liff.getProfile();
 
-    const empRes = await fetch("/api/check-employee/" + profile.userId);
-    const empData = await empRes.json();
+    if(!profile || !profile.userId){
+      throw new Error("沒有取得 LINE User ID");
+    }
 
-    if(!empData.isEmployee){
+    const lineUserId = profile.userId;
+
+    step = "檢查員工身份";
+    const empData = await getJson("/api/check-employee/" + lineUserId);
+
+    if(!empData.success){
+      throw new Error(empData.message || "員工身份檢查失敗");
+    }
+
+    if(!empData.isEmployee || !empData.employee){
       location.href = "/customer-menu.html";
       return;
     }
 
-    const salaryRes = await fetch("/api/my-salary/" + profile.userId);
-    const salary = await salaryRes.json();
+    const emp = empData.employee;
 
-    const workRes = await fetch("/api/my-worktime/" + profile.userId);
-    const workData = await workRes.json();
+    step = "讀取薪資";
+    const salary = await getJson("/api/my-salary/" + lineUserId);
 
-    let totalHours = 0;
+    if(!salary.success){
+      throw new Error(salary.message || "薪資資料讀取失敗");
+    }
 
-    if(Array.isArray(workData)){
+    step = "讀取工時";
+    const workData = await getJson("/api/my-worktime/" + lineUserId);
+
+    let totalHours = Number(salary.totalWorkHours || 0);
+
+    if(!totalHours && Array.isArray(workData)){
       const groups = {};
 
       workData.forEach(item=>{
@@ -147,18 +185,20 @@ if(!liff.isLoggedIn()){
       : 0;
 
     const attendanceStatus =
-      Number(salary.attendanceBonus || 0) > 0
+      salary.attendanceQualified
       ? "✅ 符合"
       : "❌ 不符合";
 
+    step = "產生畫面";
+
     box.innerHTML = `
-      <h2>${empData.employee.name}</h2>
-      <p>${empData.employee.department || "-"} / ${empData.employee.position || "-"}</p>
+      <h2>${emp.name || profile.displayName || "-"}</h2>
+      <p>${emp.department || "-"} / ${emp.position || "-"}</p>
 
       <div class="stats">
         <div class="stat">
           本月工時
-          <strong>${totalHours.toFixed(1)} 小時</strong>
+          <strong>${Number(totalHours || 0).toFixed(1)} 小時</strong>
         </div>
 
         <div class="stat">
@@ -184,28 +224,19 @@ if(!liff.isLoggedIn()){
         <a class="purple" href="/my-leave.html">📋 請假紀錄</a>
         <a class="teal" href="/worktime.html">⏰ 我的工時</a>
         <a class="gray" href="/my-salary.html">💰 我的薪資</a>
-        <a class="orange" href="/my-salary-history.html">  📄 薪資歷史</a>
+        <a class="orange" href="/my-salary-history.html">📄 薪資歷史</a>
         <a class="red" href="/dashboard.html">📊 管理首頁</a>
       </div>
     `;
 
-
-
-   }catch(err){
+  }catch(err){
     console.error(err);
 
     box.innerHTML = `
-      <div class="error">
-        讀取失敗
-      </div>
-
-      <div style="
-        margin-top:10px;
-        color:red;
-        font-size:14px;
-        word-break:break-all;
-      ">
-        ${err.message}
+      <div class="error">讀取失敗</div>
+      <div class="debug">
+        錯誤位置：${step}<br>
+        錯誤訊息：${err.message || err}
       </div>
     `;
   }
