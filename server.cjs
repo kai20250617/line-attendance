@@ -16,6 +16,26 @@ const pool = new Pool({
 
 async function createTables() {
 
+await pool.query(`
+ALTER TABLE employees
+ADD COLUMN IF NOT EXISTS bind_code VARCHAR(50)
+`);
+
+await pool.query(`
+ALTER TABLE employees
+ADD COLUMN IF NOT EXISTS bind_status VARCHAR(20) DEFAULT '未綁定'
+`);
+
+await pool.query(`
+ALTER TABLE employees
+ADD COLUMN IF NOT EXISTS line_display_name VARCHAR(100)
+`);
+
+await pool.query(`
+ALTER TABLE employees
+ADD COLUMN IF NOT EXISTS bound_at TIMESTAMP
+`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS attendance (
       id SERIAL PRIMARY KEY,
@@ -135,25 +155,7 @@ CREATE TABLE IF NOT EXISTS salary_history (
 
   console.log("✅ PostgreSQL Tables Ready");
 }
-await pool.query(`
-ALTER TABLE employees
-ADD COLUMN IF NOT EXISTS bind_code VARCHAR(50)
-`);
 
-await pool.query(`
-ALTER TABLE employees
-ADD COLUMN IF NOT EXISTS bind_status VARCHAR(20) DEFAULT '未綁定'
-`);
-
-await pool.query(`
-ALTER TABLE employees
-ADD COLUMN IF NOT EXISTS line_display_name VARCHAR(100)
-`);
-
-await pool.query(`
-ALTER TABLE employees
-ADD COLUMN IF NOT EXISTS bound_at TIMESTAMP
-`);
 
 console.log("✅ Employee Bind Columns Ready");
 createTables();
