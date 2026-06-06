@@ -1337,11 +1337,8 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
     let totalWorkHours = 0;
 
 
-let lateCount = 0;
-let earlyLeaveCount = 0;
-let overtimePay = 0;
-let leaveDeduction = 0;
-let totalWorkHours = 0;
+
+    
 
 // =========================
 // 全勤資格
