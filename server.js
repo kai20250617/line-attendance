@@ -2338,8 +2338,11 @@ function getTaipeiMinutes(value) {
     hour12: false
   }).formatToParts(d);
 
-  const hour = Number(parts.find(p => p.type === "hour").value);
-  const minute = Number(parts.find(p => p.type === "minute").value);
+  const hour =
+  Number(parts.find(p => p.type === "hour").value);
+
+  const minute =
+  Number(parts.find(p => p.type === "minute").value);
 
   return hour * 60 + minute;
 }
@@ -2357,7 +2360,48 @@ function getTaipeiDate(value) {
 
 app.get("/api/attendance-report", async (req, res) => {
   try {
-    const { name, department, startDate, endDate } = req.query;
+    const {
+      name,
+      department,
+      startDate,
+      endDate
+    } = req.query;
+
+    // 讀取前台設定的出勤規則
+    const rulesResult = await pool.query(
+      "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
+    );
+
+    const rules =
+    rulesResult.rows[0] || {};
+
+    const workStart =
+    rules.work_start || "09:00";
+
+    const workEnd =
+    rules.work_end || "18:00";
+
+    const lateAllowance =
+    Number(rules.late_allowance || 0);
+
+    const earlyAllowance =
+    Number(rules.early_allowance || 0);
+
+    const [startHour, startMinute] =
+    workStart.split(":").map(Number);
+
+    const [endHour, endMinute] =
+    workEnd.split(":").map(Number);
+
+    const ruleStartMinutes =
+    startHour * 60 +
+    startMinute +
+    lateAllowance;
+
+    const ruleEndMinutes =
+    endHour * 60 +
+    endMinute -
+    earlyAllowance;
 
     let empSql = `
       SELECT *
@@ -2369,17 +2413,24 @@ app.get("/api/attendance-report", async (req, res) => {
 
     if (name) {
       empParams.push("%" + name + "%");
-      empSql += ` AND name ILIKE $${empParams.length}`;
+      empSql += `
+        AND name ILIKE $${empParams.length}
+      `;
     }
 
     if (department) {
       empParams.push("%" + department + "%");
-      empSql += ` AND department ILIKE $${empParams.length}`;
+      empSql += `
+        AND department ILIKE $${empParams.length}
+      `;
     }
 
-    empSql += ` ORDER BY name`;
+    empSql += `
+      ORDER BY name
+    `;
 
-    const employees = await pool.query(empSql, empParams);
+    const employees =
+    await pool.query(empSql, empParams);
 
     let attSql = `
       SELECT *
@@ -2391,21 +2442,31 @@ app.get("/api/attendance-report", async (req, res) => {
 
     if (startDate) {
       attParams.push(startDate);
-      attSql += ` AND DATE(clock_time AT TIME ZONE 'Asia/Taipei') >= $${attParams.length}`;
+      attSql += `
+        AND DATE(clock_time AT TIME ZONE 'Asia/Taipei')
+        >= $${attParams.length}
+      `;
     }
 
     if (endDate) {
       attParams.push(endDate);
-      attSql += ` AND DATE(clock_time AT TIME ZONE 'Asia/Taipei') <= $${attParams.length}`;
+      attSql += `
+        AND DATE(clock_time AT TIME ZONE 'Asia/Taipei')
+        <= $${attParams.length}
+      `;
     }
 
-    attSql += ` ORDER BY clock_time ASC`;
+    attSql += `
+      ORDER BY clock_time ASC
+    `;
 
-    const attendance = await pool.query(attSql, attParams);
+    const attendance =
+    await pool.query(attSql, attParams);
 
     const result = [];
 
     for (const emp of employees.rows) {
+
       let totalHours = 0;
       let lateCount = 0;
       let earlyLeaveCount = 0;
@@ -2414,46 +2475,68 @@ app.get("/api/attendance-report", async (req, res) => {
       const dayGroups = {};
 
       attendance.rows
-        .filter(item => item.line_user_id === emp.line_user_id)
-        .forEach(item => {
-          const date = getTaipeiDate(item.clock_time);
+      .filter(item =>
+        item.line_user_id === emp.line_user_id
+      )
+      .forEach(item => {
 
-          if (!dayGroups[date]) {
-            dayGroups[date] = {
-              start: null,
-              end: null
-            };
-          }
+        const date =
+        getTaipeiDate(item.clock_time);
 
-          if (item.type === "上班") {
-            if (!dayGroups[date].start || new Date(item.clock_time) < new Date(dayGroups[date].start)) {
-              dayGroups[date].start = item.clock_time;
-            }
-          }
+        if (!dayGroups[date]) {
+          dayGroups[date] = {
+            start:null,
+            end:null
+          };
+        }
 
-          if (item.type === "下班") {
-            if (!dayGroups[date].end || new Date(item.clock_time) > new Date(dayGroups[date].end)) {
-              dayGroups[date].end = item.clock_time;
-            }
+        if (item.type === "上班") {
+          if (
+            !dayGroups[date].start ||
+            new Date(item.clock_time) <
+            new Date(dayGroups[date].start)
+          ) {
+            dayGroups[date].start =
+            item.clock_time;
           }
-        });
+        }
+
+        if (item.type === "下班") {
+          if (
+            !dayGroups[date].end ||
+            new Date(item.clock_time) >
+            new Date(dayGroups[date].end)
+          ) {
+            dayGroups[date].end =
+            item.clock_time;
+          }
+        }
+
+      });
 
       Object.values(dayGroups).forEach(day => {
-        if (day.start && day.end) {
-          const start = new Date(day.start);
-          const end = new Date(day.end);
 
-          const hours = (end - start) / 1000 / 60 / 60;
+        if (day.start && day.end) {
+
+          const start =
+          new Date(day.start);
+
+          const end =
+          new Date(day.end);
+
+          const hours =
+          (end - start) / 1000 / 60 / 60;
 
           if (hours > 0) {
             workDays++;
             totalHours += hours;
           }
 
-          const startMinutes = getTaipeiMinutes(day.start);
-          const endMinutes = getTaipeiMinutes(day.end);
+          const startMinutes =
+          getTaipeiMinutes(day.start);
 
-          const rules = await getAttendanceRules();
+          const endMinutes =
+          getTaipeiMinutes(day.end);
 
           if (startMinutes > ruleStartMinutes) {
             lateCount++;
@@ -2462,7 +2545,9 @@ app.get("/api/attendance-report", async (req, res) => {
           if (endMinutes < ruleEndMinutes) {
             earlyLeaveCount++;
           }
+
         }
+
       });
 
       result.push({
@@ -2474,17 +2559,20 @@ app.get("/api/attendance-report", async (req, res) => {
         lateCount,
         earlyLeaveCount
       });
+
     }
 
     res.json(result);
 
   } catch(err) {
+
     console.error(err);
 
     res.status(500).json({
       success:false,
       message:"讀取出勤報表失敗"
     });
+
   }
 });
 // =========================
