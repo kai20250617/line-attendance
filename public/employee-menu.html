@@ -191,24 +191,25 @@ async function init(){
     `;
 
 
-    
-  }catch(err){
-  console.error(err);
 
-  box.innerHTML = `
-    <div class="error">
-      讀取失敗
-    </div>
+   }catch(err){
+    console.error(err);
 
-    <div style="
-      margin-top:10px;
-      color:red;
-      font-size:14px;
-      word-break:break-all;
-    ">
-      ${err.message}
-    </div>
-  `;
+    box.innerHTML = `
+      <div class="error">
+        讀取失敗
+      </div>
+
+      <div style="
+        margin-top:10px;
+        color:red;
+        font-size:14px;
+        word-break:break-all;
+      ">
+        ${err.message}
+      </div>
+    `;
+  }
 }
 
 init();
