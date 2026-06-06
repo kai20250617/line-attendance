@@ -1613,7 +1613,7 @@ let attendanceQualified = true;
 
     leaveDeduction = Math.round(leaveDeduction);
 
-    // =========================
+// =========================
 // 全勤獎金判斷
 // =========================
 
@@ -1626,36 +1626,43 @@ if (!attendanceQualified) {
   attendanceBonus = 0;
 }
 
-    const grossSalary =
-      baseSalary +
-      fixedAllowance +
-      attendanceBonus +
-      performanceBonus +
-      overtimePay -
-      leaveDeduction;
+// =========================
+// 薪資計算
+// =========================
 
-    const laborInsurance =
-      Math.round(grossSalary * 0.02);
+// 應發薪資：正向收入加總
+const grossSalary =
+  baseSalary +
+  fixedAllowance +
+  attendanceBonus +
+  performanceBonus +
+  overtimePay;
 
-    const healthInsurance =
-      Math.round(grossSalary * 0.015);
+// 勞保
+const laborInsurance =
+  Math.round(grossSalary * 0.02);
 
-    const laborPension =
-      Math.round(grossSalary * 0.06);
+// 健保
+const healthInsurance =
+  Math.round(grossSalary * 0.015);
 
-    const netSalary =
-      grossSalary -
-      laborInsurance -
-      healthInsurance;
+// 勞退提繳：公司提繳，不從薪資扣
+const laborPension =
+  Math.round(grossSalary * 0.06);
 
-    res.json({
+// 實發薪資：應發薪資 - 請假扣款 - 勞保 - 健保
+const netSalary =
+  grossSalary -
+  leaveDeduction -
+  laborInsurance -
+  healthInsurance;
+
+res.json({
   success:true,
-  test123:"我是最新版本",
+
   employeeId: emp.id,
 
   name:emp.name,
-  ...
-});
   department:emp.department || "-",
   position:emp.position || "-",
   salaryMonth:new Date().toISOString().slice(0,7),
@@ -1696,8 +1703,6 @@ if (!attendanceQualified) {
     });
   }
 });
-
-
 
 
 
