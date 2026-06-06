@@ -421,6 +421,13 @@ app.post("/api/clock", async (req, res) => {
 
     await pool.query(
       `
+const taiwanTime =
+new Date(
+  new Date(taiwanTime)
+  .getTime() - 8 * 60 * 60 * 1000
+)
+.toISOString();
+
       INSERT INTO attendance
       (
         line_user_id,
@@ -2029,7 +2036,7 @@ app.post("/api/clock-request/status", async (req, res) => {
     );
 
     if (status === "已核准" || status === "核准") {
-      const fixedClockTime = taiwanLocalToUTC(request.clock_time);
+      const fixedClockTime = taiwanLocalToUTC(taiwanTime);
 
       const duplicate = await pool.query(
         `
@@ -2080,7 +2087,7 @@ app.post("/api/clock-request/status", async (req, res) => {
 
 員工：${request.name}
 類型：${clockType}
-時間：${request.clock_time}
+時間：${taiwanTime}
 
 狀態：${status}`
     );
