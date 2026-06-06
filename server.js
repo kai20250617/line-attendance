@@ -2036,23 +2036,23 @@ app.post("/api/clock-request/status", async (req, res) => {
     );
 
     if (status === "已核准" || status === "核准") {
-      const fixedClockTime = taiwanLocalToUTC(taiwanTime);
+  const fixedClockTime = request.clock_time;
 
-      const duplicate = await pool.query(
-        `
-        SELECT *
-        FROM attendance
-        WHERE line_user_id = $1
-        AND type = $2
-        AND clock_time = $3
-        LIMIT 1
-        `,
-        [
-          request.line_user_id,
-          clockType,
-          fixedClockTime
-        ]
-      );
+  const duplicate = await pool.query(
+    `
+    SELECT *
+    FROM attendance
+    WHERE line_user_id = $1
+    AND type = $2
+    AND clock_time = $3
+    LIMIT 1
+    `,
+    [
+      request.line_user_id,
+      clockType,
+      fixedClockTime
+    ]
+  );
 
       if (duplicate.rows.length === 0) {
         await pool.query(
