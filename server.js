@@ -2137,11 +2137,44 @@ app.delete("/api/attendance-admin/:id", async (req, res) => {
 
 app.get("/api/attendance-admin", async (req, res) => {
   try {
-    const result = await pool.query(`
+    const {
+      name,
+      type,
+      startDate,
+      endDate
+    } = req.query;
+
+    let sql = `
       SELECT *
       FROM attendance
-      ORDER BY id DESC
-    `);
+      WHERE 1 = 1
+    `;
+
+    const params = [];
+
+    if (name) {
+      params.push("%" + name + "%");
+      sql += ` AND name ILIKE $${params.length}`;
+    }
+
+    if (type) {
+      params.push(type);
+      sql += ` AND type = $${params.length}`;
+    }
+
+    if (startDate) {
+      params.push(startDate);
+      sql += ` AND DATE(clock_time) >= $${params.length}`;
+    }
+
+    if (endDate) {
+      params.push(endDate);
+      sql += ` AND DATE(clock_time) <= $${params.length}`;
+    }
+
+    sql += ` ORDER BY id DESC`;
+
+    const result = await pool.query(sql, params);
 
     res.json(result.rows);
 
@@ -2183,6 +2216,20 @@ app.delete("/api/attendance-admin/:id", async (req, res) => {
 app.put("/api/attendance-admin/:id", async (req, res) => {
   try {
     const { type, clock_time } = req.body;
+
+    if (!type || !clock_time) {
+      return res.status(400).json({
+        success:false,
+        message:"缺少出勤類型或時間"
+      });
+    }
+
+    if (type !== "上班" && type !== "下班") {
+      return res.status(400).json({
+        success:false,
+        message:"出勤類型只能是上班或下班"
+      });
+    }
 
     await pool.query(
       `
