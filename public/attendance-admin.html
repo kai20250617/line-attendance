@@ -2,130 +2,271 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>出勤管理</title>
 
 <style>
 body{
-font-family:Arial;
-background:#f5f5f5;
-padding:20px;
+  font-family:Arial,sans-serif;
+  background:#f5f5f5;
+  padding:20px;
 }
 
 h1{
-text-align:center;
+  text-align:center;
 }
 
-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-}
-
-th{
-background:#222;
-color:white;
-padding:10px;
-}
-
-td{
-border:1px solid #ddd;
-padding:10px;
-text-align:center;
+.top{
+  text-align:center;
+  margin-bottom:20px;
 }
 
 button{
-background:red;
-color:white;
-border:none;
-padding:8px 12px;
-border-radius:6px;
-cursor:pointer;
+  color:white;
+  border:none;
+  padding:8px 12px;
+  border-radius:6px;
+  cursor:pointer;
+  margin:2px;
+}
+
+.back{
+  background:#222;
+}
+
+.refresh{
+  background:#1976d2;
+}
+
+.save{
+  background:#2e7d32;
+}
+
+.delete{
+  background:#e53935;
+}
+
+.table-wrap{
+  width:100%;
+  overflow-x:auto;
+  background:white;
+}
+
+table{
+  width:100%;
+  min-width:760px;
+  border-collapse:collapse;
+  background:white;
+}
+
+th{
+  background:#222;
+  color:white;
+  padding:10px;
+  white-space:nowrap;
+}
+
+td{
+  border:1px solid #ddd;
+  padding:10px;
+  text-align:center;
+  white-space:nowrap;
+}
+
+select,
+input{
+  padding:8px;
+  border:1px solid #ccc;
+  border-radius:6px;
 }
 </style>
 </head>
+
 <body>
 
 <h1>📋 出勤管理</h1>
 
-<table>
+<div class="top">
+  <button class="refresh" onclick="loadData()">重新整理</button>
+  <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
+</div>
 
+<div class="table-wrap">
+<table>
 <thead>
 <tr>
-<th>ID</th>
-<th>員工</th>
-<th>類型</th>
-<th>時間</th>
-<th>操作</th>
+  <th>ID</th>
+  <th>員工</th>
+  <th>類型</th>
+  <th>時間</th>
+  <th>操作</th>
 </tr>
 </thead>
 
 <tbody id="tbody">
 <tr>
-<td colspan="5">
-讀取中...
-</td>
+  <td colspan="5">讀取中...</td>
 </tr>
 </tbody>
-
 </table>
+</div>
 
 <script>
+if(localStorage.getItem("adminLogin") !== "yes"){
+  window.location.href = "/login.html";
+}
+
+function toDatetimeLocal(value){
+  if(!value){
+    return "";
+  }
+
+  const d = new Date(value);
+
+  if(isNaN(d.getTime())){
+    return "";
+  }
+
+  const local = new Date(
+    d.getTime() - d.getTimezoneOffset() * 60000
+  );
+
+  return local.toISOString().slice(0,16);
+}
 
 async function loadData(){
+  const tbody = document.getElementById("tbody");
 
-const res =
-await fetch("/api/attendance-admin");
+  tbody.innerHTML =
+  "<tr><td colspan='5'>讀取中...</td></tr>";
 
-const data =
-await res.json();
+  try{
+    const res =
+    await fetch("/api/attendance-admin");
 
-const tbody =
-document.getElementById("tbody");
+    const data =
+    await res.json();
 
-tbody.innerHTML="";
+    if(!Array.isArray(data) || data.length === 0){
+      tbody.innerHTML =
+      "<tr><td colspan='5'>目前沒有出勤資料</td></tr>";
+      return;
+    }
 
-data.forEach(item=>{
+    tbody.innerHTML = "";
 
-tbody.innerHTML += `
-<tr>
-<td>${item.id}</td>
-<td>${item.name}</td>
-<td>${item.type}</td>
-<td>${new Date(item.clock_time)
-.toLocaleString("zh-TW")}</td>
-<td>
+    data.forEach(item=>{
+      tbody.innerHTML += `
+        <tr>
+          <td>${item.id}</td>
 
-<button onclick="del(${item.id})">
-刪除
-</button>
+          <td>${item.name || "-"}</td>
 
-</td>
-</tr>
-`;
+          <td>
+            <select id="type_${item.id}">
+              <option value="上班" ${item.type==="上班" ? "selected" : ""}>
+                上班
+              </option>
+              <option value="下班" ${item.type==="下班" ? "selected" : ""}>
+                下班
+              </option>
+            </select>
+          </td>
 
-});
+          <td>
+            <input
+              type="datetime-local"
+              id="time_${item.id}"
+              value="${toDatetimeLocal(item.clock_time)}">
+          </td>
 
+          <td>
+            <button class="save" onclick="saveData(${item.id})">
+              修改
+            </button>
+
+            <button class="delete" onclick="deleteData(${item.id})">
+              刪除
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+  }catch(err){
+    console.error(err);
+
+    tbody.innerHTML =
+    "<tr><td colspan='5'>讀取失敗</td></tr>";
+  }
 }
 
-async function del(id){
+async function saveData(id){
+  const type =
+  document.getElementById("type_" + id).value;
 
-if(!confirm("確定刪除？")){
-return;
+  const rawTime =
+  document.getElementById("time_" + id).value;
+
+  if(!rawTime){
+    alert("請輸入時間");
+    return;
+  }
+
+  const clock_time =
+  rawTime + ":00+08:00";
+
+  try{
+    const res =
+    await fetch("/api/attendance-admin/" + id, {
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        type,
+        clock_time
+      })
+    });
+
+    const data =
+    await res.json();
+
+    alert(data.message || "已修改");
+
+    loadData();
+
+  }catch(err){
+    console.error(err);
+    alert("修改失敗");
+  }
 }
 
-await fetch(
-"/api/attendance-admin/"+id,
-{
-method:"DELETE"
+async function deleteData(id){
+  if(!confirm("確定刪除這筆出勤資料？")){
+    return;
+  }
+
+  try{
+    const res =
+    await fetch("/api/attendance-admin/" + id, {
+      method:"DELETE"
+    });
+
+    const data =
+    await res.json();
+
+    alert(data.message || "已刪除");
+
+    loadData();
+
+  }catch(err){
+    console.error(err);
+    alert("刪除失敗");
+  }
 }
-);
 
 loadData();
-
-}
-
-loadData();
-
 </script>
 
 </body>
