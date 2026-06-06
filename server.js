@@ -1803,6 +1803,58 @@ app.get("/api/salary-history", async (req, res) => {
   }
 });
 // =========================
+// 員工薪資歷史查詢
+// =========================
+app.get("/api/my-salary-history/:lineUserId", async (req, res) => {
+  try {
+    const lineUserId = req.params.lineUserId;
+
+    const empResult = await pool.query(
+      `
+      SELECT *
+      FROM employees
+      WHERE line_user_id = $1
+      AND status = '在職'
+      LIMIT 1
+      `,
+      [lineUserId]
+    );
+
+    if (empResult.rows.length === 0) {
+      return res.status(404).json({
+        success:false,
+        message:"找不到員工資料"
+      });
+    }
+
+    const emp = empResult.rows[0];
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM salary_history
+      WHERE employee_id = $1
+      ORDER BY salary_month DESC
+      `,
+      [emp.id]
+    );
+
+    res.json({
+      success:true,
+      employee:emp.name,
+      rows:result.rows
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取我的薪資歷史失敗"
+    });
+  }
+});
+// =========================
 // 啟動伺服器
 // =========================
 

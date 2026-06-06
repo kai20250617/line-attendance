@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的薪資歷史</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;text-align:center;}
+.card{background:white;border-radius:12px;padding:20px;margin:15px auto;max-width:520px;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+.item{border-bottom:1px solid #eee;padding:15px 0;}
+.month{font-size:22px;font-weight:bold;}
+.money{font-size:20px;margin-top:8px;}
+.net{color:#0d47a1;font-weight:bold;}
+.error{color:red;font-weight:bold;}
+</style>
+</head>
+
+<body>
+
+<h1>📄 我的薪資歷史</h1>
+
+<div id="box" class="card">
+  LINE登入中...
+</div>
+
+<script>
+const LIFF_ID = "2010241581-YtDxQgWd";
+
+function money(v){
+  return "NT$" + Number(v || 0).toLocaleString("zh-TW");
+}
+
+async function loadData(){
+  const box = document.getElementById("box");
+
+  try{
+    await liff.init({ liffId: LIFF_ID });
+
+    if(!liff.isLoggedIn()){
+      liff.login();
+      return;
+    }
+
+    const profile = await liff.getProfile();
+
+    const res = await fetch("/api/my-salary-history/" + profile.userId);
+    const data = await res.json();
+
+    if(!data.success){
+      box.innerHTML = "<div class='error'>" + (data.message || "讀取失敗") + "</div>";
+      return;
+    }
+
+    if(!data.rows || data.rows.length === 0){
+      box.innerHTML = "目前沒有薪資歷史";
+      return;
+    }
+
+    box.innerHTML = `<h2>${data.employee}</h2>`;
+
+    data.rows.forEach(item=>{
+      box.innerHTML += `
+        <div class="item">
+          <div class="month">${item.salary_month}</div>
+          <div class="money">應發薪資：${money(item.gross_salary)}</div>
+          <div class="money net">實發薪資：${money(item.net_salary)}</div>
+        </div>
+      `;
+    });
+
+  }catch(err){
+    console.error(err);
+    box.innerHTML = "<div class='error'>讀取失敗，請稍後再試</div>";
+  }
+}
+
+loadData();
+</script>
+
+</body>
+</html>
