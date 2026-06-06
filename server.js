@@ -1914,7 +1914,7 @@ app.post("/api/clock-request", async (req, res) => {
 ${reason}
 
 請至後台審核：
-https://line-attendance-blt1.onrender.com/clock-admin.html`
+https://line-attendance-blt1.onrender.com/clock-request-admin.html`
     );
 
     res.json({
