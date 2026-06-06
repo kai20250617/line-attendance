@@ -1336,7 +1336,7 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
     let leaveDeduction = 0;
     let totalWorkHours = 0;
 
-    let attendanceBonus = Number(emp.attendance_bonus || 3000);
+   
 const performanceBonus = Number(emp.performance_bonus || 0);
 
 let lateCount = 0;
