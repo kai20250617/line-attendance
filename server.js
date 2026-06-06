@@ -2087,7 +2087,7 @@ app.post("/api/clock-request/status", async (req, res) => {
 
 員工：${request.name}
 類型：${clockType}
-時間：${taiwanTime}
+時間：${request.clock_time}
 
 狀態：${status}`
     );
