@@ -1508,39 +1508,39 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
       healthInsurance;
 
     res.json({
-      success:true,
+  success:true,
 
-      name:emp.name,
-      department:emp.department || "-",
-      position:emp.position || "-",
-      salaryMonth:new Date().toISOString().slice(0,7),
+  name:emp.name,
+  department:emp.department || "-",
+  position:emp.position || "-",
+  salaryMonth:new Date().toISOString().slice(0,7),
 
-      workStart,
-      workEnd,
-      breakHours,
-      lateAllowance,
-      earlyAllowance,
+  workStart,
+  workEnd,
+  breakHours,
+  lateAllowance,
+  earlyAllowance,
 
-      totalWorkHours:Number(totalWorkHours.toFixed(2)),
+  totalWorkHours:Number(totalWorkHours.toFixed(2)),
 
-      baseSalary,
-      fixedAllowance,
-      attendanceBonus,
-      performanceBonus,
-      overtimePay,
-      leaveDeduction,
+  baseSalary,
+  fixedAllowance,
+  attendanceBonus,
+  performanceBonus,
+  overtimePay,
+  leaveDeduction,
 
-      lateCount,
-      earlyLeaveCount,
-      attendanceQualified:
-        lateCount === 0 && earlyLeaveCount === 0,
+  lateCount,
+  earlyLeaveCount,
 
-      grossSalary,
-      laborInsurance,
-      healthInsurance,
-      laborPension,
-      netSalary
-    });
+  attendanceQualified,
+
+  grossSalary,
+  laborInsurance,
+  healthInsurance,
+  laborPension,
+  netSalary
+});
 
   } catch(err) {
     console.error(err);
@@ -1559,11 +1559,27 @@ let attendanceBonus = 3000; // 假設原本的值
 // =========================
 // 全勤獎金判斷
 // =========================
-if (lateCount > 0 || earlyLeaveCount > 0 || leaveDeduction > 0) {
+
+// 從員工資料抓取全勤獎金
+let attendanceBonus =
+  Number(emp.attendance_bonus || 3000);
+
+// 是否符合全勤
+const attendanceQualified =
+  lateCount === 0 &&
+  earlyLeaveCount === 0 &&
+  leaveDeduction === 0;
+
+// 不符合全勤則取消全勤獎金
+if (!attendanceQualified) {
   attendanceBonus = 0;
 }
 
-// 應發薪資：純粹是正向收入的加總
+// =========================
+// 薪資計算
+// =========================
+
+// 應發薪資
 const grossSalary =
   baseSalary +
   fixedAllowance +
@@ -1571,11 +1587,19 @@ const grossSalary =
   performanceBonus +
   overtimePay;
 
-const laborInsurance = Math.round(grossSalary * 0.02);
-const healthInsurance = Math.round(grossSalary * 0.015);
-const laborPension = Math.round(grossSalary * 0.06);
+// 勞保
+const laborInsurance =
+  Math.round(grossSalary * 0.02);
 
-// 實發薪資：這時候才把請假扣款、勞健保一起扣掉
+// 健保
+const healthInsurance =
+  Math.round(grossSalary * 0.015);
+
+// 勞退（公司提撥）
+const laborPension =
+  Math.round(grossSalary * 0.06);
+
+// 實發薪資
 const netSalary =
   grossSalary -
   leaveDeduction -
