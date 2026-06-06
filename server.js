@@ -1269,92 +1269,6 @@ app.get("/test-line", async (req, res) => {
   });
 });
 
-// =========================
-// 首頁
-// =========================
-
-app.get("/", (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "public", "index.html")
-  );
-});
-
-const PORT =
-process.env.PORT || 3000;
-app.get("/api/check-employee/:lineUserId", async (req, res) => {
-  try {
-    const { lineUserId } = req.params;
-
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM employees
-      WHERE line_user_id = $1
-      AND status = '在職'
-      LIMIT 1
-      `,
-      [lineUserId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.json({
-        success: true,
-        isEmployee: false,
-        exists: false,
-        message: "不是員工"
-      });
-    }
-
-    const emp = result.rows[0];
-
-    res.json({
-      success: true,
-      isEmployee: true,
-      exists: true,
-      employee: {
-        id: emp.id,
-        name: emp.name,
-        department: emp.department,
-        position: emp.position
-      }
-    });
-
-  } catch (err) {
-    console.error("check employee error:", err);
-
-    res.status(500).json({
-      success: false,
-      isEmployee: false,
-      exists: false,
-      message: "身份檢查失敗"
-    });
-  }
-});
-app.get("/api/my-worktime/:lineUserId", async (req, res) => {
-  try {
-    const lineUserId = req.params.lineUserId;
-
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM attendance
-      WHERE line_user_id = $1
-      ORDER BY clock_time ASC
-      `,
-      [lineUserId]
-    );
-
-    res.json(result.rows);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success:false,
-      message:"讀取工時失敗"
-    });
-  }
-});
-
 app.get("/api/my-salary/:lineUserId", async (req, res) => {
   try {
     const lineUserId = req.params.lineUserId;
@@ -1379,16 +1293,48 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 
     const emp = empResult.rows[0];
 
+    const ruleResult = await pool.query(
+      "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
+    );
+
+    const rule = ruleResult.rows[0] || {};
+
+    const workStart = rule.work_start || "09:00";
+    const workEnd = rule.work_end || "18:00";
+    const breakHours = Number(rule.break_hours || 1);
+    const lateAllowance = Number(rule.late_allowance || 0);
+    const earlyAllowance = Number(rule.early_allowance || 0);
+
+    const [workStartHour, workStartMinute] =
+      workStart.split(":").map(Number);
+
+    const [workEndHour, workEndMinute] =
+      workEnd.split(":").map(Number);
+
+    const ruleStartMinutes =
+      workStartHour * 60 + workStartMinute + lateAllowance;
+
+    const ruleEndMinutes =
+      workEndHour * 60 + workEndMinute - earlyAllowance;
+
+    const standardHours =
+      Math.max(
+        0,
+        ((workEndHour * 60 + workEndMinute) -
+        (workStartHour * 60 + workStartMinute)) / 60 -
+        breakHours
+      );
+
     const baseSalary = Number(emp.base_salary || 27000);
     const fixedAllowance = Number(emp.fixed_allowance || 3000);
     let attendanceBonus = Number(emp.attendance_bonus || 3000);
-
-let lateCount = 0;
-let earlyLeaveCount = 0;
     const performanceBonus = Number(emp.performance_bonus || 0);
 
+    let lateCount = 0;
+    let earlyLeaveCount = 0;
     let overtimePay = 0;
     let leaveDeduction = 0;
+    let totalWorkHours = 0;
 
     const attendanceResult = await pool.query(
       `
@@ -1415,101 +1361,89 @@ let earlyLeaveCount = 0;
       }
 
       if (item.type === "上班") {
-        if (!dayGroups[date].start || new Date(item.clock_time) < new Date(dayGroups[date].start)) {
+        if (
+          !dayGroups[date].start ||
+          new Date(item.clock_time) < new Date(dayGroups[date].start)
+        ) {
           dayGroups[date].start = item.clock_time;
         }
       }
 
       if (item.type === "下班") {
-        if (!dayGroups[date].end || new Date(item.clock_time) > new Date(dayGroups[date].end)) {
+        if (
+          !dayGroups[date].end ||
+          new Date(item.clock_time) > new Date(dayGroups[date].end)
+        ) {
           dayGroups[date].end = item.clock_time;
         }
       }
     });
 
     Object.values(dayGroups).forEach(day => {
+      if (day.start && day.end) {
+        const startTime = new Date(day.start);
+        const endTime = new Date(day.end);
 
-  if (day.start && day.end) {
+        const startText = startTime.toLocaleTimeString("en-GB", {
+          timeZone:"Asia/Taipei",
+          hour12:false
+        });
 
-    const ruleResult = await pool.query(
-  "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
-);
+        const endText = endTime.toLocaleTimeString("en-GB", {
+          timeZone:"Asia/Taipei",
+          hour12:false
+        });
 
-const rule = ruleResult.rows[0] || {};
+        const [startHour, startMinute] =
+          startText.split(":").map(Number);
 
-const workStart = rule.work_start || "09:00";
-const workEnd = rule.work_end || "18:00";
-const breakHours = Number(rule.break_hours || 1);
-const lateAllowance = Number(rule.late_allowance || 0);
-const earlyAllowance = Number(rule.early_allowance || 0);
+        const [endHour, endMinute] =
+          endText.split(":").map(Number);
 
-const [workStartHour, workStartMinute] =
-workStart.split(":").map(Number);
+        const startMinutes =
+          startHour * 60 + startMinute;
 
-const [workEndHour, workEndMinute] =
-workEnd.split(":").map(Number);
+        const endMinutes =
+          endHour * 60 + endMinute;
 
-    const startTime = new Date(day.start);
-    const endTime = new Date(day.end);
+        if (startMinutes > ruleStartMinutes) {
+          lateCount++;
+        }
 
+        if (endMinutes < ruleEndMinutes) {
+          earlyLeaveCount++;
+        }
 
-    const startMinutes =
-      startTime.getHours() * 60 +
-      startTime.getMinutes();
+        const totalHours =
+          (endTime - startTime) / 1000 / 60 / 60;
 
-    const endMinutes =
-      endTime.getHours() * 60 +
-      endTime.getMinutes();
+        if (totalHours > 0) {
+          totalWorkHours += totalHours;
+        }
 
-    const ruleStartMinutes =
-  workStartHour * 60 +
-  workStartMinute +
-  lateAllowance;
+        const overtimeHours =
+          Math.max(0, totalHours - standardHours);
 
-const ruleEndMinutes =
-  workEndHour * 60 +
-  workEndMinute -
-  earlyAllowance;
+        const hourlyRate =
+          Number(emp.hourly_wage || 200);
 
-    if (startMinutes > ruleStartMinutes) {
-      lateCount++;
-    }
+        const first2Hours =
+          Math.min(overtimeHours, 2);
 
-    if (endMinutes < ruleEndMinutes) {
-      earlyLeaveCount++;
-    }
+        const after2Hours =
+          Math.max(0, overtimeHours - 2);
 
-    const totalHours =
-      (endTime - startTime) / 1000 / 60 / 60;
-
-  const standardHours =
-  Math.max(
-    0,
-    ((workEndHour * 60 + workEndMinute) -
-     (workStartHour * 60 + workStartMinute)) / 60 -
-    breakHours
-  );
-
-const overtimeHours =
-  Math.max(0, totalHours - standardHours);
-
-    const hourlyRate =
-      Number(emp.hourly_wage || 200);
-
-    const first2Hours =
-      Math.min(overtimeHours, 2);
-
-    const after2Hours =
-      Math.max(0, overtimeHours - 2);
-
-    overtimePay +=
-      first2Hours * hourlyRate * 1.34 +
-      after2Hours * hourlyRate * 1.67;
-  }
-
-});
+        overtimePay +=
+          first2Hours * hourlyRate * 1.34 +
+          after2Hours * hourlyRate * 1.67;
+      }
+    });
 
     overtimePay = Math.round(overtimePay);
+
+    if (lateCount > 0 || earlyLeaveCount > 0) {
+      attendanceBonus = 0;
+    }
 
     const leavesResult = await pool.query(
       `
@@ -1534,12 +1468,15 @@ const overtimeHours =
         case "事假":
           leaveDeduction += dailySalary * days;
           break;
+
         case "病假":
           leaveDeduction += dailySalary * 0.5 * days;
           break;
+
         case "曠職":
           leaveDeduction += dailySalary * days;
           break;
+
         case "特休":
         case "公假":
           break;
@@ -1548,6 +1485,72 @@ const overtimeHours =
 
     leaveDeduction = Math.round(leaveDeduction);
 
+    const grossSalary =
+      baseSalary +
+      fixedAllowance +
+      attendanceBonus +
+      performanceBonus +
+      overtimePay -
+      leaveDeduction;
+
+    const laborInsurance =
+      Math.round(grossSalary * 0.02);
+
+    const healthInsurance =
+      Math.round(grossSalary * 0.015);
+
+    const laborPension =
+      Math.round(grossSalary * 0.06);
+
+    const netSalary =
+      grossSalary -
+      laborInsurance -
+      healthInsurance;
+
+    res.json({
+      success:true,
+
+      name:emp.name,
+      department:emp.department || "-",
+      position:emp.position || "-",
+      salaryMonth:new Date().toISOString().slice(0,7),
+
+      workStart,
+      workEnd,
+      breakHours,
+      lateAllowance,
+      earlyAllowance,
+
+      totalWorkHours:Number(totalWorkHours.toFixed(2)),
+
+      baseSalary,
+      fixedAllowance,
+      attendanceBonus,
+      performanceBonus,
+      overtimePay,
+      leaveDeduction,
+
+      lateCount,
+      earlyLeaveCount,
+      attendanceQualified:
+        lateCount === 0 && earlyLeaveCount === 0,
+
+      grossSalary,
+      laborInsurance,
+      healthInsurance,
+      laborPension,
+      netSalary
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取薪資失敗"
+    });
+  }
+});
     // =========================
 // 全勤獎金判斷
 // =========================
