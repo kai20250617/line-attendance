@@ -1554,7 +1554,7 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 
 
 
-let attendanceBonus = Number(emp.attendance_bonus || 3000);
+
 
 // =========================
 // 全勤獎金判斷
