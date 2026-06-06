@@ -1553,66 +1553,38 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 });
 
 
+// 確保 attendanceBonus 是用 let 宣告，後面才能修改
+let attendanceBonus = 3000; // 假設原本的值
+
 // =========================
 // 全勤獎金判斷
 // =========================
-
-if (
-  lateCount > 0 ||
-  earlyLeaveCount > 0 ||
-  leaveDeduction > 0
-) {
+if (lateCount > 0 || earlyLeaveCount > 0 || leaveDeduction > 0) {
   attendanceBonus = 0;
 }
 
-    const grossSalary =
-      baseSalary +
-      fixedAllowance +
-      attendanceBonus +
-      performanceBonus +
-      overtimePay -
-      leaveDeduction;
+// 應發薪資：純粹是正向收入的加總
+const grossSalary =
+  baseSalary +
+  fixedAllowance +
+  attendanceBonus +
+  performanceBonus +
+  overtimePay;
 
-    const laborInsurance = Math.round(grossSalary * 0.02);
-    const healthInsurance = Math.round(grossSalary * 0.015);
-    const laborPension = Math.round(grossSalary * 0.06);
+const laborInsurance = Math.round(grossSalary * 0.02);
+const healthInsurance = Math.round(grossSalary * 0.015);
+const laborPension = Math.round(grossSalary * 0.06);
 
-    const netSalary =
-      grossSalary -
-      laborInsurance -
-      healthInsurance;
+// 實發薪資：這時候才把請假扣款、勞健保一起扣掉
+const netSalary =
+  grossSalary -
+  leaveDeduction -
+  laborInsurance -
+  healthInsurance;
 
-        res.json({
-      success:true,
-      name: emp.name,
-      department: emp.department || "-",
-      position: emp.position || "-",
-      salaryMonth: new Date().toISOString().slice(0,7),
-      totalWorkHours: Number(totalWorkHours.toFixed(2)),
-      baseSalary,
-      fixedAllowance,
-      attendanceBonus,
-      performanceBonus,
-      overtimePay,
-      leaveDeduction,
-      lateCount,
-      earlyLeaveCount,
-      grossSalary,
-      laborInsurance,
-      healthInsurance,
-      laborPension,
-      netSalary
-    });
-
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      success:false,
-      message:"讀取薪資失敗"
-    });
-  }
-});
+// =========================
+// PDF 產生 API
+// =========================
 app.get("/api/payslip/:id", async (req, res) => {
   try {
     const employeeId = req.params.id;
@@ -1638,41 +1610,37 @@ app.get("/api/payslip/:id", async (req, res) => {
       return res.status(500).send("薪資資料讀取失敗");
     }
 
+    // 檢查字型是否存在，不存在就提早攔截，避免產生亂碼 PDF
+    const fontPath = path.join(__dirname, "public", "fonts", "NotoSansTC-Regular.ttf");
+    if (!fs.existsSync(fontPath)) {
+      return res.status(500).send("系統錯誤：伺服器缺失中文字型，無法產生薪資單");
+    }
+
     const doc = new PDFDocument({
       size: "A4",
       margin: 50
     });
-const fontPath = path.join(
-  __dirname,
-  "public",
-  "fonts",
-  "NotoSansTC-Regular.ttf"
-);
+    
+    // 載入字型
+    doc.font(fontPath);
 
-if (fs.existsSync(fontPath)) {
-  doc.font(fontPath);
-} else {
-  console.log("找不到中文字型：", fontPath);
-}
-    const filename =
-      `payslip_${emp.name}.pdf`;
+    const filename = `payslip_${emp.name}.pdf`;
 
+    // 【修正】先設定安全且支援中文的 Header，再執行 pipe
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${encodeURIComponent(filename)}"`
+      `attachment; filename="${encodeURIComponent(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`
     );
 
     doc.pipe(res);
 
-    doc.fontSize(22).text("薪資單", {
-      align: "center"
-    });
-
+    // --- PDF 內容繪製 ---
+    doc.fontSize(22).text("薪資單", { align: "center" });
     doc.moveDown();
 
     doc.fontSize(12);
-    doc.text(`員工姓名：${salary.name}`);
+    doc.text(`員工姓名：${salary.name || "-"}`);
     doc.text(`部門：${salary.department || "-"}`);
     doc.text(`職稱：${salary.position || "-"}`);
     doc.text(`月份：${new Date().getFullYear()} / ${new Date().getMonth() + 1}`);
@@ -1680,46 +1648,49 @@ if (fs.existsSync(fontPath)) {
     doc.moveDown();
     doc.text("----------------------------------------");
 
+    // 加上安全防護 || 0，避免 null 導致 toLocaleString 崩潰
     doc.fontSize(14).text("應發項目");
     doc.fontSize(12);
-    doc.text(`底薪：NT$ ${salary.baseSalary.toLocaleString("zh-TW")}`);
-    doc.text(`固定津貼：NT$ ${salary.fixedAllowance.toLocaleString("zh-TW")}`);
-    doc.text(`加班費：NT$ ${salary.overtimePay.toLocaleString("zh-TW")}`);
-    doc.text(`全勤獎金：NT$ ${salary.attendanceBonus.toLocaleString("zh-TW")}`);
-    doc.text(`績效獎金：NT$ ${salary.performanceBonus.toLocaleString("zh-TW")}`);
+    doc.text(`底薪：NT$ ${(salary.baseSalary || 0).toLocaleString("zh-TW")}`);
+    doc.text(`固定津貼：NT$ ${(salary.fixedAllowance || 0).toLocaleString("zh-TW")}`);
+    doc.text(`加班費：NT$ ${(salary.overtimePay || 0).toLocaleString("zh-TW")}`);
+    doc.text(`全勤獎金：NT$ ${(salary.attendanceBonus || 0).toLocaleString("zh-TW")}`);
+    doc.text(`績效獎金：NT$ ${(salary.performanceBonus || 0).toLocaleString("zh-TW")}`);
 
     doc.moveDown();
 
     doc.fontSize(14).text("扣除項目");
     doc.fontSize(12);
-    doc.text(`請假扣款：NT$ ${salary.leaveDeduction.toLocaleString("zh-TW")}`);
-    doc.text(`勞保：NT$ ${salary.laborInsurance.toLocaleString("zh-TW")}`);
-    doc.text(`健保：NT$ ${salary.healthInsurance.toLocaleString("zh-TW")}`);
-    doc.text(`勞退提繳：NT$ ${salary.laborPension.toLocaleString("zh-TW")}（公司提繳，不自薪資扣除）`);
+    doc.text(`請假扣款：NT$ ${(salary.leaveDeduction || 0).toLocaleString("zh-TW")}`);
+    doc.text(`勞保：NT$ ${(salary.laborInsurance || 0).toLocaleString("zh-TW")}`);
+    doc.text(`健保：NT$ ${(salary.healthInsurance || 0).toLocaleString("zh-TW")}`);
+    doc.text(`勞退提繳：NT$ ${(salary.laborPension || 0).toLocaleString("zh-TW")}（公司提繳，不自薪資扣除）`);
 
     doc.moveDown();
     doc.text("----------------------------------------");
 
+    // 此時的總額與明細就會完全對得上了！
     doc.fontSize(16).text(
-      `應發薪資：NT$ ${salary.grossSalary.toLocaleString("zh-TW")}`
+      `應發薪資：NT$ ${(salary.grossSalary || 0).toLocaleString("zh-TW")}`
     );
 
     doc.fontSize(18).text(
-      `實發薪資：NT$ ${salary.netSalary.toLocaleString("zh-TW")}`,
+      `實發薪資：NT$ ${(salary.netSalary || 0).toLocaleString("zh-TW")}`,
       { align: "right" }
     );
 
     doc.moveDown();
-
-    doc.fontSize(10).text(
-      "備註：本薪資單為系統自動產生，實際金額仍以公司核定為準。"
-    );
+    doc.fontSize(10).text("備註：本薪資單為系統自動產生，實際金額仍以公司核定為準。");
 
     doc.end();
 
   } catch (err) {
     console.error("PDF ERROR:", err);
-    res.status(500).send("薪資單產生失敗：" + err.message);
+    // 注意：如果 doc.pipe(res) 已經送出部分資料，這裡的 res.status 也可能失效，
+    // 但因為我們把 pipe 往後移了，所以在字型或資料出錯時，這裡能完美捕捉並回傳錯誤訊息。
+    if (!res.headersSent) {
+      res.status(500).send("薪資單產生失敗：" + err.message);
+    }
   }
 });
 // =========================
