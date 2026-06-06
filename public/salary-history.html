@@ -80,19 +80,3 @@ loadHistory();
 
 </body>
 </html>
-const exists = await pool.query(
-`
-SELECT *
-FROM salary_history
-WHERE employee_id = $1
-AND salary_month = $2
-`,
-[
-  emp.id,
-  salaryMonth
-]
-);
-
-if (exists.rows.length > 0) {
-  continue;
-}
