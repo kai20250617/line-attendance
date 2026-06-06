@@ -1854,6 +1854,225 @@ app.get("/api/my-salary-history/:lineUserId", async (req, res) => {
     });
   }
 });
+
+// =========================
+// 補打卡申請
+// =========================
+
+app.post("/api/clock-request", async (req, res) => {
+  try {
+    const {
+      lineUserId,
+      name,
+      clockType,
+      clockTime,
+      reason
+    } = req.body;
+
+    if (!lineUserId || !name || !clockType || !clockTime || !reason) {
+      return res.status(400).json({
+        success:false,
+        message:"資料不完整"
+      });
+    }
+
+    await pool.query(
+      `
+      INSERT INTO clock_requests
+      (
+        line_user_id,
+        name,
+        clock_type,
+        clock_time,
+        reason,
+        status,
+        created_at
+      )
+      VALUES
+      ($1,$2,$3,$4,$5,$6,$7)
+      `,
+      [
+        lineUserId,
+        name,
+        clockType,
+        clockTime,
+        reason,
+        "待審核",
+        new Date().toISOString()
+      ]
+    );
+
+    await pushLineMessage(
+      MANAGER_LINE_USER_ID,
+`🕒 新補打卡申請
+
+員工：${name}
+類型：${clockType}
+時間：${clockTime}
+
+原因：
+${reason}
+
+請至後台審核：
+https://line-attendance-blt1.onrender.com/clock-admin.html`
+    );
+
+    res.json({
+      success:true,
+      message:"補打卡申請已送出"
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"補打卡申請失敗"
+    });
+  }
+});
+
+
+// =========================
+// 讀取補打卡申請
+// =========================
+
+app.get("/api/clock-requests", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM clock_requests
+      ORDER BY id DESC
+      `
+    );
+
+    res.json(result.rows);
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取補打卡申請失敗"
+    });
+  }
+});
+
+
+// =========================
+// 補打卡審核
+// =========================
+
+app.post("/api/clock-request/status", async (req, res) => {
+  try {
+    const { id, status } = req.body;
+
+    if (!id || !status) {
+      return res.status(400).json({
+        success:false,
+        message:"缺少補打卡ID或狀態"
+      });
+    }
+
+    const requestResult = await pool.query(
+      `
+      SELECT *
+      FROM clock_requests
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [id]
+    );
+
+    if (requestResult.rows.length === 0) {
+      return res.status(404).json({
+        success:false,
+        message:"找不到補打卡申請"
+      });
+    }
+
+    const request = requestResult.rows[0];
+
+    await pool.query(
+      `
+      UPDATE clock_requests
+      SET status = $1
+      WHERE id = $2
+      `,
+      [status, id]
+    );
+
+    if (status === "已核准" || status === "核准") {
+      const duplicate = await pool.query(
+        `
+        SELECT *
+        FROM attendance
+        WHERE line_user_id = $1
+        AND type = $2
+        AND clock_time = $3
+        LIMIT 1
+        `,
+        [
+          request.line_user_id,
+          request.clock_type,
+          request.clock_time
+        ]
+      );
+
+      if (duplicate.rows.length === 0) {
+        await pool.query(
+          `
+          INSERT INTO attendance
+          (
+            line_user_id,
+            name,
+            type,
+            clock_time,
+            latitude,
+            longitude
+          )
+          VALUES
+          ($1,$2,$3,$4,$5,$6)
+          `,
+          [
+            request.line_user_id,
+            request.name,
+            request.clock_type,
+            request.clock_time,
+            null,
+            null
+          ]
+        );
+      }
+    }
+
+    await pushLineMessage(
+      request.line_user_id,
+`📢 補打卡審核結果
+
+員工：${request.name}
+類型：${request.clock_type}
+時間：${request.clock_time}
+
+狀態：${status}`
+    );
+
+    res.json({
+      success:true,
+      message:"補打卡狀態已更新"
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"補打卡審核失敗"
+    });
+  }
+});
+
 // =========================
 // 啟動伺服器
 // =========================
