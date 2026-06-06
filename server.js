@@ -1648,17 +1648,43 @@ if (fs.existsSync(fontPath)) {
 // 月結薪資
 // =========================
 
-app.post("/api/salary-close", async (req, res) => {
+app.get("/api/salary-history", async (req, res) => {
   try {
-    const employees = await pool.query(
-      "SELECT * FROM employees WHERE status='在職'"
-    );
+    const { month, name } = req.query;
 
-    const salaryMonth = new Date().toISOString().slice(0, 7);
+    let sql = `
+      SELECT *
+      FROM salary_history
+      WHERE 1 = 1
+    `;
 
-    for (const emp of employees.rows) {
+    const params = [];
 
-      const exists = await pool.query(
+    if (month) {
+      params.push(month);
+      sql += ` AND salary_month = $${params.length}`;
+    }
+
+    if (name) {
+      params.push("%" + name + "%");
+      sql += ` AND employee_name ILIKE $${params.length}`;
+    }
+
+    sql += " ORDER BY id DESC";
+
+    const result = await pool.query(sql, params);
+
+    res.json(result.rows);
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取薪資歷史失敗"
+    });
+  }
+});
 `
 SELECT *
 FROM salary_history
@@ -1747,9 +1773,29 @@ NT$${Number(salary.netSalary || 0).toLocaleString("zh-TW")}
 // =========================
 app.get("/api/salary-history", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM salary_history ORDER BY id DESC"
-    );
+    const { month, name } = req.query;
+
+    let sql = `
+      SELECT *
+      FROM salary_history
+      WHERE 1 = 1
+    `;
+
+    const params = [];
+
+    if (month) {
+      params.push(month);
+      sql += ` AND salary_month = $${params.length}`;
+    }
+
+    if (name) {
+      params.push("%" + name + "%");
+      sql += ` AND employee_name ILIKE $${params.length}`;
+    }
+
+    sql += " ORDER BY id DESC";
+
+    const result = await pool.query(sql, params);
 
     res.json(result.rows);
 
@@ -1762,6 +1808,7 @@ app.get("/api/salary-history", async (req, res) => {
     });
   }
 });
+
 // =========================
 // 啟動伺服器
 // =========================
