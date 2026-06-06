@@ -2647,6 +2647,124 @@ app.get("/api/attendance-report", async (req, res) => {
   }
 });
 // =========================
+// 產生員工綁定碼
+// =========================
+
+app.post("/api/generate-bind-code/:id", async (req, res) => {
+  try {
+    const employeeId = req.params.id;
+
+    const code =
+      "EMP" +
+      Math.floor(100000 + Math.random() * 900000);
+
+    await pool.query(
+      `
+      UPDATE employees
+      SET
+        bind_code = $1,
+        bind_status = '未綁定'
+      WHERE id = $2
+      `,
+      [code, employeeId]
+    );
+
+    res.json({
+      success:true,
+      bindCode:code,
+      message:"綁定碼已產生"
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"產生綁定碼失敗"
+    });
+  }
+});
+
+
+// =========================
+// LINE 綁定員工
+// =========================
+
+app.post("/api/bind-line", async (req, res) => {
+  try {
+    const {
+      bindCode,
+      lineUserId,
+      displayName
+    } = req.body;
+
+    if (!bindCode || !lineUserId) {
+      return res.status(400).json({
+        success:false,
+        message:"缺少綁定碼或LINE資料"
+      });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM employees
+      WHERE bind_code = $1
+      AND status = '在職'
+      LIMIT 1
+      `,
+      [bindCode]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        success:false,
+        message:"綁定碼錯誤或員工不存在"
+      });
+    }
+
+    const emp = result.rows[0];
+
+    if (emp.line_user_id) {
+      return res.json({
+        success:false,
+        message:"此員工已經綁定LINE"
+      });
+    }
+
+    await pool.query(
+      `
+      UPDATE employees
+      SET
+        line_user_id = $1,
+        bind_status = '已綁定',
+        line_display_name = $2,
+        bound_at = NOW()
+      WHERE id = $3
+      `,
+      [
+        lineUserId,
+        displayName || "",
+        emp.id
+      ]
+    );
+
+    res.json({
+      success:true,
+      message:"LINE綁定成功",
+      employeeName:emp.name
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"LINE綁定失敗"
+    });
+  }
+});
+// =========================
 // 啟動伺服器
 // =========================
 const PORT =

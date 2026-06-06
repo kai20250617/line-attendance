@@ -15,11 +15,14 @@ button{padding:8px 15px;border:none;border-radius:5px;color:white;cursor:pointer
 .leave{background:#e53935;}
 .active{background:#2196F3;}
 .back{background:#2196F3;}
+.bindBtn{background:#ff9800;}
+.copyBtn{background:#6a1b9a;}
 table{width:100%;border-collapse:collapse;background:white;}
 th{background:#222;color:white;padding:12px;}
 td{border:1px solid #ddd;padding:10px;text-align:center;}
 .binded{color:green;font-weight:bold;}
 .unbind{color:red;font-weight:bold;}
+.code{font-weight:bold;color:#0d47a1;}
 </style>
 </head>
 
@@ -54,6 +57,7 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
   <th>全勤</th>
   <th>績效</th>
   <th>LINE綁定</th>
+  <th>綁定碼</th>
   <th>狀態</th>
   <th>操作</th>
 </tr>
@@ -61,7 +65,7 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
 
 <tbody id="employeeTable">
 <tr>
-<td colspan="11">讀取中...</td>
+<td colspan="12">讀取中...</td>
 </tr>
 </tbody>
 </table>
@@ -94,14 +98,14 @@ async function addEmployee(){
     },
     body:JSON.stringify({
       lineUserId:"",
-      name:name,
-      department:department,
-      position:position,
-      hourlyWage:hourlyWage,
-      baseSalary:baseSalary,
-      fixedAllowance:fixedAllowance,
-      attendanceBonus:attendanceBonus,
-      performanceBonus:performanceBonus
+      name,
+      department,
+      position,
+      hourlyWage,
+      baseSalary,
+      fixedAllowance,
+      attendanceBonus,
+      performanceBonus
     })
   });
 
@@ -109,7 +113,6 @@ async function addEmployee(){
   document.getElementById("department").value="";
   document.getElementById("position").value="";
   document.getElementById("hourlyWage").value="";
-
   document.getElementById("baseSalary").value="27000";
   document.getElementById("fixedAllowance").value="3000";
   document.getElementById("attendanceBonus").value="3000";
@@ -125,7 +128,7 @@ async function loadEmployees(){
   const data = await res.json();
 
   if(data.length === 0){
-    tbody.innerHTML = "<tr><td colspan='11'>目前沒有員工資料</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='12'>目前沒有員工資料</td></tr>";
     return;
   }
 
@@ -134,30 +137,56 @@ async function loadEmployees(){
   data.forEach(item=>{
     const bindStatus =
     item.line_user_id
-    ?
-    "<span class='binded'>✅ 已綁定</span>"
-    :
-    "<span class='unbind'>❌ 未綁定</span>";
+    ? "<span class='binded'>✅ 已綁定</span>"
+    : "<span class='unbind'>❌ 未綁定</span>";
+
+    const bindCode =
+    item.bind_code
+    ? `<span class="code">${item.bind_code}</span><br>
+       <button class="copyBtn" onclick="copyText('${item.bind_code}')">複製</button>`
+    : "-";
 
     tbody.innerHTML += `
       <tr>
-        <td>${item.name}</td>
-        <td>${item.department}</td>
-        <td>${item.position}</td>
+        <td>${item.name || "-"}</td>
+        <td>${item.department || "-"}</td>
+        <td>${item.position || "-"}</td>
         <td>NT$${Number(item.hourly_wage || 0).toLocaleString("zh-TW")}</td>
         <td>NT$${Number(item.base_salary || 27000).toLocaleString("zh-TW")}</td>
         <td>NT$${Number(item.fixed_allowance || 3000).toLocaleString("zh-TW")}</td>
         <td>NT$${Number(item.attendance_bonus || 3000).toLocaleString("zh-TW")}</td>
         <td>NT$${Number(item.performance_bonus || 0).toLocaleString("zh-TW")}</td>
         <td>${bindStatus}</td>
-        <td>${item.status}</td>
+        <td>${bindCode}</td>
+        <td>${item.status || "-"}</td>
         <td>
+          <button class="bindBtn" onclick="generateBindCode(${item.id})">產生綁定碼</button>
           <button class="active" onclick="updateStatus(${item.id}, '在職')">在職</button>
           <button class="leave" onclick="updateStatus(${item.id}, '離職')">離職</button>
         </td>
       </tr>
     `;
   });
+}
+
+async function generateBindCode(id){
+  const res = await fetch("/api/generate-bind-code/" + id, {
+    method:"POST"
+  });
+
+  const data = await res.json();
+
+  if(data.success){
+    alert("綁定碼：" + data.bindCode);
+    loadEmployees();
+  }else{
+    alert(data.message || "產生綁定碼失敗");
+  }
+}
+
+function copyText(text){
+  navigator.clipboard.writeText(text);
+  alert("已複製：" + text);
 }
 
 async function updateStatus(id,status){
@@ -167,8 +196,8 @@ async function updateStatus(id,status){
       "Content-Type":"application/json"
     },
     body:JSON.stringify({
-      id:id,
-      status:status
+      id,
+      status
     })
   });
 
