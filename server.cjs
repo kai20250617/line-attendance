@@ -1650,6 +1650,7 @@ if (!attendanceQualified) {
 
     res.json({
   success:true,
+  employeeId: emp.id,
 
   name:emp.name,
   department:emp.department || "-",
