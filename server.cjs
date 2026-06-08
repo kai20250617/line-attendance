@@ -1609,15 +1609,21 @@ let attendanceQualified = true;
           earlyLeaveCount++;
         }
 
-        const totalHours =
-          (endTime - startTime) / 1000 / 60 / 60;
+       const totalHours =
+  (endTime - startTime) / 1000 / 60 / 60;
 
-        if (totalHours > 0) {
-          totalWorkHours += totalHours;
-        }
+const workHours =
+  Math.max(
+    0,
+    totalHours - breakHours
+  );
 
-        const overtimeHours =
-          Math.max(0, totalHours - standardHours);
+if (workHours > 0) {
+  totalWorkHours += workHours;
+}
+
+ const overtimeHours =
+  Math.max(0, workHours - standardHours);      
 
         const hourlyRate =
           Number(emp.hourly_wage || 200);
