@@ -2712,64 +2712,44 @@ app.get("/api/attendance-report", async (req, res) => {
 
       Object.values(dayGroups).forEach(day => {
 
-        if (day.start && day.end) {
+  if (day.start && day.end) {
 
-          const start =
-          new Date(day.start);
+    const start =
+    new Date(day.start);
 
-          const end =
-          new Date(day.end);
+    const end =
+    new Date(day.end);
 
-          const hours =
-          (end - start) / 1000 / 60 / 60;
+    const rawHours =
+    (end - start) / 1000 / 60 / 60;
 
-          if (hours > 0) {
-            workDays++;
-            totalHours += hours;
-          }
+    const workHours =
+    Math.max(
+      0,
+      rawHours - breakHours
+    );
 
-          const startMinutes =
-          getTaipeiMinutes(day.start);
-
-          const endMinutes =
-          getTaipeiMinutes(day.end);
-
-          if (startMinutes > ruleStartMinutes) {
-            lateCount++;
-          }
-
-          if (endMinutes < ruleEndMinutes) {
-            earlyLeaveCount++;
-          }
-
-        }
-
-      });
-
-      result.push({
-        name: emp.name,
-        department: emp.department || "-",
-        position: emp.position || "-",
-        workDays,
-        totalHours: totalHours.toFixed(2),
-        lateCount,
-        earlyLeaveCount
-      });
-
+    if (workHours > 0) {
+      workDays++;
+      totalHours += workHours;
     }
 
-    res.json(result);
+    const startMinutes =
+    getTaipeiMinutes(day.start);
 
-  } catch(err) {
+    const endMinutes =
+    getTaipeiMinutes(day.end);
 
-    console.error(err);
+    if (startMinutes > ruleStartMinutes) {
+      lateCount++;
+    }
 
-    res.status(500).json({
-      success:false,
-      message:"讀取出勤報表失敗"
-    });
+    if (endMinutes < ruleEndMinutes) {
+      earlyLeaveCount++;
+    }
 
   }
+
 });
 // =========================
 // 產生員工綁定碼
