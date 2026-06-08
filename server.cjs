@@ -1746,7 +1746,7 @@ res.json({
   lateAllowance,
   earlyAllowance,
 
-  totalWorkHours:Number(totalWorkHours.toFixed(2)),
+ totalWorkHours:Number(totalWorkHours.toFixed(2)),
 
   baseSalary,
   fixedAllowance,
