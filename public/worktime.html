@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>我的工時</title>
@@ -9,61 +13,101 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
+
 body{
+
   font-family:Arial,sans-serif;
+
   background:#f5f5f5;
+
   padding:20px;
+
 }
 
 h1{
+
   text-align:center;
+
 }
 
 h3{
+
   text-align:center;
+
   color:#333;
+
 }
 
 .top{
+
   text-align:center;
+
   margin-bottom:20px;
+
 }
 
 button{
+
   background:#4a90e2;
+
   color:white;
+
   border:none;
+
   padding:10px 20px;
+
   border-radius:5px;
+
   cursor:pointer;
+
   margin:5px;
+
 }
 
 table{
+
   width:100%;
+
   border-collapse:collapse;
+
   background:white;
+
   margin-top:20px;
+
 }
 
 th{
+
   background:#222;
+
   color:white;
+
   padding:12px;
+
 }
 
 td{
+
   border:1px solid #ddd;
+
   padding:10px;
+
   text-align:center;
+
 }
 
 .error{
+
   color:red;
+
   font-weight:bold;
+
   text-align:center;
+
 }
+
 </style>
+
 </head>
 
 <body>
@@ -71,188 +115,347 @@ td{
 <h1>⏰ 我的工時</h1>
 
 <h3 id="employeeName">
+
 LINE登入中...
+
 </h3>
 
 <div class="top">
+
   <button onclick="loadData()">重新整理</button>
+
 </div>
 
 <table>
+
 <thead>
+
 <tr>
+
   <th>姓名</th>
+
   <th>日期</th>
+
   <th>上班時間</th>
+
   <th>下班時間</th>
+
+  <th>休息時數</th>
+
   <th>工時(小時)</th>
+
 </tr>
+
 </thead>
 
 <tbody id="tableBody">
+
 <tr>
-<td colspan="5">讀取中...</td>
+
+<td colspan="6">讀取中...</td>
+
 </tr>
+
 </tbody>
+
 </table>
 
 <script>
+
 const LIFF_ID = "2010241581-YtDxQgWd";
 
 let profile = null;
 
+let breakHours = 0;
+
 async function init(){
+
   try{
+
     await liff.init({
+
       liffId: LIFF_ID
+
     });
 
     if(!liff.isLoggedIn()){
+
       liff.login();
+
       return;
+
     }
 
     profile = await liff.getProfile();
 
     document.getElementById("employeeName").innerHTML =
+
     "員工：" + profile.displayName;
 
     loadData();
 
   }catch(error){
+
     console.error(error);
 
     document.getElementById("employeeName").innerHTML =
+
     "<span class='error'>LINE登入失敗</span>";
 
     document.getElementById("tableBody").innerHTML =
-    "<tr><td colspan='5'>請使用 LINE 開啟此頁面</td></tr>";
+
+    "<tr><td colspan='6'>請使用 LINE 開啟此頁面</td></tr>";
+
   }
+
+}
+
+async function loadRules(){
+
+  try{
+
+    const ruleRes =
+
+    await fetch("/api/rules");
+
+    const ruleData =
+
+    await ruleRes.json();
+
+    const rule =
+
+    ruleData.rules || ruleData;
+
+    breakHours =
+
+    Number(rule.break_hours || 0);
+
+  }catch(error){
+
+    console.error("讀取出勤規則失敗", error);
+
+    breakHours = 0;
+
+  }
+
 }
 
 async function loadData(){
+
   const tbody = document.getElementById("tableBody");
 
   tbody.innerHTML =
-  "<tr><td colspan='5'>載入中...</td></tr>";
+
+  "<tr><td colspan='6'>載入中...</td></tr>";
 
   if(!profile || !profile.userId){
+
     tbody.innerHTML =
-    "<tr><td colspan='5'>尚未取得 LINE 身分</td></tr>";
+
+    "<tr><td colspan='6'>尚未取得 LINE 身分</td></tr>";
+
     return;
+
   }
 
   try{
+
+    await loadRules();
+
     const response =
+
     await fetch(
+
       "/api/my-worktime/" + profile.userId
+
     );
 
     const data =
+
     await response.json();
 
     if(!response.ok){
+
       tbody.innerHTML =
-      "<tr><td colspan='5'>讀取失敗</td></tr>";
+
+      "<tr><td colspan='6'>讀取失敗</td></tr>";
+
       return;
+
     }
 
     if(!data || data.length === 0){
+
       tbody.innerHTML =
-      "<tr><td colspan='5'>目前沒有出勤資料</td></tr>";
+
+      "<tr><td colspan='6'>目前沒有出勤資料</td></tr>";
+
       return;
+
     }
 
     const groups = {};
 
     data.forEach(item=>{
+
       const date =
+
       new Date(item.clock_time)
+
       .toLocaleDateString("zh-TW", {
+
         timeZone:"Asia/Taipei"
+
       });
 
       const key =
+
       item.line_user_id + "_" + date;
 
       if(!groups[key]){
+
         groups[key] = {
+
           name:item.name,
+
           date:date,
+
           start:null,
+
           end:null
+
         };
+
       }
 
       if(item.type === "上班"){
+
         if(
+
           !groups[key].start ||
+
           new Date(item.clock_time) <
+
           new Date(groups[key].start)
+
         ){
+
           groups[key].start =
+
           item.clock_time;
+
         }
+
       }
 
       if(item.type === "下班"){
+
         if(
+
           !groups[key].end ||
+
           new Date(item.clock_time) >
+
           new Date(groups[key].end)
+
         ){
+
           groups[key].end =
+
           item.clock_time;
+
         }
+
       }
+
     });
 
     const rows =
+
     Object.values(groups);
 
     if(rows.length === 0){
+
       tbody.innerHTML =
-      "<tr><td colspan='5'>目前沒有可統計的工時資料</td></tr>";
+
+      "<tr><td colspan='6'>目前沒有可統計的工時資料</td></tr>";
+
       return;
+
     }
 
     tbody.innerHTML = "";
 
     rows.forEach(row=>{
+
       let hours = "-";
 
       if(row.start && row.end){
-        const diff =
+
+        const totalHours =
+
         (
+
           new Date(row.end) -
+
           new Date(row.start)
+
         ) / 1000 / 60 / 60;
 
+        const workHours =
+
+        Math.max(
+
+          0,
+
+          totalHours - breakHours
+
+        );
+
         hours =
-        diff.toFixed(2);
+
+        workHours.toFixed(2);
+
       }
 
       tbody.innerHTML += `
+
         <tr>
+
           <td>${row.name}</td>
+
           <td>${row.date}</td>
+
           <td>${row.start ? new Date(row.start).toLocaleTimeString("zh-TW",{timeZone:"Asia/Taipei"}) : "-"}</td>
+
           <td>${row.end ? new Date(row.end).toLocaleTimeString("zh-TW",{timeZone:"Asia/Taipei"}) : "-"}</td>
+
+          <td>${breakHours}</td>
+
           <td>${hours}</td>
+
         </tr>
+
       `;
+
     });
 
   }catch(error){
+
     console.error(error);
 
     tbody.innerHTML =
-    "<tr><td colspan='5'>讀取失敗</td></tr>";
+
+    "<tr><td colspan='6'>讀取失敗</td></tr>";
+
   }
+
 }
 
 init();
+
 </script>
 
 </body>
+
 </html>
