@@ -1276,16 +1276,23 @@ app.get("/api/rules", async (req, res) => {
         ($1,$2,$3,$4,$5,$6)
         RETURNING *
         `,
-        ["09:00","18:00",1,"18:30",10,5]
+        ["09:00", "18:00", 1, "18:30", 0, 0]
       );
 
-      return res.json(insert.rows[0]);
+      return res.json({
+        success:true,
+        rules:insert.rows[0]
+      });
     }
 
-    res.json(result.rows[0]);
+    res.json({
+      success:true,
+      rules:result.rows[0]
+    });
 
   } catch(err) {
-    console.error(err);
+    console.error("讀取出勤規則失敗:", err);
+
     res.status(500).json({
       success:false,
       message:"讀取出勤規則失敗"
@@ -1293,23 +1300,37 @@ app.get("/api/rules", async (req, res) => {
   }
 });
 
+
 app.post("/api/rules", async (req, res) => {
   try {
-    const {
-      work_start,
-      work_end,
-      break_hours,
-      overtime_start,
-      late_allowance,
-      early_allowance
-    } = req.body;
+    const body = req.body;
+
+    const work_start =
+      body.work_start || body.workStart || "09:00";
+
+    const work_end =
+      body.work_end || body.workEnd || "18:00";
+
+    const break_hours =
+      Number(body.break_hours ?? body.breakHours ?? 1);
+
+    const overtime_start =
+      body.overtime_start || body.overtimeStart || "18:30";
+
+    const late_allowance =
+      Number(body.late_allowance ?? body.lateAllowance ?? 0);
+
+    const early_allowance =
+      Number(body.early_allowance ?? body.earlyAllowance ?? 0);
 
     const exists = await pool.query(
       "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
     );
 
+    let saved;
+
     if (exists.rows.length === 0) {
-      await pool.query(
+      const result = await pool.query(
         `
         INSERT INTO rules
         (
@@ -1322,18 +1343,22 @@ app.post("/api/rules", async (req, res) => {
         )
         VALUES
         ($1,$2,$3,$4,$5,$6)
+        RETURNING *
         `,
         [
-          work_start || "09:00",
-          work_end || "18:00",
-          Number(break_hours || 1),
-          overtime_start || "18:30",
-          Number(late_allowance || 0),
-          Number(early_allowance || 0)
+          work_start,
+          work_end,
+          break_hours,
+          overtime_start,
+          late_allowance,
+          early_allowance
         ]
       );
+
+      saved = result.rows[0];
+
     } else {
-      await pool.query(
+      const result = await pool.query(
         `
         UPDATE rules
         SET
@@ -1344,29 +1369,35 @@ app.post("/api/rules", async (req, res) => {
           late_allowance = $5,
           early_allowance = $6
         WHERE id = $7
+        RETURNING *
         `,
         [
-          work_start || "09:00",
-          work_end || "18:00",
-          Number(break_hours || 1),
-          overtime_start || "18:30",
-          Number(late_allowance || 0),
-          Number(early_allowance || 0),
+          work_start,
+          work_end,
+          break_hours,
+          overtime_start,
+          late_allowance,
+          early_allowance,
           exists.rows[0].id
         ]
       );
+
+      saved = result.rows[0];
     }
 
     res.json({
       success:true,
-      message:"出勤規則已儲存"
+      message:"出勤規則已儲存",
+      rules:saved
     });
 
   } catch(err) {
-    console.error(err);
+    console.error("出勤規則儲存失敗:", err);
+
     res.status(500).json({
       success:false,
-      message:"出勤規則儲存失敗"
+      message:"出勤規則儲存失敗",
+      error:err.message
     });
   }
 });
@@ -2823,6 +2854,7 @@ app.post("/api/bind-line", async (req, res) => {
     });
   }
 });
+
 // =========================
 // 啟動伺服器
 // =========================
