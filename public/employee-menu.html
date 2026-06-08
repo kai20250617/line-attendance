@@ -157,7 +157,12 @@ try{
     step = "讀取工時";
     const workData = await getJson("/api/my-worktime/" + lineUserId);
 
-    let totalHours = Number(salary.totalWorkHours || 0);
+    let totalHours = 0;
+
+const ruleRes = await fetch("/api/rules");
+const ruleData = await ruleRes.json();
+const rule = ruleData.rules || ruleData;
+const breakHours = Number(rule.break_hours || 0);
 
     if(!totalHours && Array.isArray(workData)){
       const groups = {};
@@ -188,11 +193,20 @@ try{
       });
 
       Object.values(groups).forEach(day=>{
-        if(day.start && day.end){
-          totalHours +=
-          (new Date(day.end) - new Date(day.start)) / 1000 / 60 / 60;
-        }
-      });
+  if(day.start && day.end){
+
+    const rawHours =
+    (new Date(day.end) - new Date(day.start)) / 1000 / 60 / 60;
+
+    const workHours =
+    Math.max(
+      0,
+      rawHours - breakHours
+    );
+
+    totalHours += workHours;
+  }
+});
     }
 
     const leaveDays =
