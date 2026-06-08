@@ -541,44 +541,33 @@ app.post("/api/clock", async (req, res) => {
         });
       }
     }
+const now = new Date();
 
-    const now =
-    new Date();
+const nowISO = now.toISOString();
 
-    const nowISO =
-    now.toISOString();
-
-    await pool.query(
-      `
-const taiwanTime =
-new Date(
-  new Date(taiwanTime)
-  .getTime() - 8 * 60 * 60 * 1000
-)
-.toISOString();
-
-      INSERT INTO attendance
-      (
-        line_user_id,
-        name,
-        type,
-        clock_time,
-        latitude,
-        longitude
-      )
-      VALUES
-      ($1,$2,$3,$4,$5,$6)
-      `,
-      [
-        lineUserId,
-        name,
-        type,
-        nowISO,
-        latitude,
-        longitude
-      ]
-    );
-
+await pool.query(
+  `
+  INSERT INTO attendance
+  (
+    line_user_id,
+    name,
+    type,
+    clock_time,
+    latitude,
+    longitude
+  )
+  VALUES
+  ($1,$2,$3,$4,$5,$6)
+  `,
+  [
+    lineUserId,
+    name,
+    type,
+    nowISO,
+    latitude,
+    longitude
+  ]
+);
     const timeText =
     getTaiwanTimeString(now);
 
