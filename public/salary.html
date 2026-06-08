@@ -19,9 +19,7 @@ button{
   cursor:pointer;
   margin-right:10px;
 }
-.logout{
-  background:#e53935;
-}
+.logout{background:#e53935;}
 table{width:100%;border-collapse:collapse;background:white;}
 th{background:#222;color:white;padding:12px;}
 td{border:1px solid #ddd;padding:10px;text-align:center;}
@@ -38,8 +36,7 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
   <input type="number" id="hourlyWage" value="200">
 
   <button onclick="loadSalary()">重新計算</button>
-  <button class="back"  onclick="location.href='/dashboard.html'">返回後台</button>
-
+  <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
 </div>
 
 <div class="box">
@@ -57,20 +54,19 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
   <th>日期</th>
   <th>上班</th>
   <th>下班</th>
+  <th>休息時數</th>
   <th>工時</th>
 </tr>
 </thead>
 
 <tbody id="salaryTable">
 <tr>
-<td colspan="5">載入中...</td>
+<td colspan="6">載入中...</td>
 </tr>
 </tbody>
 </table>
 
 <script>
-
-// 登入驗證
 if(localStorage.getItem("adminLogin") !== "yes"){
   window.location.href = "/login.html";
 }
@@ -91,7 +87,27 @@ async function loadSalary(){
   );
 
   tbody.innerHTML =
-  "<tr><td colspan='5'>載入中...</td></tr>";
+  "<tr><td colspan='6'>載入中...</td></tr>";
+
+  let breakHours = 0;
+
+  try{
+    const ruleRes =
+    await fetch("/api/rules");
+
+    const ruleData =
+    await ruleRes.json();
+
+    const rule =
+    ruleData.rules || ruleData;
+
+    breakHours =
+    Number(rule.break_hours || 0);
+
+  }catch(err){
+    console.error("讀取出勤規則失敗:", err);
+    breakHours = 0;
+  }
 
   const res =
   await fetch("/api/attendance");
@@ -105,7 +121,9 @@ async function loadSalary(){
 
     const date =
     new Date(item.clock_time)
-    .toLocaleDateString("zh-TW");
+    .toLocaleDateString("zh-TW", {
+      timeZone:"Asia/Taipei"
+    });
 
     const key =
     item.name + "_" + date;
@@ -125,8 +143,7 @@ async function loadSalary(){
 
       if(
         !groups[key].start ||
-        new Date(item.clock_time)
-        <
+        new Date(item.clock_time) <
         new Date(groups[key].start)
       ){
 
@@ -141,8 +158,7 @@ async function loadSalary(){
 
       if(
         !groups[key].end ||
-        new Date(item.clock_time)
-        >
+        new Date(item.clock_time) >
         new Date(groups[key].end)
       ){
 
@@ -159,25 +175,23 @@ async function loadSalary(){
 
   let totalHours = 0;
 
-  Object.values(groups)
-  .forEach(row=>{
+  Object.values(groups).forEach(row=>{
 
     let hours = 0;
 
     if(row.start && row.end){
 
-      hours =
+      const rawHours =
       (
-        new Date(row.end)
-        -
+        new Date(row.end) -
         new Date(row.start)
-      )
-      /
-      1000
-      /
-      60
-      /
-      60;
+      ) / 1000 / 60 / 60;
+
+      hours =
+      Math.max(
+        0,
+        rawHours - breakHours
+      );
 
       totalHours += hours;
 
@@ -190,8 +204,9 @@ async function loadSalary(){
         <td>${
           row.start
           ?
-          new Date(row.start)
-          .toLocaleTimeString("zh-TW")
+          new Date(row.start).toLocaleTimeString("zh-TW", {
+            timeZone:"Asia/Taipei"
+          })
           :
           "-"
         }</td>
@@ -199,11 +214,14 @@ async function loadSalary(){
         <td>${
           row.end
           ?
-          new Date(row.end)
-          .toLocaleTimeString("zh-TW")
+          new Date(row.end).toLocaleTimeString("zh-TW", {
+            timeZone:"Asia/Taipei"
+          })
           :
           "-"
         }</td>
+
+        <td>${breakHours}</td>
 
         <td>${
           hours
@@ -220,24 +238,16 @@ async function loadSalary(){
   const salary =
   totalHours * wage;
 
-  document.getElementById(
-    "totalHours"
-  ).innerText =
-  totalHours.toFixed(2)
-  + " 小時";
+  document.getElementById("totalHours").innerText =
+  totalHours.toFixed(2) + " 小時";
 
-  document.getElementById(
-    "totalSalary"
-  ).innerText =
-  "NT$ "
-  +
-  Math.round(salary)
-  .toLocaleString("zh-TW");
+  document.getElementById("totalSalary").innerText =
+  "NT$ " +
+  Math.round(salary).toLocaleString("zh-TW");
 
 }
 
 loadSalary();
-
 </script>
 
 </body>
