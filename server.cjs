@@ -1089,8 +1089,10 @@ app.post("/api/settings", async (req, res) => {
     });
   }
 });
+
 // =========================
 // 匯出月薪總表 CSV
+// 自動扣除出勤規則的休息時數
 // =========================
 
 app.get("/api/export-monthly", async (req, res) => {
@@ -1103,8 +1105,16 @@ app.get("/api/export-monthly", async (req, res) => {
       "SELECT * FROM employees"
     );
 
+    const ruleResult = await pool.query(
+      "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
+    );
+
     const attendance = attendanceResult.rows;
     const employees = employeesResult.rows;
+    const rule = ruleResult.rows[0] || {};
+
+    const breakHours =
+      Number(rule.break_hours || 0);
 
     const now = new Date();
     const year = now.getFullYear();
@@ -1115,9 +1125,15 @@ app.get("/api/export-monthly", async (req, res) => {
     attendance.forEach(item => {
       const d = new Date(item.clock_time);
 
+      const taipeiDate = new Date(
+        d.toLocaleString("en-US", {
+          timeZone: "Asia/Taipei"
+        })
+      );
+
       if (
-        d.getFullYear() !== year ||
-        d.getMonth() !== month
+        taipeiDate.getFullYear() !== year ||
+        taipeiDate.getMonth() !== month
       ) {
         return;
       }
@@ -1126,7 +1142,8 @@ app.get("/api/export-monthly", async (req, res) => {
         timeZone: "Asia/Taipei"
       });
 
-      const key = item.line_user_id + "_" + date;
+      const key =
+        item.line_user_id + "_" + date;
 
       if (!dayGroups[key]) {
         dayGroups[key] = {
@@ -1141,18 +1158,22 @@ app.get("/api/export-monthly", async (req, res) => {
       if (item.type === "上班") {
         if (
           !dayGroups[key].start ||
-          new Date(item.clock_time) < new Date(dayGroups[key].start)
+          new Date(item.clock_time) <
+          new Date(dayGroups[key].start)
         ) {
-          dayGroups[key].start = item.clock_time;
+          dayGroups[key].start =
+            item.clock_time;
         }
       }
 
       if (item.type === "下班") {
         if (
           !dayGroups[key].end ||
-          new Date(item.clock_time) > new Date(dayGroups[key].end)
+          new Date(item.clock_time) >
+          new Date(dayGroups[key].end)
         ) {
-          dayGroups[key].end = item.clock_time;
+          dayGroups[key].end =
+            item.clock_time;
         }
       }
     });
@@ -1160,26 +1181,36 @@ app.get("/api/export-monthly", async (req, res) => {
     const monthly = {};
 
     Object.values(dayGroups).forEach(day => {
-      const key = day.line_user_id || day.name;
+      const key =
+        day.line_user_id || day.name;
 
       if (!monthly[key]) {
         monthly[key] = {
           name: day.name,
           line_user_id: day.line_user_id,
-          hours: 0
+          hours: 0,
+          workDays: 0
         };
       }
 
       if (day.start && day.end) {
-        const hours =
+        const totalHours =
           (new Date(day.end) - new Date(day.start)) /
           1000 / 60 / 60;
 
-        monthly[key].hours += hours;
+        const workHours =
+          Math.max(
+            0,
+            totalHours - breakHours
+          );
+
+        monthly[key].hours += workHours;
+        monthly[key].workDays++;
       }
     });
 
-    let csv = "\uFEFF員工,本月總工時,時薪,預估薪資\n";
+    let csv =
+      "\uFEFF員工,本月出勤天數,休息時數,本月實際工時,時薪,預估薪資\n";
 
     Object.values(monthly).forEach(item => {
       const emp = employees.find(e =>
@@ -1187,10 +1218,14 @@ app.get("/api/export-monthly", async (req, res) => {
         e.name === item.name
       );
 
-      const wage = emp ? Number(emp.hourly_wage || 200) : 200;
-      const salary = Math.round(item.hours * wage);
+      const wage =
+        emp ? Number(emp.hourly_wage || 200) : 200;
 
-      csv += `${item.name},${item.hours.toFixed(2)},${wage},${salary}\n`;
+      const salary =
+        Math.round(item.hours * wage);
+
+      csv +=
+        `${item.name},${item.workDays},${breakHours},${item.hours.toFixed(2)},${wage},${salary}\n`;
     });
 
     res.setHeader(
@@ -1206,10 +1241,12 @@ app.get("/api/export-monthly", async (req, res) => {
     res.send(csv);
 
   } catch (err) {
-    console.error(err);
+    console.error("匯出月薪總表失敗:", err);
+
     res.status(500).send("匯出失敗");
   }
 });
+
 // =========================
 // 薪資總表 API
 // =========================
