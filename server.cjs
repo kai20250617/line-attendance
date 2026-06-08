@@ -174,6 +174,16 @@ if (ruleResult.rows.length === 0) {
   `);
 }
 
+await pool.query(`
+  ALTER TABLE rules
+  ADD COLUMN IF NOT EXISTS late_allowance INTEGER DEFAULT 0
+`);
+
+await pool.query(`
+  ALTER TABLE rules
+  ADD COLUMN IF NOT EXISTS early_allowance INTEGER DEFAULT 0
+`);
+
 console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
 }
