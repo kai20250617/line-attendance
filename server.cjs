@@ -2533,10 +2533,10 @@ function getTaipeiMinutes(value) {
   }).formatToParts(d);
 
   const hour =
-  Number(parts.find(p => p.type === "hour").value);
+    Number(parts.find(p => p.type === "hour").value);
 
   const minute =
-  Number(parts.find(p => p.type === "minute").value);
+    Number(parts.find(p => p.type === "minute").value);
 
   return hour * 60 + minute;
 }
@@ -2561,41 +2561,43 @@ app.get("/api/attendance-report", async (req, res) => {
       endDate
     } = req.query;
 
-    // 讀取前台設定的出勤規則
     const rulesResult = await pool.query(
       "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
     );
 
     const rules =
-    rulesResult.rows[0] || {};
+      rulesResult.rows[0] || {};
 
     const workStart =
-    rules.work_start || "09:00";
+      rules.work_start || "09:00";
 
     const workEnd =
-    rules.work_end || "18:00";
+      rules.work_end || "18:00";
+
+    const breakHours =
+      Number(rules.break_hours || 0);
 
     const lateAllowance =
-    Number(rules.late_allowance || 0);
+      Number(rules.late_allowance || 0);
 
     const earlyAllowance =
-    Number(rules.early_allowance || 0);
+      Number(rules.early_allowance || 0);
 
     const [startHour, startMinute] =
-    workStart.split(":").map(Number);
+      workStart.split(":").map(Number);
 
     const [endHour, endMinute] =
-    workEnd.split(":").map(Number);
+      workEnd.split(":").map(Number);
 
     const ruleStartMinutes =
-    startHour * 60 +
-    startMinute +
-    lateAllowance;
+      startHour * 60 +
+      startMinute +
+      lateAllowance;
 
     const ruleEndMinutes =
-    endHour * 60 +
-    endMinute -
-    earlyAllowance;
+      endHour * 60 +
+      endMinute -
+      earlyAllowance;
 
     let empSql = `
       SELECT *
@@ -2624,7 +2626,7 @@ app.get("/api/attendance-report", async (req, res) => {
     `;
 
     const employees =
-    await pool.query(empSql, empParams);
+      await pool.query(empSql, empParams);
 
     let attSql = `
       SELECT *
@@ -2655,12 +2657,11 @@ app.get("/api/attendance-report", async (req, res) => {
     `;
 
     const attendance =
-    await pool.query(attSql, attParams);
+      await pool.query(attSql, attParams);
 
     const result = [];
 
     for (const emp of employees.rows) {
-
       let totalHours = 0;
       let lateCount = 0;
       let earlyLeaveCount = 0;
@@ -2669,85 +2670,103 @@ app.get("/api/attendance-report", async (req, res) => {
       const dayGroups = {};
 
       attendance.rows
-      .filter(item =>
-        item.line_user_id === emp.line_user_id
-      )
-      .forEach(item => {
+        .filter(item =>
+          item.line_user_id === emp.line_user_id
+        )
+        .forEach(item => {
+          const date =
+            getTaipeiDate(item.clock_time);
 
-        const date =
-        getTaipeiDate(item.clock_time);
-
-        if (!dayGroups[date]) {
-          dayGroups[date] = {
-            start:null,
-            end:null
-          };
-        }
-
-        if (item.type === "上班") {
-          if (
-            !dayGroups[date].start ||
-            new Date(item.clock_time) <
-            new Date(dayGroups[date].start)
-          ) {
-            dayGroups[date].start =
-            item.clock_time;
+          if (!dayGroups[date]) {
+            dayGroups[date] = {
+              start:null,
+              end:null
+            };
           }
-        }
 
-        if (item.type === "下班") {
-          if (
-            !dayGroups[date].end ||
-            new Date(item.clock_time) >
-            new Date(dayGroups[date].end)
-          ) {
-            dayGroups[date].end =
-            item.clock_time;
+          if (item.type === "上班") {
+            if (
+              !dayGroups[date].start ||
+              new Date(item.clock_time) <
+              new Date(dayGroups[date].start)
+            ) {
+              dayGroups[date].start =
+                item.clock_time;
+            }
           }
-        }
 
-      });
+          if (item.type === "下班") {
+            if (
+              !dayGroups[date].end ||
+              new Date(item.clock_time) >
+              new Date(dayGroups[date].end)
+            ) {
+              dayGroups[date].end =
+                item.clock_time;
+            }
+          }
+        });
 
       Object.values(dayGroups).forEach(day => {
+        if (day.start && day.end) {
+          const start =
+            new Date(day.start);
 
-  if (day.start && day.end) {
+          const end =
+            new Date(day.end);
 
-    const start =
-    new Date(day.start);
+          const rawHours =
+            (end - start) / 1000 / 60 / 60;
 
-    const end =
-    new Date(day.end);
+          const workHours =
+            Math.max(
+              0,
+              rawHours - breakHours
+            );
 
-    const rawHours =
-    (end - start) / 1000 / 60 / 60;
+          if (workHours > 0) {
+            workDays++;
+            totalHours += workHours;
+          }
 
-    const workHours =
-    Math.max(
-      0,
-      rawHours - breakHours
-    );
+          const startMinutes =
+            getTaipeiMinutes(day.start);
 
-    if (workHours > 0) {
-      workDays++;
-      totalHours += workHours;
+          const endMinutes =
+            getTaipeiMinutes(day.end);
+
+          if (startMinutes > ruleStartMinutes) {
+            lateCount++;
+          }
+
+          if (endMinutes < ruleEndMinutes) {
+            earlyLeaveCount++;
+          }
+        }
+      });
+
+      result.push({
+        name: emp.name,
+        department: emp.department || "-",
+        position: emp.position || "-",
+        workDays,
+        breakHours,
+        totalHours: totalHours.toFixed(2),
+        lateCount,
+        earlyLeaveCount
+      });
     }
 
-    const startMinutes =
-    getTaipeiMinutes(day.start);
+    res.json(result);
 
-    const endMinutes =
-    getTaipeiMinutes(day.end);
+  } catch(err) {
+    console.error("讀取出勤報表失敗:", err);
 
-    if (startMinutes > ruleStartMinutes) {
-      lateCount++;
-    }
-
-    if (endMinutes < ruleEndMinutes) {
-      earlyLeaveCount++;
-    }
-
+    res.status(500).json({
+      success:false,
+      message:"讀取出勤報表失敗"
+    });
   }
-
 });
 // =========================
 // 產生員工綁定碼
