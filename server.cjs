@@ -1551,7 +1551,8 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 // 固定交通津貼
 // =========================
 
-const transportAllowance = 3000;
+
+
 
 let attendanceQualified = true;
 
