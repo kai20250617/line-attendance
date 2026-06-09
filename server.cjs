@@ -847,7 +847,7 @@ app.post("/api/employees", async (req, res) => {
     transportAllowance,
 
 // 保留舊欄位
-transportAllowance: transportAllowance,
+attendanceBonus: transportAllowance,
     performanceBonus
   } = req.body;
 
