@@ -836,6 +836,7 @@ ${leave.end_date}
 // =========================
 
 app.post("/api/employees", async (req, res) => {
+
   const {
     lineUserId,
     name,
@@ -844,21 +845,18 @@ app.post("/api/employees", async (req, res) => {
     hourlyWage,
     baseSalary,
     fixedAllowance,
-    transportAllowance,
-
-// 保留舊欄位
-attendanceBonus: transportAllowance,
     performanceBonus
   } = req.body;
 
   if (!name) {
     return res.status(400).json({
-      success: false,
-      message: "請輸入員工姓名"
+      success:false,
+      message:"請輸入員工姓名"
     });
   }
 
   try {
+
     await pool.query(
       `
       INSERT INTO employees
@@ -885,29 +883,38 @@ attendanceBonus: transportAllowance,
         Number(hourlyWage || 0),
         Number(baseSalary || 27000),
         Number(fixedAllowance || 3000),
-        Number( || 3000),
+
+        // 固定交通津貼 3000
+        3000,
+
         Number(performanceBonus || 0),
+
         "在職"
       ]
     );
 
     res.json({
-      success: true,
-      message: "員工已新增"
+      success:true,
+      message:"員工已新增"
     });
 
   } catch(err) {
+
     console.error(err);
 
     res.status(500).json({
-      success: false,
-      message: "新增員工失敗"
+      success:false,
+      message:"新增員工失敗"
     });
+
   }
+
 });
 
 app.get("/api/employees", async (req, res) => {
+
   try {
+
     const result = await pool.query(
       "SELECT * FROM employees ORDER BY id DESC"
     );
@@ -915,41 +922,55 @@ app.get("/api/employees", async (req, res) => {
     res.json(result.rows);
 
   } catch(err) {
+
     console.error(err);
 
     res.status(500).json({
-      success: false,
-      message: "讀取員工資料失敗"
+      success:false,
+      message:"讀取員工資料失敗"
     });
+
   }
-}); 
+
+});
 
 app.post("/api/employees/status", async (req, res) => {
-  const { id, status } = req.body;
+
+  const {
+    id,
+    status
+  } = req.body;
 
   try {
+
     await pool.query(
       `
       UPDATE employees
       SET status = $1
       WHERE id = $2
       `,
-      [status, id]
+      [
+        status,
+        id
+      ]
     );
 
     res.json({
-      success: true,
-      message: "員工狀態已更新"
+      success:true,
+      message:"員工狀態已更新"
     });
 
   } catch(err) {
+
     console.error(err);
 
     res.status(500).json({
-      success: false,
-      message: "員工狀態更新失敗"
+      success:false,
+      message:"員工狀態更新失敗"
     });
+
   }
+
 });
 
 // =========================
