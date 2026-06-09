@@ -38,7 +38,7 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
 
   <input id="baseSalary" type="number" value="27000" placeholder="底薪">
   <input id="fixedAllowance" type="number" value="3000" placeholder="固定津貼">
-  <input id="attendanceBonus" type="number" value="3000" placeholder="全勤獎金">
+  <input id="transportAllowance" type="number" value="3000" placeholder="交通津貼">
   <input id="performanceBonus" type="number" value="0" placeholder="績效獎金">
 
   <button class="add" onclick="addEmployee()">新增員工</button>
@@ -54,7 +54,7 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
   <th>時薪</th>
   <th>底薪</th>
   <th>固定津貼</th>
-  <th>全勤</th>
+  <th>交通津貼</th>
   <th>績效</th>
   <th>LINE綁定</th>
   <th>綁定碼</th>
@@ -83,7 +83,7 @@ async function addEmployee(){
 
   const baseSalary = document.getElementById("baseSalary").value;
   const fixedAllowance = document.getElementById("fixedAllowance").value;
-  const attendanceBonus = document.getElementById("attendanceBonus").value;
+  const transportAllowance = document.getElementById("transportAllowance").value;
   const performanceBonus = document.getElementById("performanceBonus").value;
 
   if(!name){
@@ -104,7 +104,7 @@ async function addEmployee(){
       hourlyWage,
       baseSalary,
       fixedAllowance,
-      attendanceBonus,
+      transportAllowance,
       performanceBonus
     })
   });
@@ -115,7 +115,7 @@ async function addEmployee(){
   document.getElementById("hourlyWage").value="";
   document.getElementById("baseSalary").value="27000";
   document.getElementById("fixedAllowance").value="3000";
-  document.getElementById("attendanceBonus").value="3000";
+  document.getElementById("transportAllowance").value="3000";
   document.getElementById("performanceBonus").value="0";
 
   loadEmployees();

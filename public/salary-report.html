@@ -90,7 +90,7 @@ td{
   <th>底薪</th>
   <th>固定津貼</th>
   <th>加班費</th>
-  <th>全勤獎金</th>
+  <th>交通津貼</th>
   <th>績效獎金</th>
   <th>請假扣款</th>
   <th>應發薪資</th>
@@ -168,8 +168,8 @@ async function loadSalaryReport(){
       const overtimePay =
       Number(item.overtimePay || 0);
 
-      const attendanceBonus =
-      Number(item.attendanceBonus || 0);
+      const transportAllowance =
+      Number(item.transportAllowance || 0);
 
       const performanceBonus =
       Number(item.performanceBonus || 0);
@@ -198,7 +198,7 @@ async function loadSalaryReport(){
           <td>${money(baseSalary)}</td>
           <td>${money(fixedAllowance)}</td>
           <td>${money(overtimePay)}</td>
-          <td>${money(attendanceBonus)}</td>
+          <td>${money(transportAllowance)}</td>
           <td>${money(performanceBonus)}</td>
           <td class="deduct">${money(leaveDeduction)}</td>
           <td class="gross">${money(grossSalary)}</td>

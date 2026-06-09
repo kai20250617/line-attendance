@@ -105,8 +105,8 @@ async function loadMySalary(){
     const earlyLeaveCount =
     Number(data.earlyLeaveCount || 0);
 
-    const attendanceBonus =
-    Number(data.attendanceBonus || 0);
+    const transportAllowance =
+    Number(data.transportAllowance || 0);
 
     const attendanceStatus =
     data.attendanceQualified
@@ -134,8 +134,8 @@ async function loadMySalary(){
       </div>
 
       <div class="row">
-        <span>全勤獎金</span>
-        <strong>NT$${attendanceBonus.toLocaleString("zh-TW")}</strong>
+        <span>交通津貼</span>
+        <strong>NT$${transportAllowance.toLocaleString("zh-TW")}</strong>
       </div>
 
       <div class="row">
@@ -149,7 +149,7 @@ async function loadMySalary(){
       </div>
 
       <div class="row">
-        <span>全勤資格</span>
+        <span>交通津貼</span>
         <strong>${attendanceStatus}</strong>
       </div>
 
