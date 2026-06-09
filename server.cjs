@@ -3102,14 +3102,14 @@ app.post("/api/bind-line", async (req, res) => {
 // =========================
 // 啟動伺服器
 // =========================
+const PORT = process.env.PORT || 3000;
+
 createTables()
 .then(() => {
-
   app.listen(PORT, () => {
     console.log("Server Running");
     console.log(`Port: ${PORT}`);
   });
-
 })
 .catch(err => {
   console.error(err);
