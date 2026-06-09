@@ -184,6 +184,14 @@ await pool.query(`
   ADD COLUMN IF NOT EXISTS early_allowance INTEGER DEFAULT 0
 `);
 
+await pool.query(`
+CREATE TABLE IF NOT EXISTS holidays (
+  id SERIAL PRIMARY KEY,
+  holiday_date DATE NOT NULL UNIQUE,
+  holiday_name VARCHAR(100) NOT NULL
+)
+`);
+
 console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
 }
@@ -3063,16 +3071,15 @@ app.post("/api/bind-line", async (req, res) => {
 // =========================
 // 啟動伺服器
 // =========================
-const PORT =
-process.env.PORT || 3000;
-await pool.query(`
-CREATE TABLE IF NOT EXISTS holidays (
-  id SERIAL PRIMARY KEY,
-  holiday_date DATE NOT NULL UNIQUE,
-  holiday_name VARCHAR(100) NOT NULL
-)
-`);
-app.listen(PORT, () => {
-  console.log("Server Running");
-  console.log(`Port: ${PORT}`);
+createTables()
+.then(() => {
+
+  app.listen(PORT, () => {
+    console.log("Server Running");
+    console.log(`Port: ${PORT}`);
+  });
+
+})
+.catch(err => {
+  console.error(err);
 });
