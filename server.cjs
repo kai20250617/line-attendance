@@ -1542,6 +1542,7 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 let earlyLeaveCount = 0;
 let overtimePay = 0;         // 平日加班費
 let restDayOvertimePay = 0;  // 星期六加班費
+let holidayOvertimePay = 0;
 let leaveDeduction = 0;
 let totalWorkHours = 0;
     let attendanceQualified = true;
@@ -1601,6 +1602,39 @@ let totalWorkHours = 0;
     // 星期六 = 6，先當作休息日
     const isRestDay = dayOfWeek === 6;
 
+    // 星期日
+const isHoliday = dayOfWeek === 0;
+
+// 國定假日
+const nationalHolidays = [
+   "01/01",
+   "02/15",
+   "02/16",
+   "02/17",
+   "02/18",
+   "02/19",
+   "02/28",
+   "04/04",
+   "05/01",
+   "06/19",
+   "09/25",
+   "09/28",
+   "10/10"
+   "12/25",
+];
+
+const dateText = startTime.toLocaleDateString(
+  "zh-TW",
+  {
+    timeZone:"Asia/Taipei",
+    month:"2-digit",
+    day:"2-digit"
+  }
+);
+
+const isNationalHoliday =
+  nationalHolidays.includes(dateText);
+
     const startText =
       startTime.toLocaleTimeString("en-GB", {
         timeZone:"Asia/Taipei",
@@ -1651,7 +1685,15 @@ let totalWorkHours = 0;
     const hourlyRate =
       monthlyRegularWage / 30 / 8;
 
-    if (isRestDay) {
+    if (isHoliday || isNationalHoliday) {
+
+  holidayOvertimePay +=
+    workHours *
+    hourlyRate *
+    2;
+
+}
+else if (isRestDay) {
       // 休息日加班：前2小時 1.34，之後 1.67
       const first2Hours =
         Math.min(workHours, 2);
@@ -1683,6 +1725,7 @@ let totalWorkHours = 0;
 
 overtimePay = Math.round(overtimePay);
 restDayOvertimePay = Math.round(restDayOvertimePay);
+holidayOvertimePay = Math.round(holidayOvertimePay);
 
 const leavesResult = await pool.query(
   `
@@ -1747,7 +1790,8 @@ const grossSalary =
   transportAllowance +
   performanceBonus +
   overtimePay +
-  restDayOvertimePay;
+  restDayOvertimePay +
+  holidayOvertimePay;
 
 const laborInsurance =
   Math.round(grossSalary * 0.02);
@@ -1789,8 +1833,9 @@ res.json({
   performanceBonus,
 
   overtimePay,
-  restDayOvertimePay,
-  leaveDeduction,
+restDayOvertimePay,
+holidayOvertimePay,
+leaveDeduction,
 
   lateCount,
   earlyLeaveCount,
