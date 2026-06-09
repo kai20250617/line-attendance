@@ -408,6 +408,15 @@ app.post("/api/clock", async (req, res) => {
     })
   );
 
+const dayOfWeek = taipeiNow.getDay();
+
+if (dayOfWeek === 0) {
+  return res.status(403).json({
+    success:false,
+    message:"星期日禁止打卡"
+  });
+}
+
   const currentHour =
   taipeiNow.getHours();
 
@@ -1819,22 +1828,22 @@ taipeiStart.toLocaleDateString(
         // 星期日 = 固定休假，不計入薪資
         const isSunday = dayOfWeek === 0;
 
-        const nationalHolidays = [
-          "01/01",
-          "02/15",
-          "02/16",
-          "02/17",
-          "02/18",
-          "02/19",
-          "02/28",
-          "04/04",
-          "05/01",
-          "06/19",
-          "09/25",
-          "09/28",
-          "10/10",
-          "12/25"
-        ];
+        const holidayResult =
+await pool.query(
+  `
+  SELECT *
+  FROM holidays
+  WHERE holiday_date = $1
+  `,
+  [
+    startTime
+    .toISOString()
+    .split("T")[0]
+  ]
+);
+
+const isNationalHoliday =
+holidayResult.rows.length > 0;
 
         const dateText =
         taipeiStart.toLocaleDateString("en-US", {
