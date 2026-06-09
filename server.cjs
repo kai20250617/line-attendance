@@ -640,6 +640,37 @@ ${
 });
 app.get("/api/attendance", async (req, res) => {
 
+  // =========================
+// 國定假日 API
+// =========================
+
+app.get("/api/holidays", async (req, res) => {
+
+  try {
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM holidays
+      ORDER BY holiday_date ASC
+      `
+    );
+
+    res.json(result.rows);
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取國定假日失敗"
+    });
+
+  }
+
+});
+
   try {
 
     const result = await pool.query(
