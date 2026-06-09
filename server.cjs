@@ -3065,6 +3065,13 @@ app.post("/api/bind-line", async (req, res) => {
 // =========================
 const PORT =
 process.env.PORT || 3000;
+await pool.query(`
+CREATE TABLE IF NOT EXISTS holidays (
+  id SERIAL PRIMARY KEY,
+  holiday_date DATE NOT NULL UNIQUE,
+  holiday_name VARCHAR(100) NOT NULL
+)
+`);
 app.listen(PORT, () => {
   console.log("Server Running");
   console.log(`Port: ${PORT}`);
