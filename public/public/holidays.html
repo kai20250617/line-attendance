@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hant">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>國定假日管理</title>
+
+<style>
+
+body{
+
+  font-family:Arial,sans-serif;
+
+  background:#f5f5f5;
+
+  padding:20px;
+
+}
+
+h1{
+
+  text-align:center;
+
+}
+
+.card{
+
+  background:white;
+
+  max-width:700px;
+
+  margin:20px auto;
+
+  padding:20px;
+
+  border-radius:10px;
+
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+
+}
+
+label{
+
+  display:block;
+
+  margin-top:10px;
+
+  font-weight:bold;
+
+}
+
+input{
+
+  width:100%;
+
+  padding:10px;
+
+  font-size:16px;
+
+  margin-top:5px;
+
+  box-sizing:border-box;
+
+}
+
+button{
+
+  padding:10px 20px;
+
+  margin-top:15px;
+
+  border:none;
+
+  border-radius:6px;
+
+  background:#1976d2;
+
+  color:white;
+
+  font-size:16px;
+
+  cursor:pointer;
+
+}
+
+.delete{
+
+  background:#c62828;
+
+  margin-top:0;
+
+}
+
+.back{
+
+  background:#333;
+
+}
+
+table{
+
+  width:100%;
+
+  border-collapse:collapse;
+
+  margin-top:20px;
+
+}
+
+th{
+
+  background:#222;
+
+  color:white;
+
+  padding:10px;
+
+}
+
+td{
+
+  border:1px solid #ddd;
+
+  padding:10px;
+
+  text-align:center;
+
+}
+
+.msg{
+
+  text-align:center;
+
+  font-weight:bold;
+
+  margin-top:10px;
+
+}
+
+.error{
+
+  color:red;
+
+}
+
+.success{
+
+  color:green;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>📅 國定假日管理</h1>
+
+<div class="card">
+
+  <h2>新增國定假日</h2>
+
+  <label>日期</label>
+
+  <input type="date" id="holidayDate">
+
+  <label>假日名稱</label>
+
+  <input type="text" id="holidayName" placeholder="例如：國慶日">
+
+  <button onclick="addHoliday()">新增</button>
+
+  <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
+
+  <div id="msg" class="msg"></div>
+
+</div>
+
+<div class="card">
+
+  <h2>假日清單</h2>
+
+  <table>
+
+    <thead>
+
+      <tr>
+
+        <th>日期</th>
+
+        <th>名稱</th>
+
+        <th>操作</th>
+
+      </tr>
+
+    </thead>
+
+    <tbody id="holidayList">
+
+      <tr>
+
+        <td colspan="3">載入中...</td>
+
+      </tr>
+
+    </tbody>
+
+  </table>
+
+</div>
+
+<script>
+
+if(localStorage.getItem("adminLogin") !== "yes"){
+
+  location.href = "/login.html";
+
+}
+
+function showMsg(text, type){
+
+  const msg = document.getElementById("msg");
+
+  msg.className = "msg " + type;
+
+  msg.innerText = text;
+
+}
+
+async function loadHolidays(){
+
+  const tbody = document.getElementById("holidayList");
+
+  tbody.innerHTML =
+
+  "<tr><td colspan='3'>載入中...</td></tr>";
+
+  try{
+
+    const res = await fetch("/api/holidays");
+
+    const data = await res.json();
+
+    if(!Array.isArray(data) || data.length === 0){
+
+      tbody.innerHTML =
+
+      "<tr><td colspan='3'>目前沒有國定假日資料</td></tr>";
+
+      return;
+
+    }
+
+    tbody.innerHTML = "";
+
+    data.forEach(item=>{
+
+      const dateText =
+
+      new Date(item.holiday_date)
+
+      .toLocaleDateString("zh-TW", {
+
+        timeZone:"Asia/Taipei"
+
+      });
+
+      tbody.innerHTML += `
+
+        <tr>
+
+          <td>${dateText}</td>
+
+          <td>${item.holiday_name}</td>
+
+          <td>
+
+            <button class="delete" onclick="deleteHoliday(${item.id})">
+
+              刪除
+
+            </button>
+
+          </td>
+
+        </tr>
+
+      `;
+
+    });
+
+  }catch(err){
+
+    console.error(err);
+
+    tbody.innerHTML =
+
+    "<tr><td colspan='3'>讀取失敗</td></tr>";
+
+  }
+
+}
+
+async function addHoliday(){
+
+  const holidayDate =
+
+  document.getElementById("holidayDate").value;
+
+  const holidayName =
+
+  document.getElementById("holidayName").value.trim();
+
+  if(!holidayDate || !holidayName){
+
+    showMsg("請輸入日期與假日名稱", "error");
+
+    return;
+
+  }
+
+  try{
+
+    const res = await fetch("/api/holidays", {
+
+      method:"POST",
+
+      headers:{
+
+        "Content-Type":"application/json"
+
+      },
+
+      body:JSON.stringify({
+
+        holidayDate,
+
+        holidayName
+
+      })
+
+    });
+
+    const data = await res.json();
+
+    if(!data.success){
+
+      showMsg(data.message || "新增失敗", "error");
+
+      return;
+
+    }
+
+    showMsg("新增成功", "success");
+
+    document.getElementById("holidayDate").value = "";
+
+    document.getElementById("holidayName").value = "";
+
+    loadHolidays();
+
+  }catch(err){
+
+    console.error(err);
+
+    showMsg("新增失敗", "error");
+
+  }
+
+}
+
+async function deleteHoliday(id){
+
+  if(!confirm("確定要刪除這個國定假日嗎？")){
+
+    return;
+
+  }
+
+  try{
+
+    const res = await fetch("/api/holidays/" + id, {
+
+      method:"DELETE"
+
+    });
+
+    const data = await res.json();
+
+    if(!data.success){
+
+      showMsg(data.message || "刪除失敗", "error");
+
+      return;
+
+    }
+
+    showMsg("刪除成功", "success");
+
+    loadHolidays();
+
+  }catch(err){
+
+    console.error(err);
+
+    showMsg("刪除失敗", "error");
+
+  }
+
+}
+
+loadHolidays();
+
+</script>
+
+</body>
+
+</html>

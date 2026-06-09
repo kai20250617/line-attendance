@@ -747,6 +747,88 @@ app.post("/api/holidays", async (req, res) => {
 });
 
 // =========================
+// 刪除國定假日
+// =========================
+
+app.delete("/api/holidays/:id", async (req, res) => {
+
+  try {
+
+    const id = req.params.id;
+
+    await pool.query(
+      `
+      DELETE FROM holidays
+      WHERE id = $1
+      `,
+      [id]
+    );
+
+    res.json({
+      success:true,
+      message:"刪除成功"
+    });
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"刪除失敗"
+    });
+
+  }
+
+});
+
+// =========================
+// 新增國定假日測試
+// =========================
+
+app.get("/api/add-holidays", async (req, res) => {
+
+  try {
+
+    await pool.query(`
+      INSERT INTO holidays
+      (holiday_date, holiday_name)
+      VALUES
+      ('2026-01-01','元旦'),
+      ('2026-02-16','春節'),
+      ('2026-02-17','春節'),
+      ('2026-02-18','春節'),
+      ('2026-02-19','春節'),
+      ('2026-02-28','和平紀念日'),
+      ('2026-04-04','兒童節'),
+      ('2026-05-01','勞動節'),
+      ('2026-06-19','端午節'),
+      ('2026-09-25','中秋節'),
+      ('2026-09-28','教師節'),
+      ('2026-10-10','國慶日'),
+      ('2026-12-25','行憲紀念日')
+      ON CONFLICT DO NOTHING
+    `);
+
+    res.json({
+      success:true,
+      message:"國定假日已建立"
+    });
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"建立失敗"
+    });
+
+  }
+
+});
+
+// =========================
 // 請假
 // =========================
 
