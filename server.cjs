@@ -640,7 +640,35 @@ ${
 });
 app.get("/api/attendance", async (req, res) => {
 
-  // =========================
+// =========================
+// 讀取全部打卡資料
+// =========================
+
+app.get("/api/attendance", async (req, res) => {
+
+  try {
+
+    const result = await pool.query(
+      "SELECT * FROM attendance ORDER BY id DESC"
+    );
+
+    res.json(result.rows);
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取打卡資料失敗"
+    });
+
+  }
+
+});
+
+
+// =========================
 // 國定假日 API
 // =========================
 
@@ -671,26 +699,6 @@ app.get("/api/holidays", async (req, res) => {
 
 });
 
-  try {
-
-    const result = await pool.query(
-      "SELECT * FROM attendance ORDER BY id DESC"
-    );
-
-    res.json(result.rows);
-
-  } catch(err) {
-
-    console.error(err);
-
-    res.status(500).json({
-      success:false,
-      message:"讀取打卡資料失敗"
-    });
-
-  }
-
-});
 // =========================
 // 請假
 // =========================
