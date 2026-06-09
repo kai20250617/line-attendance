@@ -1547,8 +1547,10 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
     let earlyLeaveCount = 0;
 
     let overtimePay = 0;
-    let restDayOvertimePay = 0;
-    let holidayOvertimePay = 0;
+let restDayOvertimePay = 0;
+let holidayOvertimePay = 0;
+
+let overtimeDetails = [];
 
     let leaveDeduction = 0;
     let totalWorkHours = 0;
@@ -1614,6 +1616,26 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
         );
 
         const dayOfWeek = taipeiStart.getDay();
+        const weekNames = [
+  "星期日",
+  "星期一",
+  "星期二",
+  "星期三",
+  "星期四",
+  "星期五",
+  "星期六"
+];
+
+const weekDay =
+weekNames[dayOfWeek];
+
+const fullDate =
+taipeiStart.toLocaleDateString(
+  "zh-TW",
+  {
+    timeZone:"Asia/Taipei"
+  }
+);
 
         // 星期六 = 休息日
         const isRestDay = dayOfWeek === 6;
@@ -1713,9 +1735,19 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
           const after8Hours =
           Math.max(0, workHours - 8);
 
-          holidayOvertimePay +=
-          first8Hours * hourlyRate * 2 +
-          after8Hours * hourlyRate * 2.67;
+           const holidayPay =
+first8Hours * hourlyRate * 2 +
+after8Hours * hourlyRate * 2.67;
+
+holidayOvertimePay += holidayPay;
+
+overtimeDetails.push({
+  date: fullDate,
+  weekday: weekDay,
+  type: "國定假日加班",
+  hours: Number(workHours.toFixed(2)),
+  pay: Math.round(holidayPay)
+});
 
         } else if (isRestDay) {
 
@@ -1725,9 +1757,19 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
           const after2Hours =
           Math.max(0, workHours - 2);
 
-          restDayOvertimePay +=
-          first2Hours * hourlyRate * 1.34 +
-          after2Hours * hourlyRate * 1.67;
+          const restPay =
+first2Hours * hourlyRate * 1.34 +
+after2Hours * hourlyRate * 1.67;
+
+restDayOvertimePay += restPay;
+
+overtimeDetails.push({
+  date: fullDate,
+  weekday: weekDay,
+  type: "休息日加班",
+  hours: Number(workHours.toFixed(2)),
+  pay: Math.round(restPay)
+});
 
         } else {
 
@@ -1743,9 +1785,23 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
           const after2Hours =
           Math.max(0, overtimeHours - 2);
 
-          overtimePay +=
-          first2Hours * hourlyRate * 1.34 +
-          after2Hours * hourlyRate * 1.67;
+          const normalPay =
+first2Hours * hourlyRate * 1.34 +
+after2Hours * hourlyRate * 1.67;
+
+overtimePay += normalPay;
+
+if (overtimeHours > 0) {
+
+  overtimeDetails.push({
+    date: fullDate,
+    weekday: weekDay,
+    type: "平日加班",
+    hours: Number(overtimeHours.toFixed(2)),
+    pay: Math.round(normalPay)
+  });
+
+}
         }
       }
     });
@@ -1869,7 +1925,10 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
       laborInsurance,
       healthInsurance,
       laborPension,
-      netSalary
+      laborPension,
+netSalary,
+
+overtimeDetails
     });
 
   } catch(err) {

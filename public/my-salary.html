@@ -34,7 +34,7 @@ body{
 
   border-radius:10px;
 
-  max-width:500px;
+  max-width:520px;
 
   margin:20px auto;
 
@@ -48,9 +48,19 @@ body{
 
   justify-content:space-between;
 
+  align-items:flex-start;
+
   border-bottom:1px solid #eee;
 
   padding:10px 0;
+
+  gap:12px;
+
+}
+
+.row span{
+
+  text-align:left;
 
 }
 
@@ -69,6 +79,24 @@ body{
   color:red;
 
   font-weight:bold;
+
+}
+
+.detail{
+
+  background:#f8fafc;
+
+  border:1px solid #e5e7eb;
+
+  border-radius:8px;
+
+  padding:10px;
+
+  margin:10px 0;
+
+  text-align:left;
+
+  line-height:1.8;
 
 }
 
@@ -178,6 +206,58 @@ async function loadMySalary(){
 
     Number(data.transportAllowance || 3000);
 
+    let overtimeHtml = "";
+
+    if(
+
+      data.overtimeDetails &&
+
+      data.overtimeDetails.length > 0
+
+    ){
+
+      overtimeHtml = `
+
+        <hr>
+
+        <h3>📋 加班明細</h3>
+
+      `;
+
+      data.overtimeDetails.forEach(item=>{
+
+        overtimeHtml += `
+
+          <div class="detail">
+
+            <strong>${item.date}（${item.weekday}）</strong><br>
+
+            類型：${item.type}<br>
+
+            加班時數：${Number(item.hours || 0).toFixed(2)} 小時<br>
+
+            加班費：NT$${Number(item.pay || 0).toLocaleString("zh-TW")}
+
+          </div>
+
+        `;
+
+      });
+
+    }else{
+
+      overtimeHtml = `
+
+        <hr>
+
+        <h3>📋 加班明細</h3>
+
+        <p>本月無加班紀錄</p>
+
+      `;
+
+    }
+
     box.innerHTML = `
 
       <h2>${data.name}</h2>
@@ -231,6 +311,8 @@ async function loadMySalary(){
         <strong>NT$${Number(data.holidayOvertimePay || 0).toLocaleString("zh-TW")}</strong>
 
       </div>
+
+      ${overtimeHtml}
 
       <div class="row">
 
