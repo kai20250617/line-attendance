@@ -1,54 +1,101 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>我的薪資</title>
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
+
 body{
+
   font-family:Arial,sans-serif;
+
   background:#f5f5f5;
+
   padding:20px;
+
   text-align:center;
+
 }
+
 .card{
+
   background:white;
+
   padding:20px;
+
   border-radius:10px;
+
   max-width:500px;
+
   margin:20px auto;
+
   box-shadow:0 2px 8px rgba(0,0,0,0.1);
+
 }
+
 .row{
+
   display:flex;
+
   justify-content:space-between;
+
   border-bottom:1px solid #eee;
+
   padding:10px 0;
+
 }
+
 .net{
+
   color:#0d47a1;
+
   font-size:24px;
+
   font-weight:bold;
+
 }
+
 .error{
+
   color:red;
+
   font-weight:bold;
+
 }
+
 button{
+
   display:inline-block;
+
   padding:12px 20px;
+
   margin:10px;
+
   border-radius:6px;
+
   background:#4a90e2;
+
   color:white;
+
   border:none;
+
   font-size:16px;
+
   cursor:pointer;
+
 }
+
 </style>
+
 </head>
 
 <body>
@@ -56,10 +103,13 @@ button{
 <h1>💰 我的薪資</h1>
 
 <div id="content" class="card">
+
   LINE登入中...
+
 </div>
 
 <script>
+
 const LIFF_ID = "2010241581-YtDxQgWd";
 
 let salaryData = null;
@@ -71,96 +121,147 @@ async function loadMySalary(){
   try{
 
     await liff.init({
+
       liffId: LIFF_ID
+
     });
 
     if(!liff.isLoggedIn()){
+
       liff.login();
+
       return;
+
     }
 
-    const profile = await liff.getProfile();
+    const profile =
 
-    const res = await fetch(
+    await liff.getProfile();
+
+    const res =
+
+    await fetch(
+
       "/api/my-salary/" + profile.userId
+
     );
 
-    const data = await res.json();
+    const data =
+
+    await res.json();
 
     if(!res.ok || data.success === false){
 
       box.innerHTML =
+
       "<div class='error'>" +
+
       (data.message || "找不到薪資資料，請先完成 LINE 綁定") +
+
       "</div>";
 
       return;
+
     }
 
     salaryData = data;
 
     const lateCount =
+
     Number(data.lateCount || 0);
 
     const earlyLeaveCount =
+
     Number(data.earlyLeaveCount || 0);
 
     const transportAllowance =
-    Number(data.transportAllowance || 0);
 
-    const attendanceStatus =
-    data.attendanceQualified
-    ? "✅ 符合"
-    : "❌ 不符合";
+    Number(data.transportAllowance || 3000);
 
     box.innerHTML = `
+
       <h2>${data.name}</h2>
 
       <p>${data.department || "-"} / ${data.position || "-"}</p>
 
       <div class="row">
+
         <span>底薪</span>
+
         <strong>NT$${Number(data.baseSalary || 0).toLocaleString("zh-TW")}</strong>
+
       </div>
 
       <div class="row">
+
         <span>固定津貼</span>
+
         <strong>NT$${Number(data.fixedAllowance || 0).toLocaleString("zh-TW")}</strong>
+
       </div>
 
       <div class="row">
-        <span>加班費</span>
-        <strong>NT$${Number(data.overtimePay || 0).toLocaleString("zh-TW")}</strong>
-      </div>
 
-      <div class="row">
         <span>交通津貼</span>
+
         <strong>NT$${transportAllowance.toLocaleString("zh-TW")}</strong>
+
       </div>
 
       <div class="row">
+
+        <span>平日加班費</span>
+
+        <strong>NT$${Number(data.overtimePay || 0).toLocaleString("zh-TW")}</strong>
+
+      </div>
+
+      <div class="row">
+
+        <span>休息日加班費</span>
+
+        <strong>NT$${Number(data.restDayOvertimePay || 0).toLocaleString("zh-TW")}</strong>
+
+      </div>
+
+      <div class="row">
+
+        <span>假日加班費</span>
+
+        <strong>NT$${Number(data.holidayOvertimePay || 0).toLocaleString("zh-TW")}</strong>
+
+      </div>
+
+      <div class="row">
+
         <span>遲到次數</span>
+
         <strong>${lateCount} 次</strong>
+
       </div>
 
       <div class="row">
+
         <span>早退次數</span>
+
         <strong>${earlyLeaveCount} 次</strong>
+
       </div>
 
       <div class="row">
-        <span>交通津貼</span>
-        <strong>${attendanceStatus}</strong>
-      </div>
 
-      <div class="row">
         <span>績效獎金</span>
+
         <strong>NT$${Number(data.performanceBonus || 0).toLocaleString("zh-TW")}</strong>
+
       </div>
 
       <div class="row">
+
         <span>請假扣款</span>
+
         <strong>NT$${Number(data.leaveDeduction || 0).toLocaleString("zh-TW")}</strong>
+
       </div>
 
       <hr>
@@ -174,12 +275,17 @@ async function loadMySalary(){
       <p>勞退提繳：NT$${Number(data.laborPension || 0).toLocaleString("zh-TW")}</p>
 
       <p class="net">
+
         實發薪資：NT$${Number(data.netSalary || 0).toLocaleString("zh-TW")}
+
       </p>
 
       <button onclick="downloadPayslip()">
+
         下載 PDF 薪資單
+
       </button>
+
     `;
 
   }catch(error){
@@ -187,6 +293,7 @@ async function loadMySalary(){
     console.error(error);
 
     box.innerHTML =
+
     "<div class='error'>讀取失敗，請稍後再試</div>";
 
   }
@@ -196,16 +303,23 @@ async function loadMySalary(){
 function downloadPayslip(){
 
   if(!salaryData || !salaryData.employeeId){
+
     alert("找不到員工ID，無法下載薪資單");
+
     return;
+
   }
 
   location.href =
+
   "/api/payslip/" + salaryData.employeeId;
+
 }
 
 loadMySalary();
+
 </script>
 
 </body>
+
 </html>
