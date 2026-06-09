@@ -700,6 +700,53 @@ app.get("/api/holidays", async (req, res) => {
 });
 
 // =========================
+// 新增國定假日
+// =========================
+
+app.post("/api/holidays", async (req, res) => {
+
+  try {
+
+    const {
+      holidayDate,
+      holidayName
+    } = req.body;
+
+    await pool.query(
+      `
+      INSERT INTO holidays
+      (
+        holiday_date,
+        holiday_name
+      )
+      VALUES
+      ($1,$2)
+      `,
+      [
+        holidayDate,
+        holidayName
+      ]
+    );
+
+    res.json({
+      success:true,
+      message:"新增成功"
+    });
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"新增失敗"
+    });
+
+  }
+
+});
+
+// =========================
 // 請假
 // =========================
 
