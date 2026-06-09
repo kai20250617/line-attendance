@@ -2030,7 +2030,11 @@ app.get("/api/payslip/:id", async (req, res) => {
     doc.fontSize(12);
     doc.text(`底薪：NT$ ${Number(salary.baseSalary || 0).toLocaleString("zh-TW")}`);
     doc.text(`固定津貼：NT$ ${Number(salary.fixedAllowance || 0).toLocaleString("zh-TW")}`);
-    doc.text(`加班費：NT$ ${Number(salary.overtimePay || 0).toLocaleString("zh-TW")}`);
+    doc.text(`平日加班費：NT$ ${Number(salary.overtimePay || 0).toLocaleString("zh-TW")}`);
+
+doc.text(`休息日加班費：NT$ ${Number(salary.restDayOvertimePay || 0).toLocaleString("zh-TW")}`);
+
+doc.text(`假日加班費：NT$ ${Number(salary.holidayOvertimePay || 0).toLocaleString("zh-TW")}`);
     doc.text(`交通津貼：NT$ ${Number(salary.transportAllowance || 0).toLocaleString("zh-TW")}`);
     doc.text(`績效獎金：NT$ ${Number(salary.performanceBonus || 0).toLocaleString("zh-TW")}`);
 
