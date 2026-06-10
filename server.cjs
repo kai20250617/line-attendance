@@ -2193,6 +2193,13 @@ app.get("/api/payslip/:id", async (req, res) => {
       margin: 50
     });
 
+const logoPath = path.join(
+  __dirname,
+  "public",
+  "images",
+  "logo.jpg"
+);
+
     doc.font(fontPath);
 
     const filename =
@@ -2206,11 +2213,31 @@ app.get("/api/payslip/:id", async (req, res) => {
 
     doc.pipe(res);
 
-    doc.fontSize(22).text("薪資單", {
+    if (fs.existsSync(logoPath)) {
+  doc.image(
+    logoPath,
+    180,
+    40,
+    {
+      fit: [230, 120],
       align: "center"
-    });
+    }
+  );
+}
 
-    doc.moveDown();
+doc.moveDown(5);
+
+doc.fontSize(24)
+  .text("薪資單", {
+    align: "center"
+  });
+
+doc.fontSize(12)
+  .text("AURUM HOUSE", {
+    align: "center"
+  });
+
+doc.moveDown();
 
     doc.fontSize(12);
     doc.text(`員工姓名：${salary.name || "-"}`);
@@ -2257,6 +2284,43 @@ doc.text(`假日加班費：NT$ ${Number(salary.holidayOvertimePay || 0).toLocal
         align: "right"
       }
     );
+
+    if (
+  salary.overtimeDetails &&
+  salary.overtimeDetails.length > 0
+) {
+
+  doc.moveDown();
+
+  doc.fontSize(16)
+    .text("加班明細");
+
+  doc.moveDown(0.5);
+
+  salary.overtimeDetails.forEach(item => {
+
+    doc.fontSize(11);
+
+    doc.text(
+      `${item.date} (${item.weekday})`
+    );
+
+    doc.text(
+      `類型：${item.type}`
+    );
+
+    doc.text(
+      `加班時數：${item.hours} 小時`
+    );
+
+    doc.text(
+      `加班費：NT$ ${Number(item.pay).toLocaleString("zh-TW")}`
+    );
+
+    doc.moveDown();
+  });
+
+}
 
     doc.moveDown();
 
