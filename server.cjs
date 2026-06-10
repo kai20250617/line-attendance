@@ -2832,7 +2832,7 @@ app.get("/api/my-salary-history/:lineUserId", async (req, res) => {
       `,
       [emp.id]
     );
-
+console.log(historyRows.rows);
     console.log("SALARY HISTORY:");
     console.log(result.rows);
 
