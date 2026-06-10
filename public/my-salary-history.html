@@ -8,13 +8,79 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
-body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;text-align:center;}
-.card{background:white;border-radius:12px;padding:20px;margin:15px auto;max-width:520px;box-shadow:0 2px 8px rgba(0,0,0,.1);}
-.item{border-bottom:1px solid #eee;padding:15px 0;}
-.month{font-size:22px;font-weight:bold;}
-.money{font-size:20px;margin-top:8px;}
-.net{color:#0d47a1;font-weight:bold;}
-.error{color:red;font-weight:bold;}
+body{
+  font-family:Arial,sans-serif;
+  background:#f5f5f5;
+  padding:20px;
+  text-align:center;
+}
+
+h1{
+  font-size:38px;
+}
+
+.card{
+  background:white;
+  max-width:600px;
+  margin:20px auto;
+  padding:25px;
+  border-radius:16px;
+  box-shadow:0 2px 10px rgba(0,0,0,.1);
+}
+
+.filter{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin-bottom:20px;
+}
+
+select,button{
+  padding:10px;
+  font-size:16px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+button{
+  background:#1976d2;
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+
+.pdf{
+  background:#0d47a1;
+}
+
+.clear{
+  background:#555;
+}
+
+.item{
+  border-bottom:1px solid #eee;
+  padding:20px 0;
+}
+
+.month{
+  font-size:28px;
+  font-weight:bold;
+}
+
+.gross{
+  font-size:22px;
+}
+
+.net{
+  color:#0d47a1;
+  font-size:28px;
+  font-weight:bold;
+}
+
+.error{
+  color:red;
+  font-weight:bold;
+}
 </style>
 </head>
 
@@ -22,62 +88,217 @@ body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;text-align:cen
 
 <h1>📄 我的薪資歷史</h1>
 
-<div id="box" class="card">
-  LINE登入中...
+<div class="card">
+
+  <div class="filter">
+    <select id="yearFilter">
+      <option value="">全部年份</option>
+    </select>
+
+    <select id="monthFilter">
+      <option value="">全部月份</option>
+      <option value="1">1 月</option>
+      <option value="2">2 月</option>
+      <option value="3">3 月</option>
+      <option value="4">4 月</option>
+      <option value="5">5 月</option>
+      <option value="6">6 月</option>
+      <option value="7">7 月</option>
+      <option value="8">8 月</option>
+      <option value="9">9 月</option>
+      <option value="10">10 月</option>
+      <option value="11">11 月</option>
+      <option value="12">12 月</option>
+    </select>
+
+    <button onclick="renderList()">篩選</button>
+    <button class="clear" onclick="clearFilter()">清除</button>
+  </div>
+
+  <div id="list">LINE 登入中...</div>
+
 </div>
 
 <script>
 const LIFF_ID = "2010241581-YtDxQgWd";
 
-function money(v){
-  return "NT$" + Number(v || 0).toLocaleString("zh-TW");
-}
+let salaryHistory = [];
+let employeeId = null;
 
-async function loadData(){
-  const box = document.getElementById("box");
+async function init(){
+  const list = document.getElementById("list");
 
   try{
-    await liff.init({ liffId: LIFF_ID });
+    await liff.init({
+      liffId:LIFF_ID
+    });
 
     if(!liff.isLoggedIn()){
       liff.login();
       return;
     }
 
-    const profile = await liff.getProfile();
+    const profile =
+    await liff.getProfile();
 
-    const res = await fetch("/api/my-salary-history/" + profile.userId);
-    const data = await res.json();
+    const salaryRes =
+    await fetch("/api/my-salary/" + profile.userId);
+
+    const salaryData =
+    await salaryRes.json();
+
+    if(salaryData.success){
+      employeeId =
+      salaryData.employeeId;
+    }
+
+    const res =
+    await fetch("/api/my-salary-history/" + profile.userId);
+
+    const data =
+    await res.json();
 
     if(!data.success){
-      box.innerHTML = "<div class='error'>" + (data.message || "讀取失敗") + "</div>";
+      list.innerHTML =
+      "<div class='error'>讀取薪資歷史失敗</div>";
       return;
     }
 
-    if(!data.rows || data.rows.length === 0){
-      box.innerHTML = "目前沒有薪資歷史";
-      return;
-    }
+    salaryHistory =
+    data.data || data.rows || [];
 
-    box.innerHTML = `<h2>${data.employee}</h2>`;
-
-    data.rows.forEach(item=>{
-      box.innerHTML += `
-        <div class="item">
-          <div class="month">${item.salary_month}</div>
-          <div class="money">應發薪資：${money(item.gross_salary)}</div>
-          <div class="money net">實發薪資：${money(item.net_salary)}</div>
-        </div>
-      `;
-    });
+    buildYearFilter();
+    renderList();
 
   }catch(err){
     console.error(err);
-    box.innerHTML = "<div class='error'>讀取失敗，請稍後再試</div>";
+
+    list.innerHTML =
+    "<div class='error'>讀取失敗，請稍後再試</div>";
   }
 }
 
-loadData();
+function buildYearFilter(){
+  const yearFilter =
+  document.getElementById("yearFilter");
+
+  const years =
+  [...new Set(
+    salaryHistory.map(item =>
+      Number(item.year)
+    )
+  )].filter(Boolean);
+
+  years.sort((a,b)=>b-a);
+
+  years.forEach(year=>{
+    yearFilter.innerHTML +=
+    `<option value="${year}">${year} 年</option>`;
+  });
+}
+
+function renderList(){
+  const list =
+  document.getElementById("list");
+
+  const year =
+  document.getElementById("yearFilter").value;
+
+  const month =
+  document.getElementById("monthFilter").value;
+
+  let rows =
+  salaryHistory.filter(item=>{
+
+    const itemYear =
+    String(item.year || "");
+
+    const itemMonth =
+    String(item.month || "");
+
+    if(year && itemYear !== year){
+      return false;
+    }
+
+    if(month && itemMonth !== month){
+      return false;
+    }
+
+    return true;
+  });
+
+  if(rows.length === 0){
+    list.innerHTML =
+    "<p>目前沒有符合條件的薪資紀錄</p>";
+    return;
+  }
+
+  let html = "";
+
+  rows.forEach(item=>{
+
+    const gross =
+    Number(
+      item.gross_salary ||
+      item.grossSalary ||
+      0
+    );
+
+    const net =
+    Number(
+      item.net_salary ||
+      item.netSalary ||
+      0
+    );
+
+    const y =
+    item.year || "-";
+
+    const m =
+    String(item.month || "").padStart(2,"0");
+
+    html += `
+      <div class="item">
+        <div class="month">${y}-${m}</div>
+
+        <p class="gross">
+          應發薪資：
+          NT$${gross.toLocaleString("zh-TW")}
+        </p>
+
+        <p class="net">
+          實發薪資：
+          NT$${net.toLocaleString("zh-TW")}
+        </p>
+
+        <button class="pdf" onclick="downloadPdf()">
+          下載 PDF 薪資單
+        </button>
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+}
+
+function clearFilter(){
+  document.getElementById("yearFilter").value = "";
+  document.getElementById("monthFilter").value = "";
+
+  renderList();
+}
+
+function downloadPdf(){
+  if(!employeeId){
+    alert("找不到員工 ID，無法下載 PDF");
+    return;
+  }
+
+  location.href =
+  "/api/payslip/" + employeeId;
+}
+
+init();
 </script>
 
 </body>
