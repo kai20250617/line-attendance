@@ -179,6 +179,42 @@ async function init(){
 }
 
 function buildYearFilter(){
+
+  const yearFilter =
+  document.getElementById("yearFilter");
+
+  let years = [];
+
+  salaryHistory.forEach(item=>{
+
+    let year = item.year;
+
+    if(!year && item.salary_month){
+      year =
+      item.salary_month.split("-")[0];
+    }
+
+    if(year){
+      years.push(year);
+    }
+
+  });
+
+  years =
+  [...new Set(years)]
+  .sort((a,b)=>b-a);
+
+  years.forEach(year=>{
+
+    yearFilter.innerHTML += `
+      <option value="${year}">
+        ${year} 年
+      </option>
+    `;
+
+  });
+
+}{
   const yearFilter =
   document.getElementById("yearFilter");
 
