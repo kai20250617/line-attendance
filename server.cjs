@@ -2200,6 +2200,9 @@ const logoPath = path.join(
   "logo.png"
 );
 
+console.log("LOGO PATH:", logoPath);
+console.log("LOGO EXISTS:", fs.existsSync(logoPath));
+
     doc.font(fontPath);
 
     const filename =
