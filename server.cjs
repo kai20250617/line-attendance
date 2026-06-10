@@ -2213,16 +2213,24 @@ const logoPath = path.join(
 
     doc.pipe(res);
 
-    if (fs.existsSync(logoPath)) {
-  doc.image(
-    logoPath,
-    180,
-    40,
-    {
-      fit: [230, 120],
-      align: "center"
-    }
-  );
+    try {
+  if (fs.existsSync(logoPath)) {
+    doc.image(
+      logoPath,
+      180,
+      40,
+      {
+        fit:[230,120]
+      }
+    );
+
+    doc.moveDown(5);
+  } else {
+    doc.moveDown();
+  }
+} catch (logoErr) {
+  console.error("LOGO ERROR:", logoErr.message);
+  doc.moveDown();
 }
 
 doc.moveDown(5);
