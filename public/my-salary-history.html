@@ -238,24 +238,38 @@ function renderList(){
   rows.forEach(item=>{
 
     const gross =
-    Number(
-      item.gross_salary ||
-      item.grossSalary ||
-      0
-    );
+Number(
+  item.gross_salary ||
+  item.grossSalary ||
+  item.gross ||
+  item.total_salary ||
+  item.totalSalary ||
+  0
+);
 
-    const net =
-    Number(
-      item.net_salary ||
-      item.netSalary ||
-      0
-    );
+const net =
+Number(
+  item.net_salary ||
+  item.netSalary ||
+  item.net ||
+  item.final_salary ||
+  item.finalSalary ||
+  0
+);
 
-    const y =
-    item.year || "-";
+    let y = item.year;
+let m = item.month;
 
-    const m =
-    String(item.month || "").padStart(2,"0");
+if ((!y || !m) && item.salary_month) {
+  const parts = String(item.salary_month).split("-");
+  y = parts[0];
+  m = parts[1];
+}
+
+if (!y) y = "-";
+if (!m) m = "-";
+
+m = String(m).padStart(2, "0");
 
     html += `
       <div class="item">
