@@ -2197,7 +2197,7 @@ const logoPath = path.join(
   __dirname,
   "public",
   "images",
-  "logo.png"
+  "logo.jpg"
 );
 
 console.log("LOGO PATH:", logoPath);
