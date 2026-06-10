@@ -192,6 +192,18 @@ CREATE TABLE IF NOT EXISTS holidays (
 )
 `);
 
+await pool.query(`
+CREATE TABLE IF NOT EXISTS salary_history (
+  id SERIAL PRIMARY KEY,
+  line_user_id TEXT,
+  year INTEGER,
+  month INTEGER,
+  gross_salary NUMERIC DEFAULT 0,
+  net_salary NUMERIC DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+)
+`);
+
 console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
 }
