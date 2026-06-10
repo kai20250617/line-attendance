@@ -252,13 +252,19 @@ function renderList(){
     const itemMonth =
     String(item.month || "");
 
-    if(year && itemYear !== year){
-      return false;
-    }
+   if(
+  year &&
+  Number(itemYear) !== Number(year)
+){
+  return false;
+}
 
-    if(month && itemMonth !== month){
-      return false;
-    }
+if(
+  month &&
+  Number(itemMonth) !== Number(month)
+){
+  return false;
+}
 
     return true;
   });
