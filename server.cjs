@@ -206,6 +206,7 @@ CREATE TABLE IF NOT EXISTS salary_history (
 
 console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
+console.log(historyRows.rows);
 }
 
 pool.connect()
@@ -2833,9 +2834,14 @@ app.get("/api/my-salary-history/:lineUserId", async (req, res) => {
       [emp.id]
     );
 
+    console.log("SALARY HISTORY:");
+    console.log(result.rows);
+
     res.json({
       success:true,
       employee:emp.name,
+      employeeId:emp.id,
+      data:result.rows,
       rows:result.rows
     });
 
@@ -2848,7 +2854,6 @@ app.get("/api/my-salary-history/:lineUserId", async (req, res) => {
     });
   }
 });
-
 // =========================
 // 函式工具
 // =========================
