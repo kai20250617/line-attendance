@@ -2306,9 +2306,9 @@ app.get("/api/payslip/:id", async (req, res) => {
 
       if (fs.existsSync(logoPath)) {
 
-        doc.image(logoPath, 45, 35, {
+        doc.image(logoPath, 50, 40, {
 
-          fit: [180, 80]
+          fit: [180, 90]
 
         });
 
@@ -2340,7 +2340,7 @@ app.get("/api/payslip/:id", async (req, res) => {
 
       });
 
-    doc.moveDown();
+    doc.moveDown(1);
 
     // =========================
 
@@ -2489,6 +2489,8 @@ app.get("/api/payslip/:id", async (req, res) => {
     ) {
 
       doc.addPage();
+
+doc.y = 80;
 
       doc.fontSize(22)
 
