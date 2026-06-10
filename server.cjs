@@ -2197,7 +2197,7 @@ const logoPath = path.join(
   __dirname,
   "public",
   "images",
-  "logo.jpg"
+  "logo.png"
 );
 
     doc.font(fontPath);
@@ -2233,7 +2233,7 @@ const logoPath = path.join(
   doc.moveDown();
 }
 
-doc.moveDown(5);
+doc.moveDown(1);
 
 doc.fontSize(24)
   .text("薪資單", {
@@ -2298,7 +2298,7 @@ doc.text(`假日加班費：NT$ ${Number(salary.holidayOvertimePay || 0).toLocal
   salary.overtimeDetails.length > 0
 ) {
 
-  doc.moveDown();
+  doc.moveDown(2);
 
   doc.fontSize(16)
     .text("加班明細");
