@@ -206,6 +206,7 @@ CREATE TABLE IF NOT EXISTS salary_history (
 
 console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
+
 }
 
 pool.connect()
