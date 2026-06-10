@@ -2137,223 +2137,491 @@ res.json({
   }
 });
 // =========================
-// PDF 產生 API
+
+// PDF 產生 API - 企業版薪資單
+
 // =========================
+
 app.get("/api/payslip/:id", async (req, res) => {
+
   try {
+
     const employeeId = req.params.id;
 
     const empResult = await pool.query(
+
       `
+
       SELECT *
+
       FROM employees
+
       WHERE id = $1
+
       LIMIT 1
+
       `,
+
       [employeeId]
+
     );
 
     if (empResult.rows.length === 0) {
+
       return res.status(404).send("找不到員工");
+
     }
 
     const emp = empResult.rows[0];
 
     if (!emp.line_user_id) {
+
       return res.status(400).send("此員工尚未綁定 LINE，無法產生薪資單");
+
     }
 
     const baseUrl =
+
       process.env.BASE_URL ||
+
       "https://line-attendance-blt1.onrender.com";
 
     const salaryRes = await fetch(
+
       `${baseUrl}/api/my-salary/${emp.line_user_id}`
+
     );
 
     const salary = await salaryRes.json();
 
     if (!salary.success) {
+
       return res.status(500).send("薪資資料讀取失敗");
+
     }
 
     const fontPath = path.join(
+
       __dirname,
+
       "public",
+
       "fonts",
+
       "NotoSansTC-Regular.ttf"
+
     );
 
     if (!fs.existsSync(fontPath)) {
-      return res.status(500).send("系統錯誤：伺服器缺失中文字型，無法產生薪資單");
+
+      return res.status(500).send("缺少中文字型");
+
     }
 
+    const logoPath = path.join(
+
+      __dirname,
+
+      "public",
+
+      "images",
+
+      "logo.jpg"
+
+    );
+
     const doc = new PDFDocument({
+
       size: "A4",
-      margin: 50
+
+      margin: 45
+
     });
-
-const logoPath = path.join(
-  __dirname,
-  "public",
-  "images",
-  "logo.jpg"
-);
-
-console.log("LOGO PATH:", logoPath);
-console.log("LOGO EXISTS:", fs.existsSync(logoPath));
 
     doc.font(fontPath);
 
     const filename =
+
       `payslip_${salary.name || emp.name}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
+
     res.setHeader(
+
       "Content-Disposition",
+
       `attachment; filename="${encodeURIComponent(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`
+
     );
 
     doc.pipe(res);
 
+    const money = value =>
+
+      "NT$ " + Number(value || 0).toLocaleString("zh-TW");
+
+    const line = y => {
+
+      doc.moveTo(45, y)
+
+        .lineTo(550, y)
+
+        .strokeColor("#999")
+
+        .lineWidth(1)
+
+        .stroke();
+
+    };
+
+    const row = (label, value, x, y) => {
+
+      doc.fontSize(11)
+
+        .fillColor("#111")
+
+        .text(label, x, y);
+
+      doc.fontSize(11)
+
+        .fillColor("#111")
+
+        .text(money(value), x + 155, y, {
+
+          width: 90,
+
+          align: "right"
+
+        });
+
+    };
+
+    // =========================
+
+    // 第一頁：頁首
+
+    // =========================
+
     try {
-  if (fs.existsSync(logoPath)) {
-    doc.image(
-      logoPath,
-      180,
-      40,
-      {
-        fit:[230,120]
+
+      if (fs.existsSync(logoPath)) {
+
+        doc.image(logoPath, 45, 35, {
+
+          fit: [180, 80]
+
+        });
+
       }
-    );
 
-    doc.moveDown(5);
-  } else {
-    doc.moveDown();
-  }
-} catch (logoErr) {
-  console.error("LOGO ERROR:", logoErr.message);
-  doc.moveDown();
-}
+    } catch (logoErr) {
 
-doc.moveDown(1);
+      console.error("LOGO ERROR:", logoErr.message);
 
-doc.fontSize(24)
-  .text("薪資單", {
-    align: "center"
-  });
+    }
 
-doc.fontSize(12)
-  .text("AURUM HOUSE", {
-    align: "center"
-  });
+    doc.fontSize(28)
 
-doc.moveDown();
+      .fillColor("#111")
 
-    doc.fontSize(12);
-    doc.text(`員工姓名：${salary.name || "-"}`);
-    doc.text(`部門：${salary.department || "-"}`);
-    doc.text(`職稱：${salary.position || "-"}`);
-    doc.text(`月份：${new Date().getFullYear()} / ${new Date().getMonth() + 1}`);
+      .text("薪 資 單", 300, 55, {
 
-    doc.moveDown();
-    doc.text("----------------------------------------");
+        align: "center"
 
-    doc.fontSize(14).text("應發項目");
-    doc.fontSize(12);
-    doc.text(`底薪：NT$ ${Number(salary.baseSalary || 0).toLocaleString("zh-TW")}`);
-    doc.text(`固定津貼：NT$ ${Number(salary.fixedAllowance || 0).toLocaleString("zh-TW")}`);
-    doc.text(`平日加班費：NT$ ${Number(salary.overtimePay || 0).toLocaleString("zh-TW")}`);
+      });
 
-doc.text(`休息日加班費：NT$ ${Number(salary.restDayOvertimePay || 0).toLocaleString("zh-TW")}`);
+    doc.fontSize(13)
 
-doc.text(`假日加班費：NT$ ${Number(salary.holidayOvertimePay || 0).toLocaleString("zh-TW")}`);
-    doc.text(`交通津貼：NT$ ${Number(salary.transportAllowance || 0).toLocaleString("zh-TW")}`);
-    doc.text(`績效獎金：NT$ ${Number(salary.performanceBonus || 0).toLocaleString("zh-TW")}`);
+      .fillColor("#333")
+
+      .text("AURUM HOUSE", 300, 95, {
+
+        align: "center"
+
+      });
 
     doc.moveDown();
 
-    doc.fontSize(14).text("扣除項目");
-    doc.fontSize(12);
-    doc.text(`請假扣款：NT$ ${Number(salary.leaveDeduction || 0).toLocaleString("zh-TW")}`);
-    doc.text(`勞保：NT$ ${Number(salary.laborInsurance || 0).toLocaleString("zh-TW")}`);
-    doc.text(`健保：NT$ ${Number(salary.healthInsurance || 0).toLocaleString("zh-TW")}`);
-    doc.text(`勞退提繳：NT$ ${Number(salary.laborPension || 0).toLocaleString("zh-TW")}（公司提繳，不自薪資扣除）`);
+    // =========================
 
-    doc.moveDown();
-    doc.text("----------------------------------------");
+    // 員工資料
 
-    doc.fontSize(16).text(
-      `應發薪資：NT$ ${Number(salary.grossSalary || 0).toLocaleString("zh-TW")}`
-    );
+    // =========================
 
-    doc.moveDown();
+    let y = 140;
 
-    doc.fontSize(18).text(
-      `實發薪資：NT$ ${Number(salary.netSalary || 0).toLocaleString("zh-TW")}`,
-      {
-        align: "right"
-      }
-    );
+    doc.fontSize(12).fillColor("#111");
+
+    doc.text(`員工姓名：${salary.name || "-"}`, 45, y);
+
+    doc.text(`部門：${salary.department || "-"}`, 45, y + 22);
+
+    doc.text(`職稱：${salary.position || "-"}`, 45, y + 44);
+
+    doc.text(`月份：${new Date().getFullYear()} / ${new Date().getMonth() + 1}`, 45, y + 66);
+
+    line(235);
+
+    // =========================
+
+    // 雙欄薪資明細
+
+    // =========================
+
+    y = 260;
+
+    doc.fontSize(16)
+
+      .fillColor("#111")
+
+      .text("應發項目", 45, y);
+
+    doc.fontSize(16)
+
+      .fillColor("#111")
+
+      .text("扣除項目", 315, y);
+
+    y += 35;
+
+    row("底薪", salary.baseSalary, 45, y);
+
+    row("請假扣款", salary.leaveDeduction, 315, y);
+
+    y += 25;
+
+    row("固定津貼", salary.fixedAllowance, 45, y);
+
+    row("勞保", salary.laborInsurance, 315, y);
+
+    y += 25;
+
+    row("交通津貼", salary.transportAllowance, 45, y);
+
+    row("健保", salary.healthInsurance, 315, y);
+
+    y += 25;
+
+    row("平日加班費", salary.overtimePay, 45, y);
+
+    row("勞退提繳", salary.laborPension, 315, y);
+
+    y += 25;
+
+    row("休息日加班費", salary.restDayOvertimePay, 45, y);
+
+    y += 25;
+
+    row("假日加班費", salary.holidayOvertimePay, 45, y);
+
+    y += 25;
+
+    row("績效獎金", salary.performanceBonus, 45, y);
+
+    line(485);
+
+    // =========================
+
+    // 薪資合計
+
+    // =========================
+
+    doc.fontSize(18)
+
+      .fillColor("#111")
+
+      .text(
+
+        `應發薪資：${money(salary.grossSalary)}`,
+
+        45,
+
+        515
+
+      );
+
+    doc.fontSize(22)
+
+      .fillColor("#0d47a1")
+
+      .text(
+
+        `實發薪資：${money(salary.netSalary)}`,
+
+        300,
+
+        560,
+
+        {
+
+          align: "right"
+
+        }
+
+      );
+
+    doc.fontSize(9)
+
+      .fillColor("#333")
+
+      .text(
+
+        "備註：勞退提繳為公司提繳，不自薪資扣除。本薪資單為系統自動產生，實際金額仍以公司核定為準。",
+
+        45,
+
+        650
+
+      );
+
+    // =========================
+
+    // 第二頁：加班明細表格
+
+    // =========================
 
     if (
-  salary.overtimeDetails &&
-  salary.overtimeDetails.length > 0
-) {
 
-  doc.addPage();
+      salary.overtimeDetails &&
 
-  doc.fontSize(20)
-    .text("加班明細", {
-      align: "center"
-    });
+      salary.overtimeDetails.length > 0
 
-  doc.moveDown();
+    ) {
 
-  salary.overtimeDetails.forEach(item => {
+      doc.addPage();
 
-    doc.fontSize(11);
+      doc.fontSize(22)
 
-    doc.text(
-      `${item.date} (${item.weekday})`
-    );
+        .fillColor("#111")
 
-    doc.text(
-      `類型：${item.type}`
-    );
+        .text("加班明細", {
 
-    doc.text(
-      `加班時數：${item.hours} 小時`
-    );
+          align: "center"
 
-    doc.text(
-      `加班費：NT$ ${Number(item.pay).toLocaleString("zh-TW")}`
-    );
+        });
 
-    doc.moveDown();
-  });
+      let tableY = 130;
 
+      const headers = ["日期", "星期", "類型", "時數", "加班費"];
 
+      const widths = [100, 70, 160, 70, 100];
 
-  
+      const xs = [45, 145, 215, 375, 445];
 
-}
+      doc.rect(45, tableY, 500, 30)
 
-    doc.moveDown();
+        .fill("#f1f1f1");
 
-    doc.fontSize(10).text(
-      "備註：本薪資單為系統自動產生，實際金額仍以公司核定為準。"
-    );
+      doc.fillColor("#111").fontSize(11);
+
+      headers.forEach((h, i) => {
+
+        doc.text(h, xs[i], tableY + 8, {
+
+          width: widths[i],
+
+          align: "center"
+
+        });
+
+      });
+
+      tableY += 30;
+
+      salary.overtimeDetails.forEach(item => {
+
+        doc.rect(45, tableY, 500, 32)
+
+          .strokeColor("#ccc")
+
+          .stroke();
+
+        doc.fillColor("#111").fontSize(10);
+
+        doc.text(item.date, xs[0], tableY + 9, {
+
+          width: widths[0],
+
+          align: "center"
+
+        });
+
+        doc.text(item.weekday, xs[1], tableY + 9, {
+
+          width: widths[1],
+
+          align: "center"
+
+        });
+
+        doc.text(item.type, xs[2], tableY + 9, {
+
+          width: widths[2],
+
+          align: "center"
+
+        });
+
+        doc.text(`${item.hours} 小時`, xs[3], tableY + 9, {
+
+          width: widths[3],
+
+          align: "center"
+
+        });
+
+        doc.text(
+
+          Number(item.pay || 0).toLocaleString("zh-TW"),
+
+          xs[4],
+
+          tableY + 9,
+
+          {
+
+            width: widths[4],
+
+            align: "center"
+
+          }
+
+        );
+
+        tableY += 32;
+
+      });
+
+      doc.fontSize(9)
+
+        .fillColor("#333")
+
+        .text(
+
+          "備註：本頁為加班費計算明細，實際給付仍以公司核定為準。",
+
+          45,
+
+          tableY + 30
+
+        );
+
+    }
 
     doc.end();
 
   } catch (err) {
+
     console.error("PDF ERROR:", err);
 
     if (!res.headersSent) {
+
       res.status(500).send("薪資單產生失敗：" + err.message);
+
     }
+
   }
+
 });
 // =========================
 // 月結薪資
