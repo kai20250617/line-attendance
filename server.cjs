@@ -2833,14 +2833,30 @@ app.get("/api/my-salary-history/:lineUserId", async (req, res) => {
       `,
       [emp.id]
     );
-    
+
+    const rows = result.rows.map(item => {
+      let year = item.year;
+      let month = item.month;
+
+      if ((!year || !month) && item.salary_month) {
+        const parts = String(item.salary_month).split("-");
+        year = Number(parts[0]);
+        month = Number(parts[1]);
+      }
+
+      return {
+        ...item,
+        year,
+        month
+      };
+    });
 
     res.json({
       success:true,
       employee:emp.name,
       employeeId:emp.id,
-      data:result.rows,
-      rows:result.rows
+      data:rows,
+      rows:rows
     });
 
   } catch(err) {
