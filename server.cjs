@@ -2301,12 +2301,39 @@ doc.text(`假日加班費：NT$ ${Number(salary.holidayOvertimePay || 0).toLocal
   salary.overtimeDetails.length > 0
 ) {
 
-  doc.moveDown(2);
+  doc.addPage();
 
-  doc.fontSize(16)
-    .text("加班明細");
+  doc.fontSize(20)
+    .text("加班明細", {
+      align: "center"
+    });
 
-  doc.moveDown(0.5);
+  doc.moveDown();
+
+  salary.overtimeDetails.forEach(item => {
+
+    doc.fontSize(11);
+
+    doc.text(
+      `${item.date} (${item.weekday})`
+    );
+
+    doc.text(
+      `類型：${item.type}`
+    );
+
+    doc.text(
+      `加班時數：${item.hours} 小時`
+    );
+
+    doc.text(
+      `加班費：NT$ ${Number(item.pay).toLocaleString("zh-TW")}`
+    );
+
+    doc.moveDown();
+  });
+
+
 
   salary.overtimeDetails.forEach(item => {
 
