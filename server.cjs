@@ -673,32 +673,180 @@ ${
 
 
 // =========================
-// 讀取全部打卡資料
+// 讀取全部打卡資料（每日合併版）
 // =========================
-
 app.get("/api/attendance", async (req, res) => {
-
   try {
+    const {
+      name,
+      startDate,
+      endDate
+    } = req.query;
 
-    const result = await pool.query(
-      "SELECT * FROM attendance ORDER BY id DESC"
-    );
+    let sql = `
+      SELECT *
+      FROM attendance
+      WHERE 1 = 1
+    `;
 
-    res.json(result.rows);
+    const params = [];
+
+    if (name) {
+      params.push("%" + name + "%");
+      sql += ` AND name ILIKE $${params.length}`;
+    }
+
+    if (startDate) {
+      params.push(startDate);
+      sql += `
+        AND DATE(clock_time AT TIME ZONE 'Asia/Taipei')
+        >= $${params.length}
+      `;
+    }
+
+    if (endDate) {
+      params.push(endDate);
+      sql += `
+        AND DATE(clock_time AT TIME ZONE 'Asia/Taipei')
+        <= $${params.length}
+      `;
+    }
+
+    sql += `
+      ORDER BY clock_time ASC
+    `;
+
+    const result = await pool.query(sql, params);
+    const rows = result.rows;
+
+    const groups = {};
+
+    function getTaipeiDate(value) {
+      return new Date(value).toLocaleDateString("zh-TW", {
+        timeZone:"Asia/Taipei",
+        year:"numeric",
+        month:"2-digit",
+        day:"2-digit"
+      });
+    }
+
+    function getWeekday(value) {
+      const d = new Date(
+        new Date(value).toLocaleString("en-US", {
+          timeZone:"Asia/Taipei"
+        })
+      );
+
+      const weekNames = [
+        "星期日",
+        "星期一",
+        "星期二",
+        "星期三",
+        "星期四",
+        "星期五",
+        "星期六"
+      ];
+
+      return weekNames[d.getDay()];
+    }
+
+    rows.forEach(item => {
+      const date = getTaipeiDate(item.clock_time);
+
+      const key =
+        `${item.line_user_id || item.name}_${date}`;
+
+      if (!groups[key]) {
+        groups[key] = {
+          name:item.name || "-",
+          line_user_id:item.line_user_id || "",
+          date,
+          weekday:getWeekday(item.clock_time),
+
+          start_time:null,
+          end_time:null,
+
+          start_location:null,
+          end_location:null,
+
+          start_latitude:null,
+          start_longitude:null,
+          end_latitude:null,
+          end_longitude:null
+        };
+      }
+
+      const locationText =
+        item.address ||
+        item.location ||
+        item.address_text ||
+        item.location_text ||
+        "-";
+
+      if (item.type === "上班") {
+        if (
+          !groups[key].start_time ||
+          new Date(item.clock_time) <
+          new Date(groups[key].start_time)
+        ) {
+          groups[key].start_time = item.clock_time;
+          groups[key].start_location = locationText;
+          groups[key].start_latitude = item.latitude;
+          groups[key].start_longitude = item.longitude;
+        }
+      }
+
+      if (item.type === "下班") {
+        if (
+          !groups[key].end_time ||
+          new Date(item.clock_time) >
+          new Date(groups[key].end_time)
+        ) {
+          groups[key].end_time = item.clock_time;
+          groups[key].end_location = locationText;
+          groups[key].end_latitude = item.latitude;
+          groups[key].end_longitude = item.longitude;
+        }
+      }
+    });
+
+    const finalRows =
+      Object.values(groups).map(item => {
+        let work_hours = null;
+
+        if (item.start_time && item.end_time) {
+          const hours =
+            (new Date(item.end_time) - new Date(item.start_time)) /
+            1000 / 60 / 60;
+
+          work_hours =
+            Number(hours.toFixed(2));
+        }
+
+        return {
+          ...item,
+          work_hours
+        };
+      });
+
+    finalRows.sort((a,b) => {
+      const at = new Date(a.end_time || a.start_time || 0).getTime();
+      const bt = new Date(b.end_time || b.start_time || 0).getTime();
+
+      return bt - at;
+    });
+
+    res.json(finalRows);
 
   } catch(err) {
-
-    console.error(err);
+    console.error("讀取打卡資料失敗:", err);
 
     res.status(500).json({
       success:false,
       message:"讀取打卡資料失敗"
     });
-
   }
-
 });
-
 
 // =========================
 // 國定假日 API
