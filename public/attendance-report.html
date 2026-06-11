@@ -17,7 +17,7 @@ button{color:white;border:none;cursor:pointer;}
 .back{background:#222;}
 .month-title{text-align:center;font-size:22px;font-weight:bold;margin:15px 0;color:#0d47a1;}
 .table-wrap{overflow-x:auto;background:white;}
-table{width:100%;min-width:950px;border-collapse:collapse;background:white;}
+table{width:100%;min-width:1050px;border-collapse:collapse;background:white;}
 th{background:#222;color:white;padding:12px;}
 td{border:1px solid #ddd;padding:10px;text-align:center;}
 .bad{color:red;font-weight:bold;}
@@ -182,6 +182,18 @@ async function loadReport(){
       position:item.position || "-",
       workDays:Number(item.workDays || 0),
       totalHours:formatNumber(item.totalHours),
+
+      averageHours:
+      formatNumber(
+        item.averageHours !== undefined
+        ? item.averageHours
+        : (
+            Number(item.workDays || 0) > 0
+            ? Number(item.totalHours || 0) / Number(item.workDays || 1)
+            : 0
+          )
+      ),
+
       lateCount:Number(item.lateCount || 0),
       earlyLeaveCount:Number(item.earlyLeaveCount || 0)
     }));
@@ -213,8 +225,8 @@ function renderTable(){
         <td>${item.position}</td>
         <td>${item.workDays}</td>
         <td>${item.totalHours}</td>
-<td>${item.averageHours || "0.00"}</td>
-<td class="${item.lateCount > 0 ? "bad" : "good"}">${item.lateCount}</td>
+        <td>${item.averageHours}</td>
+        <td class="${item.lateCount > 0 ? "bad" : "good"}">${item.lateCount}</td>
         <td class="${item.earlyLeaveCount > 0 ? "bad" : "good"}">${item.earlyLeaveCount}</td>
       </tr>
     `;
@@ -246,6 +258,7 @@ function exportCSV(){
       item.position,
       item.workDays,
       item.totalHours,
+      item.averageHours,
       item.lateCount,
       item.earlyLeaveCount
     ].map(v =>
