@@ -20,7 +20,6 @@ button{
   border-radius:5px;
   color:white;
   cursor:pointer;
-  
 }
 
 input,select{
@@ -182,6 +181,7 @@ async function loadLeaves(){
 
     if(!Array.isArray(data) || data.length === 0){
       leaveRows = [];
+      allLeaveRows = [];
 
       tbody.innerHTML =
       "<tr><td colspan='8'>目前沒有請假申請</td></tr>";
@@ -190,7 +190,17 @@ async function loadLeaves(){
     }
 
     allLeaveRows = data;
-leaveRows = data;
+    leaveRows = data;
+
+    renderTable();
+
+  }catch(error){
+    console.error(error);
+
+    tbody.innerHTML =
+    "<tr><td colspan='8'>讀取失敗</td></tr>";
+  }
+}
 
 function applyFilter(){
   const name =
@@ -236,21 +246,17 @@ function applyFilter(){
   renderTable();
 }
 
-    renderTable();
-
-  }catch(error){
-    console.error(error);
-
-    tbody.innerHTML =
-    "<tr><td colspan='8'>讀取失敗</td></tr>";
-  }
-}
-
 function renderTable(){
   const tbody =
   document.getElementById("leaveTable");
 
   tbody.innerHTML = "";
+
+  if(!leaveRows || leaveRows.length === 0){
+    tbody.innerHTML =
+    "<tr><td colspan='8'>沒有符合條件的請假資料</td></tr>";
+    return;
+  }
 
   leaveRows.forEach(item=>{
     const statusClass =
