@@ -1,29 +1,51 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>員工出勤紀錄</title>
 
 <style>
+
 body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:20px;}
+
 h1{text-align:center;}
+
 .top{text-align:center;margin:20px;}
+
 button{padding:10px 16px;font-size:16px;cursor:pointer;background:#4a90e2;color:white;border:none;border-radius:5px;margin:4px;}
+
 .back{background:#222;}
+
 .export{background:#2e7d32;}
+
 .clear{background:#555;}
+
 input{padding:10px;font-size:16px;border:1px solid #ccc;border-radius:6px;margin:4px;}
+
 .table-wrap{width:100%;overflow-x:auto;background:white;}
+
 table{width:100%;min-width:1200px;border-collapse:collapse;background:white;}
+
 th{background:#222;color:white;padding:12px;white-space:nowrap;}
+
 td{padding:10px;border:1px solid #ddd;text-align:center;white-space:nowrap;}
+
 .map-btn{background:#4CAF50;color:white;padding:8px 12px;text-decoration:none;border-radius:5px;display:inline-block;margin:2px;}
+
 .weekday{color:#1976d2;font-weight:bold;}
+
 .weekend{color:#e53935;font-weight:bold;}
+
 .missing{color:#e53935;font-weight:bold;}
+
 </style>
+
 </head>
 
 <body>
@@ -31,47 +53,77 @@ td{padding:10px;border:1px solid #ddd;text-align:center;white-space:nowrap;}
 <h1>📋 員工出勤紀錄</h1>
 
 <div class="top">
+
   <input type="text" id="searchName" placeholder="搜尋姓名">
+
   <input type="date" id="startDate">
+
   <input type="date" id="endDate">
 
   <button onclick="loadAttendance()">查詢</button>
+
   <button class="clear" onclick="clearFilter()">清除</button>
+
   <button class="export" onclick="exportCSV()">匯出 CSV</button>
+
   <button onclick="loadAttendance()">重新整理</button>
+
   <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
+
 </div>
 
 <div class="table-wrap">
+
 <table>
+
 <thead>
+
 <tr>
+
   <th>姓名</th>
+
   <th>日期</th>
+
   <th>星期</th>
+
   <th>上班時間</th>
+
   <th>下班時間</th>
+
   <th>工時</th>
+
   <th>上班位置</th>
+
   <th>下班位置</th>
+
   <th>地圖</th>
+
 </tr>
+
 </thead>
 
 <tbody id="attendanceTable">
+
 <tr><td colspan="9">讀取中...</td></tr>
+
 </tbody>
+
 </table>
+
 </div>
 
 <script>
+
 if(localStorage.getItem("adminLogin") !== "yes"){
+
   window.location.href = "/login.html";
+
 }
 
-let mergedRows = [];
+let rows = [];
 
 function formatTime(value){
+
   if(!value) return "-";
 
   const d = new Date(value);
@@ -79,35 +131,336 @@ function formatTime(value){
   if(isNaN(d.getTime())) return "-";
 
   return d.toLocaleTimeString("zh-TW", {
+
     timeZone:"Asia/Taipei",
+
     hour:"2-digit",
+
     minute:"2-digit",
+
     second:"2-digit"
+
   });
+
 }
 
-function formatDate(value){
-  if(!value) return "-";
+function safeText(value){
 
-  const d = new Date(value);
+  if(
 
-  if(isNaN(d.getTime())) return "-";
+    !value ||
 
-  return d.toLocaleDateString("zh-TW", {
-    timeZone:"Asia/Taipei"
+    value === "undefined" ||
+
+    value === "null"
+
+  ){
+
+    return "-";
+
+  }
+
+  return value;
+
+}
+
+function getWeekdayClass(weekday){
+
+  if(weekday === "星期日" || weekday === "星期六"){
+
+    return "weekend";
+
+  }
+
+  return "weekday";
+
+}
+
+function mapLink(lat,lng,text){
+
+  if(!lat || !lng){
+
+    return "-";
+
+  }
+
+  return `
+
+    <a class="map-btn" target="_blank"
+
+      href="https://maps.google.com/?q=${lat},${lng}">
+
+      ${text}
+
+    </a>
+
+  `;
+
+}
+
+async function loadAttendance(){
+
+  const table =
+
+    document.getElementById("attendanceTable");
+
+  table.innerHTML =
+
+    "<tr><td colspan='9'>載入中...</td></tr>";
+
+  try{
+
+    const name =
+
+      document.getElementById("searchName").value.trim();
+
+    const startDate =
+
+      document.getElementById("startDate").value;
+
+    const endDate =
+
+      document.getElementById("endDate").value;
+
+    const params =
+
+      new URLSearchParams();
+
+    if(name){
+
+      params.append("name", name);
+
+    }
+
+    if(startDate){
+
+      params.append("startDate", startDate);
+
+    }
+
+    if(endDate){
+
+      params.append("endDate", endDate);
+
+    }
+
+    let url = "/api/attendance";
+
+    if(params.toString()){
+
+      url += "?" + params.toString();
+
+    }
+
+    const response =
+
+      await fetch(url);
+
+    const rawRows =
+  await response.json();
+
+if(
+  rawRows.length > 0 &&
+  rawRows[0].clock_time
+){
+  rows = groupRawAttendance(rawRows);
+}else{
+  rows = rawRows;
+}
+
+    if(!Array.isArray(rows) || rows.length === 0){
+
+      table.innerHTML =
+
+        "<tr><td colspan='9'>目前沒有出勤紀錄</td></tr>";
+
+      return;
+
+    }
+
+    renderTable();
+
+  }catch(error){
+
+    console.error(error);
+
+    table.innerHTML =
+
+      "<tr><td colspan='9'>讀取失敗</td></tr>";
+
+  }
+
+}
+
+function renderTable(){
+
+  const table =
+
+    document.getElementById("attendanceTable");
+
+  table.innerHTML = "";
+
+  rows.forEach(row=>{
+
+    table.innerHTML += `
+
+      <tr>
+
+        <td>${safeText(row.name)}</td>
+
+        <td>${safeText(row.date)}</td>
+
+        <td>
+
+          <span class="${getWeekdayClass(row.weekday)}">
+
+            ${safeText(row.weekday)}
+
+          </span>
+
+        </td>
+
+        <td>
+
+          ${
+
+            row.start_time
+
+            ? formatTime(row.start_time)
+
+            : `<span class="missing">缺上班</span>`
+
+          }
+
+        </td>
+
+        <td>
+
+          ${
+
+            row.end_time
+
+            ? formatTime(row.end_time)
+
+            : `<span class="missing">缺下班</span>`
+
+          }
+
+        </td>
+
+        <td>
+
+          ${
+
+            row.work_hours !== null &&
+
+            row.work_hours !== undefined
+
+            ? row.work_hours + " 小時"
+
+            : "-"
+
+          }
+
+        </td>
+
+        <td>${safeText(row.start_location)}</td>
+
+        <td>${safeText(row.end_location)}</td>
+
+        <td>
+
+          ${mapLink(row.start_latitude,row.start_longitude,"上班地圖")}
+
+          ${mapLink(row.end_latitude,row.end_longitude,"下班地圖")}
+
+        </td>
+
+      </tr>
+
+    `;
+
+  });
+
+}
+
+function clearFilter(){
+
+  document.getElementById("searchName").value = "";
+
+  document.getElementById("startDate").value = "";
+
+  document.getElementById("endDate").value = "";
+
+  function groupRawAttendance(rawRows){
+  const groups = {};
+
+  rawRows.forEach(row=>{
+    const date = new Date(row.clock_time).toLocaleDateString("zh-TW", {
+      timeZone:"Asia/Taipei"
+    });
+
+    const weekday = getWeekday(row.clock_time);
+
+    const key =
+    `${row.line_user_id || row.name}_${date}`;
+
+    if(!groups[key]){
+      groups[key] = {
+        name: row.name || "-",
+        date,
+        weekday,
+        start_time:null,
+        end_time:null,
+        start_location:null,
+        end_location:null,
+        start_latitude:null,
+        start_longitude:null,
+        end_latitude:null,
+        end_longitude:null,
+        work_hours:null
+      };
+    }
+
+    const location =
+    row.address ||
+    row.location ||
+    row.address_text ||
+    row.location_text ||
+    "-";
+
+    if(row.type === "上班"){
+      groups[key].start_time = row.clock_time;
+      groups[key].start_location = location;
+      groups[key].start_latitude = row.latitude;
+      groups[key].start_longitude = row.longitude;
+    }
+
+    if(row.type === "下班"){
+      groups[key].end_time = row.clock_time;
+      groups[key].end_location = location;
+      groups[key].end_latitude = row.latitude;
+      groups[key].end_longitude = row.longitude;
+    }
+  });
+
+  return Object.values(groups).map(item=>{
+    if(item.start_time && item.end_time){
+      item.work_hours =
+      Number(
+        (
+          (new Date(item.end_time) - new Date(item.start_time)) /
+          1000 / 60 / 60
+        ).toFixed(2)
+      );
+    }
+
+    return item;
   });
 }
 
 function getWeekday(value){
-  if(!value) return "-";
-
-  const d = new Date(
-    new Date(value).toLocaleString("en-US", {
-      timeZone:"Asia/Taipei"
-    })
-  );
-
-  if(isNaN(d.getTime())) return "-";
+  const d = new Date(value);
 
   const week = [
     "星期日",
@@ -122,293 +475,86 @@ function getWeekday(value){
   return week[d.getDay()];
 }
 
-function getWeekdayClass(weekday){
-  if(weekday === "星期日" || weekday === "星期六"){
-    return "weekend";
-  }
-
-  return "weekday";
-}
-
-function safeText(value){
-  if(!value || value === "undefined" || value === "null"){
-    return "-";
-  }
-
-  return value;
-}
-
-function mapLink(lat,lng,text){
-  if(!lat || !lng){
-    return "-";
-  }
-
-  return `
-    <a class="map-btn" target="_blank"
-      href="https://maps.google.com/?q=${lat},${lng}">
-      ${text}
-    </a>
-  `;
-}
-
-function groupAttendance(rows){
-  const groups = {};
-
-  rows.forEach(row=>{
-    const date = formatDate(row.clock_time);
-
-    const key =
-    `${row.line_user_id || row.name}_${date}`;
-
-    if(!groups[key]){
-      groups[key] = {
-        name:row.name || "-",
-        date,
-        weekday:getWeekday(row.clock_time),
-
-        start_time:null,
-        end_time:null,
-
-        start_location:null,
-        end_location:null,
-
-        start_latitude:null,
-        start_longitude:null,
-        end_latitude:null,
-        end_longitude:null,
-
-        work_hours:null
-      };
-    }
-
-    if(row.type === "上班"){
-      if(
-        !groups[key].start_time ||
-        new Date(row.clock_time) <
-        new Date(groups[key].start_time)
-      ){
-        groups[key].start_time = row.clock_time;
-        groups[key].start_location = row.address || row.location || row.address_text || "";
-        groups[key].start_latitude = row.latitude;
-        groups[key].start_longitude = row.longitude;
-      }
-    }
-
-    if(row.type === "下班"){
-      if(
-        !groups[key].end_time ||
-        new Date(row.clock_time) >
-        new Date(groups[key].end_time)
-      ){
-        groups[key].end_time = row.clock_time;
-        groups[key].end_location = row.address || row.location || row.address_text || "";
-        groups[key].end_latitude = row.latitude;
-        groups[key].end_longitude = row.longitude;
-      }
-    }
-  });
-
-  const result =
-  Object.values(groups).map(item=>{
-    if(item.start_time && item.end_time){
-      const hours =
-      (new Date(item.end_time) - new Date(item.start_time)) /
-      1000 / 60 / 60;
-
-      item.work_hours =
-      Number(hours.toFixed(2));
-    }
-
-    return item;
-  });
-
-  result.sort((a,b)=>{
-    const at =
-    new Date(a.end_time || a.start_time || 0).getTime();
-
-    const bt =
-    new Date(b.end_time || b.start_time || 0).getTime();
-
-    return bt - at;
-  });
-
-  return result;
-}
-
-async function loadAttendance(){
-  const table = document.getElementById("attendanceTable");
-
-  table.innerHTML =
-  "<tr><td colspan='9'>載入中...</td></tr>";
-
-  try{
-    const name =
-    document.getElementById("searchName").value.trim();
-
-    const startDate =
-    document.getElementById("startDate").value;
-
-    const endDate =
-    document.getElementById("endDate").value;
-
-    const params =
-    new URLSearchParams();
-
-    if(name){
-      params.append("name", name);
-    }
-
-    if(startDate){
-      params.append("startDate", startDate);
-    }
-
-    if(endDate){
-      params.append("endDate", endDate);
-    }
-
-    let url = "/api/attendance";
-
-    if(params.toString()){
-      url += "?" + params.toString();
-    }
-
-    const response =
-    await fetch(url);
-
-    const rows =
-    await response.json();
-
-    if(!Array.isArray(rows) || rows.length === 0){
-      table.innerHTML =
-      "<tr><td colspan='9'>目前沒有出勤紀錄</td></tr>";
-      return;
-    }
-
-    mergedRows =
-    groupAttendance(rows);
-
-    renderTable();
-
-  }catch(error){
-    table.innerHTML =
-    "<tr><td colspan='9'>讀取失敗</td></tr>";
-
-    console.error(error);
-  }
-}
-
-function renderTable(){
-  const table =
-  document.getElementById("attendanceTable");
-
-  if(mergedRows.length === 0){
-    table.innerHTML =
-    "<tr><td colspan='9'>目前沒有出勤紀錄</td></tr>";
-    return;
-  }
-
-  table.innerHTML = "";
-
-  mergedRows.forEach(row=>{
-    table.innerHTML += `
-      <tr>
-        <td>${row.name}</td>
-
-        <td>${row.date}</td>
-
-        <td>
-          <span class="${getWeekdayClass(row.weekday)}">
-            ${row.weekday}
-          </span>
-        </td>
-
-        <td>
-          ${
-            row.start_time
-            ? formatTime(row.start_time)
-            : `<span class="missing">缺上班</span>`
-          }
-        </td>
-
-        <td>
-          ${
-            row.end_time
-            ? formatTime(row.end_time)
-            : `<span class="missing">缺下班</span>`
-          }
-        </td>
-
-        <td>
-          ${
-            row.work_hours !== null
-            ? row.work_hours + " 小時"
-            : "-"
-          }
-        </td>
-
-        <td>${safeText(row.start_location)}</td>
-
-        <td>${safeText(row.end_location)}</td>
-
-        <td>
-          ${mapLink(row.start_latitude,row.start_longitude,"上班地圖")}
-          ${mapLink(row.end_latitude,row.end_longitude,"下班地圖")}
-        </td>
-      </tr>
-    `;
-  });
-}
-
-function clearFilter(){
-  document.getElementById("searchName").value = "";
-  document.getElementById("startDate").value = "";
-  document.getElementById("endDate").value = "";
-
   loadAttendance();
+
 }
 
 function exportCSV(){
-  if(!mergedRows || mergedRows.length === 0){
+
+  if(!rows || rows.length === 0){
+
     alert("沒有資料可匯出");
+
     return;
+
   }
 
   let csv =
-  "\uFEFF姓名,日期,星期,上班時間,下班時間,工時,上班位置,下班位置\n";
 
-  mergedRows.forEach(row=>{
+    "\uFEFF姓名,日期,星期,上班時間,下班時間,工時,上班位置,下班位置\n";
+
+  rows.forEach(row=>{
+
     csv += [
+
       row.name,
+
       row.date,
+
       row.weekday,
+
       formatTime(row.start_time),
+
       formatTime(row.end_time),
-      row.work_hours !== null ? row.work_hours : "",
+
+      row.work_hours !== null && row.work_hours !== undefined
+
+        ? row.work_hours
+
+        : "",
+
       safeText(row.start_location),
+
       safeText(row.end_location)
-    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(",") + "\n";
+
+    ].map(v =>
+
+      `"${String(v).replace(/"/g,'""')}"`
+
+    ).join(",") + "\n";
+
   });
 
   const blob =
-  new Blob([csv], {
-    type:"text/csv;charset=utf-8;"
-  });
+
+    new Blob([csv], {
+
+      type:"text/csv;charset=utf-8;"
+
+    });
 
   const url =
-  URL.createObjectURL(blob);
+
+    URL.createObjectURL(blob);
 
   const a =
-  document.createElement("a");
+
+    document.createElement("a");
 
   a.href = url;
+
   a.download = "attendance-record.csv";
+
   a.click();
 
   URL.revokeObjectURL(url);
+
 }
 
 loadAttendance();
+
 </script>
 
 </body>
+
 </html>
