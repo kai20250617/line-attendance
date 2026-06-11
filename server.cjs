@@ -446,7 +446,7 @@ if (dayOfWeek === 0) {
   if (currentHour < 8) {
     return res.status(403).json({
       success:false,
-      message:"08:00後才能打卡"
+      message:"08:30後才能打卡"
     });
   }
 
