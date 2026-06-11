@@ -3263,28 +3263,28 @@ app.post("/api/clock-request/status", async (req, res) => {
         await pool.query(
           `
           INSERT INTO attendance
-          (
-            line_user_id,
-            name,
-            type,
-            clock_time,
-            latitude,
-            longitude
-          )
-          VALUES
-          ($1,$2,$3,$4,$5,$6)
-          `,
-          [
-            request.line_user_id,
-            request.name,
-            clockType,
-            fixedClockTime,
-            null,
-            null
-          ]
-        );
-      }
-    }
+(
+  line_user_id,
+  name,
+  type,
+  clock_time,
+  latitude,
+  longitude,
+  address
+)
+VALUES
+($1,$2,$3,$4,$5,$6,$7)
+`,
+[
+  request.line_user_id,
+  request.name,
+  clockType,
+  fixedClockTime,
+  null,
+  null,
+  null
+]
+);
 
     await pushLineMessage(
       request.line_user_id,
