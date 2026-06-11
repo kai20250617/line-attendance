@@ -9,13 +9,15 @@
 body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
 h1{text-align:center;}
 .top{text-align:center;margin-bottom:20px;}
-input,button{padding:10px;margin:4px;border-radius:6px;border:1px solid #ccc;}
+input,button{padding:10px;margin:4px;border-radius:6px;border:1px solid #ccc;font-size:16px;}
 button{color:white;border:none;cursor:pointer;}
 .search{background:#1976d2;}
 .clear{background:#555;}
+.export{background:#2e7d32;}
 .back{background:#222;}
+.month-title{text-align:center;font-size:22px;font-weight:bold;margin:15px 0;color:#0d47a1;}
 .table-wrap{overflow-x:auto;background:white;}
-table{width:100%;min-width:850px;border-collapse:collapse;background:white;}
+table{width:100%;min-width:950px;border-collapse:collapse;background:white;}
 th{background:#222;color:white;padding:12px;}
 td{border:1px solid #ddd;padding:10px;text-align:center;}
 .bad{color:red;font-weight:bold;}
@@ -28,20 +30,23 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
 <h1>📊 出勤統計報表</h1>
 
 <div class="top">
+  <input type="month" id="month">
   <input type="text" id="name" placeholder="員工姓名">
   <input type="text" id="department" placeholder="部門">
-  <input type="date" id="startDate">
-  <input type="date" id="endDate">
 
   <button class="search" onclick="loadReport()">查詢</button>
   <button class="clear" onclick="clearFilter()">清除</button>
+  <button class="export" onclick="exportCSV()">匯出 CSV</button>
   <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
 </div>
+
+<div id="monthTitle" class="month-title"></div>
 
 <div class="table-wrap">
 <table>
 <thead>
 <tr>
+  <th>月份</th>
   <th>員工</th>
   <th>部門</th>
   <th>職稱</th>
@@ -54,7 +59,7 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
 
 <tbody id="tbody">
 <tr>
-  <td colspan="7">讀取中...</td>
+  <td colspan="8">讀取中...</td>
 </tr>
 </tbody>
 </table>
@@ -65,23 +70,86 @@ if(localStorage.getItem("adminLogin") !== "yes"){
   window.location.href = "/login.html";
 }
 
+let reportRows = [];
+
+function getCurrentMonth(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+function getMonthRange(monthValue){
+  if(!monthValue){
+    return {
+      startDate:"",
+      endDate:"",
+      label:"全部月份"
+    };
+  }
+
+  const [year, month] =
+  monthValue.split("-").map(Number);
+
+  const startDate =
+  `${year}-${String(month).padStart(2,"0")}-01`;
+
+  const lastDay =
+  new Date(year, month, 0).getDate();
+
+  const endDate =
+  `${year}-${String(month).padStart(2,"0")}-${String(lastDay).padStart(2,"0")}`;
+
+  return {
+    startDate,
+    endDate,
+    label:`${year} 年 ${month} 月`
+  };
+}
+
+function formatNumber(value){
+  return Number(value || 0).toFixed(2);
+}
+
 async function loadReport(){
   const tbody = document.getElementById("tbody");
+  const monthTitle = document.getElementById("monthTitle");
 
   tbody.innerHTML =
-  "<tr><td colspan='7'>讀取中...</td></tr>";
+  "<tr><td colspan='8'>讀取中...</td></tr>";
 
   const params = new URLSearchParams();
 
-  const name = document.getElementById("name").value.trim();
-  const department = document.getElementById("department").value.trim();
-  const startDate = document.getElementById("startDate").value;
-  const endDate = document.getElementById("endDate").value;
+  const month =
+  document.getElementById("month").value;
 
-  if(name) params.append("name", name);
-  if(department) params.append("department", department);
-  if(startDate) params.append("startDate", startDate);
-  if(endDate) params.append("endDate", endDate);
+  const name =
+  document.getElementById("name").value.trim();
+
+  const department =
+  document.getElementById("department").value.trim();
+
+  const range =
+  getMonthRange(month);
+
+  monthTitle.innerText =
+  "報表月份：" + range.label;
+
+  if(name){
+    params.append("name", name);
+  }
+
+  if(department){
+    params.append("department", department);
+  }
+
+  if(range.startDate){
+    params.append("startDate", range.startDate);
+  }
+
+  if(range.endDate){
+    params.append("endDate", range.endDate);
+  }
 
   try{
     let url = "/api/attendance-report";
@@ -90,46 +158,124 @@ async function loadReport(){
       url += "?" + params.toString();
     }
 
-    const res = await fetch(url);
-    const data = await res.json();
+    const res =
+    await fetch(url);
+
+    const data =
+    await res.json();
 
     if(!Array.isArray(data) || data.length === 0){
+      reportRows = [];
+
       tbody.innerHTML =
-      "<tr><td colspan='7'>目前沒有報表資料</td></tr>";
+      "<tr><td colspan='8'>目前沒有報表資料</td></tr>";
+
       return;
     }
 
-    tbody.innerHTML = "";
+    reportRows =
+    data.map(item=>({
+      month:range.label,
+      name:item.name || "-",
+      department:item.department || "-",
+      position:item.position || "-",
+      workDays:Number(item.workDays || 0),
+      totalHours:formatNumber(item.totalHours),
+      lateCount:Number(item.lateCount || 0),
+      earlyLeaveCount:Number(item.earlyLeaveCount || 0)
+    }));
 
-    data.forEach(item=>{
-      tbody.innerHTML += `
-        <tr>
-          <td>${item.name || "-"}</td>
-          <td>${item.department || "-"}</td>
-          <td>${item.position || "-"}</td>
-          <td>${item.workDays || 0}</td>
-          <td>${item.totalHours || "0.00"}</td>
-          <td class="${Number(item.lateCount)>0 ? "bad" : "good"}">${item.lateCount || 0}</td>
-          <td class="${Number(item.earlyLeaveCount)>0 ? "bad" : "good"}">${item.earlyLeaveCount || 0}</td>
-        </tr>
-      `;
-    });
+    renderTable();
 
   }catch(err){
     console.error(err);
+
+    reportRows = [];
+
     tbody.innerHTML =
-    "<tr><td colspan='7'>讀取失敗</td></tr>";
+    "<tr><td colspan='8'>讀取失敗</td></tr>";
   }
 }
 
+function renderTable(){
+  const tbody =
+  document.getElementById("tbody");
+
+  tbody.innerHTML = "";
+
+  reportRows.forEach(item=>{
+    tbody.innerHTML += `
+      <tr>
+        <td>${item.month}</td>
+        <td>${item.name}</td>
+        <td>${item.department}</td>
+        <td>${item.position}</td>
+        <td>${item.workDays}</td>
+        <td>${item.totalHours}</td>
+        <td class="${item.lateCount > 0 ? "bad" : "good"}">${item.lateCount}</td>
+        <td class="${item.earlyLeaveCount > 0 ? "bad" : "good"}">${item.earlyLeaveCount}</td>
+      </tr>
+    `;
+  });
+}
+
 function clearFilter(){
+  document.getElementById("month").value = getCurrentMonth();
   document.getElementById("name").value = "";
   document.getElementById("department").value = "";
-  document.getElementById("startDate").value = "";
-  document.getElementById("endDate").value = "";
 
   loadReport();
 }
+
+function exportCSV(){
+  if(!reportRows || reportRows.length === 0){
+    alert("沒有資料可匯出");
+    return;
+  }
+
+  let csv =
+  "\uFEFF月份,員工,部門,職稱,出勤天數,總工時,遲到次數,早退次數\n";
+
+  reportRows.forEach(item=>{
+    csv += [
+      item.month,
+      item.name,
+      item.department,
+      item.position,
+      item.workDays,
+      item.totalHours,
+      item.lateCount,
+      item.earlyLeaveCount
+    ].map(v =>
+      `"${String(v).replace(/"/g,'""')}"`
+    ).join(",") + "\n";
+  });
+
+  const blob =
+  new Blob([csv], {
+    type:"text/csv;charset=utf-8;"
+  });
+
+  const url =
+  URL.createObjectURL(blob);
+
+  const a =
+  document.createElement("a");
+
+  const month =
+  document.getElementById("month").value || "all";
+
+  a.href = url;
+  a.download =
+  `attendance-report-${month}.csv`;
+
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById("month").value =
+getCurrentMonth();
 
 loadReport();
 </script>
