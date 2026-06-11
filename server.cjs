@@ -3959,28 +3959,24 @@ app.get("/api/attendance-report", async (req, res) => {
       }
 
       result.push({
+  name: emp.name,
+  department: emp.department || "-",
+  position: emp.position || "-",
 
-        name: emp.name,
+  workDays,
 
-        department: emp.department || "-",
+  breakHours,
 
-        position: emp.position || "-",
+  totalHours: totalHours.toFixed(2),
 
-        workDays,
+  averageHours:
+    workDays > 0
+      ? (totalHours / workDays).toFixed(2)
+      : "0.00",
 
-        normalDays,
-
-        breakHours,
-
-        totalHours: totalHours.toFixed(2),
-
-        averageHours: averageHours.toFixed(2),
-
-        lateCount,
-
-        earlyLeaveCount
-
-      });
+  lateCount,
+  earlyLeaveCount
+});
 
     }
 

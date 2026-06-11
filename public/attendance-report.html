@@ -52,6 +52,7 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
   <th>職稱</th>
   <th>出勤天數</th>
   <th>總工時</th>
+  <th>平均工時</th>
   <th>遲到次數</th>
   <th>早退次數</th>
 </tr>
@@ -59,7 +60,7 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
 
 <tbody id="tbody">
 <tr>
-  <td colspan="8">讀取中...</td>
+  <td colspan="9">讀取中...</td>
 </tr>
 </tbody>
 </table>
@@ -116,7 +117,7 @@ async function loadReport(){
   const monthTitle = document.getElementById("monthTitle");
 
   tbody.innerHTML =
-  "<tr><td colspan='8'>讀取中...</td></tr>";
+  "<tr><td colspan='9'>讀取中...</td></tr>";
 
   const params = new URLSearchParams();
 
@@ -168,7 +169,7 @@ async function loadReport(){
       reportRows = [];
 
       tbody.innerHTML =
-      "<tr><td colspan='8'>目前沒有報表資料</td></tr>";
+      "<tr><td colspan='9'>目前沒有報表資料</td></tr>";
 
       return;
     }
@@ -193,7 +194,7 @@ async function loadReport(){
     reportRows = [];
 
     tbody.innerHTML =
-    "<tr><td colspan='8'>讀取失敗</td></tr>";
+    "<tr><td colspan='9'>讀取失敗</td></tr>";
   }
 }
 
@@ -212,7 +213,8 @@ function renderTable(){
         <td>${item.position}</td>
         <td>${item.workDays}</td>
         <td>${item.totalHours}</td>
-        <td class="${item.lateCount > 0 ? "bad" : "good"}">${item.lateCount}</td>
+<td>${item.averageHours || "0.00"}</td>
+<td class="${item.lateCount > 0 ? "bad" : "good"}">${item.lateCount}</td>
         <td class="${item.earlyLeaveCount > 0 ? "bad" : "good"}">${item.earlyLeaveCount}</td>
       </tr>
     `;
@@ -234,7 +236,7 @@ function exportCSV(){
   }
 
   let csv =
-  "\uFEFF月份,員工,部門,職稱,出勤天數,總工時,遲到次數,早退次數\n";
+  "\uFEFF月份,員工,部門,職稱,出勤天數,總工時,平均工時,遲到次數,早退次數\n";
 
   reportRows.forEach(item=>{
     csv += [
