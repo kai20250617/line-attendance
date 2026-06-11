@@ -227,8 +227,12 @@ function clearFilter(){
 }
 
 async function updateOne(id, type, rawTime){
-  if(!id || !rawTime){
-    return;
+  if(!id){
+    throw new Error("找不到出勤ID");
+  }
+
+  if(!rawTime){
+    throw new Error("請輸入時間");
   }
 
   const clock_time =
@@ -241,12 +245,19 @@ async function updateOne(id, type, rawTime){
       "Content-Type":"application/json"
     },
     body:JSON.stringify({
-      type,
-      clock_time
+      type:type,
+      clock_time:clock_time
     })
   });
 
-  return await res.json();
+  const data =
+  await res.json();
+
+  if(!res.ok || data.success === false){
+    throw new Error(data.message || "修改失敗");
+  }
+
+  return data;
 }
 
 async function saveDay(rowId, startId, endId){
@@ -273,13 +284,17 @@ async function saveDay(rowId, startId, endId){
       );
     }
 
-    alert("已修改");
+    alert("已修改成功");
 
     loadData();
 
   }catch(err){
     console.error(err);
-    alert("修改失敗");
+
+    alert(
+      "修改失敗：\n" +
+      err.message
+    );
   }
 }
 
@@ -293,7 +308,14 @@ async function deleteOne(id){
     method:"DELETE"
   });
 
-  return await res.json();
+  const data =
+  await res.json();
+
+  if(!res.ok || data.success === false){
+    throw new Error(data.message || "刪除失敗");
+  }
+
+  return data;
 }
 
 async function deleteDay(startId, endId){
@@ -316,7 +338,11 @@ async function deleteDay(startId, endId){
 
   }catch(err){
     console.error(err);
-    alert("刪除失敗");
+
+    alert(
+      "刪除失敗：\n" +
+      err.message
+    );
   }
 }
 
