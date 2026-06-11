@@ -204,6 +204,16 @@ CREATE TABLE IF NOT EXISTS salary_history (
 )
 `);
 
+await pool.query(`
+ALTER TABLE salary_history
+ADD COLUMN IF NOT EXISTS is_signed BOOLEAN DEFAULT false
+`);
+
+await pool.query(`
+ALTER TABLE salary_history
+ADD COLUMN IF NOT EXISTS signed_at TIMESTAMP
+`);
+
 console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
 
@@ -2308,6 +2318,42 @@ app.get("/api/payslip/:id", async (req, res) => {
         });
 
     };
+
+// =========================
+// 薪資單簽收
+// =========================
+app.post("/api/sign-salary/:id", async (req, res) => {
+  try {
+
+    const salaryId = req.params.id;
+
+    await pool.query(
+      `
+      UPDATE salary_history
+      SET
+        is_signed = true,
+        signed_at = NOW()
+      WHERE id = $1
+      `,
+      [salaryId]
+    );
+
+    res.json({
+      success:true,
+      message:"薪資單已簽收"
+    });
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"簽收失敗"
+    });
+
+  }
+});
 
     // =========================
 

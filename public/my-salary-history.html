@@ -33,6 +33,7 @@ h1{
   gap:10px;
   justify-content:center;
   margin-bottom:20px;
+  flex-wrap:wrap;
 }
 
 select,button{
@@ -47,10 +48,19 @@ button{
   color:white;
   border:none;
   cursor:pointer;
+  margin:5px;
 }
 
 .pdf{
   background:#0d47a1;
+}
+
+.sign{
+  background:#2e7d32;
+}
+
+.signed{
+  background:#777;
 }
 
 .clear{
@@ -74,6 +84,11 @@ button{
 .net{
   color:#0d47a1;
   font-size:28px;
+  font-weight:bold;
+}
+
+.status{
+  font-size:18px;
   font-weight:bold;
 }
 
@@ -178,26 +193,39 @@ async function init(){
   }
 }
 
-function buildYearFilter(){
+function getYearMonth(item){
+  let year = item.year;
+  let month = item.month;
 
+  if((!year || !month) && item.salary_month){
+    const parts =
+    String(item.salary_month).split("-");
+
+    year = parts[0];
+    month = parts[1];
+  }
+
+  return {
+    year: year ? Number(year) : null,
+    month: month ? Number(month) : null
+  };
+}
+
+function buildYearFilter(){
   const yearFilter =
   document.getElementById("yearFilter");
+
+  yearFilter.innerHTML =
+  `<option value="">全部年份</option>`;
 
   let years = [];
 
   salaryHistory.forEach(item=>{
+    const ym = getYearMonth(item);
 
-    let year = item.year;
-
-    if(!year && item.salary_month){
-      year =
-      item.salary_month.split("-")[0];
+    if(ym.year){
+      years.push(ym.year);
     }
-
-    if(year){
-      years.push(year);
-    }
-
   });
 
   years =
@@ -205,31 +233,11 @@ function buildYearFilter(){
   .sort((a,b)=>b-a);
 
   years.forEach(year=>{
-
     yearFilter.innerHTML += `
       <option value="${year}">
         ${year} 年
       </option>
     `;
-
-  });
-
-}{
-  const yearFilter =
-  document.getElementById("yearFilter");
-
-  const years =
-  [...new Set(
-    salaryHistory.map(item =>
-      Number(item.year)
-    )
-  )].filter(Boolean);
-
-  years.sort((a,b)=>b-a);
-
-  years.forEach(year=>{
-    yearFilter.innerHTML +=
-    `<option value="${year}">${year} 年</option>`;
   });
 }
 
@@ -245,26 +253,21 @@ function renderList(){
 
   let rows =
   salaryHistory.filter(item=>{
+    const ym = getYearMonth(item);
 
-    const itemYear =
-    String(item.year || "");
+    if(
+      year &&
+      Number(ym.year) !== Number(year)
+    ){
+      return false;
+    }
 
-    const itemMonth =
-    String(item.month || "");
-
-   if(
-  year &&
-  Number(itemYear) !== Number(year)
-){
-  return false;
-}
-
-if(
-  month &&
-  Number(itemMonth) !== Number(month)
-){
-  return false;
-}
+    if(
+      month &&
+      Number(ym.month) !== Number(month)
+    ){
+      return false;
+    }
 
     return true;
   });
@@ -278,40 +281,48 @@ if(
   let html = "";
 
   rows.forEach(item=>{
-
     const gross =
-Number(
-  item.gross_salary ||
-  item.grossSalary ||
-  item.gross ||
-  item.total_salary ||
-  item.totalSalary ||
-  0
-);
+    Number(
+      item.gross_salary ||
+      item.grossSalary ||
+      item.gross ||
+      item.total_salary ||
+      item.totalSalary ||
+      0
+    );
 
-const net =
-Number(
-  item.net_salary ||
-  item.netSalary ||
-  item.net ||
-  item.final_salary ||
-  item.finalSalary ||
-  0
-);
+    const net =
+    Number(
+      item.net_salary ||
+      item.netSalary ||
+      item.net ||
+      item.final_salary ||
+      item.finalSalary ||
+      0
+    );
 
-    let y = item.year;
-let m = item.month;
+    const ym =
+    getYearMonth(item);
 
-if ((!y || !m) && item.salary_month) {
-  const parts = String(item.salary_month).split("-");
-  y = parts[0];
-  m = parts[1];
-}
+    const y =
+    ym.year || "-";
 
-if (!y) y = "-";
-if (!m) m = "-";
+    const m =
+    ym.month
+    ? String(ym.month).padStart(2,"0")
+    : "-";
 
-m = String(m).padStart(2, "0");
+    const signedText =
+    item.is_signed
+    ? "✅ 已簽收"
+    : "❌ 未簽收";
+
+    const signedTime =
+    item.signed_at
+    ? new Date(item.signed_at).toLocaleString("zh-TW", {
+        timeZone:"Asia/Taipei"
+      })
+    : "";
 
     html += `
       <div class="item">
@@ -327,9 +338,25 @@ m = String(m).padStart(2, "0");
           NT$${net.toLocaleString("zh-TW")}
         </p>
 
+        <p class="status">
+          ${signedText}
+        </p>
+
+        ${
+          signedTime
+          ? `<p>簽收時間：${signedTime}</p>`
+          : ""
+        }
+
         <button class="pdf" onclick="downloadPdf()">
-          下載 PDF 薪資單
+          下載 PDF
         </button>
+
+        ${
+          item.is_signed
+          ? `<button class="signed" disabled>已簽收</button>`
+          : `<button class="sign" onclick="signSalary(${item.id})">薪資單簽收</button>`
+        }
       </div>
     `;
   });
@@ -352,6 +379,43 @@ function downloadPdf(){
 
   location.href =
   "/api/payslip/" + employeeId;
+}
+
+async function signSalary(id){
+  if(!id){
+    alert("找不到薪資紀錄 ID");
+    return;
+  }
+
+  if(
+    !confirm("確認簽收本月薪資單？")
+  ){
+    return;
+  }
+
+  try{
+    const res =
+    await fetch(
+      "/api/sign-salary/" + id,
+      {
+        method:"POST"
+      }
+    );
+
+    const data =
+    await res.json();
+
+    alert(
+      data.message ||
+      "簽收完成"
+    );
+
+    location.reload();
+
+  }catch(err){
+    console.error(err);
+    alert("簽收失敗，請稍後再試");
+  }
 }
 
 init();
