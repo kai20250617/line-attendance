@@ -214,6 +214,11 @@ ALTER TABLE salary_history
 ADD COLUMN IF NOT EXISTS signed_at TIMESTAMP
 `);
 
+await pool.query(`
+ALTER TABLE attendance
+ADD COLUMN IF NOT EXISTS address TEXT
+`);
+
 console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
 
