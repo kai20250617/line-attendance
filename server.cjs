@@ -3183,6 +3183,7 @@ app.delete("/api/attendance-admin/:id", async (req, res) => {
     });
   }
 });
+
 // =========================
 // 出勤管理
 // =========================
@@ -3216,19 +3217,107 @@ app.get("/api/attendance-admin", async (req, res) => {
 
     if (startDate) {
       params.push(startDate);
-      sql += ` AND DATE(clock_time) >= $${params.length}`;
+      sql += `
+        AND DATE(clock_time AT TIME ZONE 'Asia/Taipei')
+        >= $${params.length}
+      `;
     }
 
     if (endDate) {
       params.push(endDate);
-      sql += ` AND DATE(clock_time) <= $${params.length}`;
+      sql += `
+        AND DATE(clock_time AT TIME ZONE 'Asia/Taipei')
+        <= $${params.length}
+      `;
     }
 
-    sql += ` ORDER BY id DESC`;
+    sql += ` ORDER BY clock_time ASC`;
 
     const result = await pool.query(sql, params);
 
-    res.json(result.rows);
+    const rows = result.rows;
+
+    const dayGroups = {};
+
+    rows.forEach(item => {
+      const taipeiDate =
+        new Date(item.clock_time)
+        .toLocaleDateString("zh-TW", {
+          timeZone:"Asia/Taipei"
+        });
+
+      const key =
+        `${item.line_user_id || item.name}_${taipeiDate}`;
+
+      if (!dayGroups[key]) {
+        dayGroups[key] = {
+          start:null,
+          end:null
+        };
+      }
+
+      if (item.type === "上班") {
+        if (
+          !dayGroups[key].start ||
+          new Date(item.clock_time) <
+          new Date(dayGroups[key].start)
+        ) {
+          dayGroups[key].start =
+            item.clock_time;
+        }
+      }
+
+      if (item.type === "下班") {
+        if (
+          !dayGroups[key].end ||
+          new Date(item.clock_time) >
+          new Date(dayGroups[key].end)
+        ) {
+          dayGroups[key].end =
+            item.clock_time;
+        }
+      }
+    });
+
+    const rowsWithHours =
+      rows.map(item => {
+        const taipeiDate =
+          new Date(item.clock_time)
+          .toLocaleDateString("zh-TW", {
+            timeZone:"Asia/Taipei"
+          });
+
+        const key =
+          `${item.line_user_id || item.name}_${taipeiDate}`;
+
+        let work_hours = null;
+
+        const group =
+          dayGroups[key];
+
+        if (group && group.start && group.end) {
+          const start =
+            new Date(group.start);
+
+          const end =
+            new Date(group.end);
+
+          const hours =
+            (end - start) / 1000 / 60 / 60;
+
+          work_hours =
+            Number(hours.toFixed(2));
+        }
+
+        return {
+          ...item,
+          work_hours
+        };
+      });
+
+    rowsWithHours.sort((a,b)=>b.id - a.id);
+
+    res.json(rowsWithHours);
 
   } catch(err) {
     console.error(err);
@@ -3236,73 +3325,6 @@ app.get("/api/attendance-admin", async (req, res) => {
     res.status(500).json({
       success:false,
       message:"讀取出勤失敗"
-    });
-  }
-});
-
-app.delete("/api/attendance-admin/:id", async (req, res) => {
-  try {
-    await pool.query(
-      `
-      DELETE FROM attendance
-      WHERE id = $1
-      `,
-      [req.params.id]
-    );
-
-    res.json({
-      success:true,
-      message:"出勤資料已刪除"
-    });
-
-  } catch(err) {
-    console.error(err);
-
-    res.status(500).json({
-      success:false,
-      message:"刪除出勤失敗"
-    });
-  }
-});
-
-app.put("/api/attendance-admin/:id", async (req, res) => {
-  try {
-    const { type, clock_time } = req.body;
-
-    if (!type || !clock_time) {
-      return res.status(400).json({
-        success:false,
-        message:"缺少出勤類型或時間"
-      });
-    }
-
-    if (type !== "上班" && type !== "下班") {
-      return res.status(400).json({
-        success:false,
-        message:"出勤類型只能是上班或下班"
-      });
-    }
-
-    await pool.query(
-      `
-      UPDATE attendance
-      SET type = $1, clock_time = $2
-      WHERE id = $3
-      `,
-      [type, clock_time, req.params.id]
-    );
-
-    res.json({
-      success:true,
-      message:"出勤資料已修改"
-    });
-
-  } catch(err) {
-    console.error(err);
-
-    res.status(500).json({
-      success:false,
-      message:"修改出勤失敗"
     });
   }
 });

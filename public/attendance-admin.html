@@ -100,6 +100,8 @@ select,input{padding:8px;border:1px solid #ccc;border-radius:6px;margin:3px;}
 
   <th>時間</th>
 
+  <th>工時</th>
+
   <th>操作</th>
 
 </tr>
@@ -320,6 +322,13 @@ async function loadData(){
 
         </tr>
 
+        <td>
+  ${
+    item.work_hours !== null && item.work_hours !== undefined
+    ? item.work_hours + " 小時"
+    : "-"
+  }
+</td>
       `;
 
     });
