@@ -313,6 +313,14 @@ async function loadData(){
           </td>
 
           <td>
+  ${
+    item.work_hours !== null && item.work_hours !== undefined
+    ? item.work_hours + " 小時"
+    : "-"
+  }
+</td>
+
+          <td>
 
             <button class="save" onclick="saveData(${item.id})">修改</button>
 
@@ -322,13 +330,7 @@ async function loadData(){
 
         </tr>
 
-        <td>
-  ${
-    item.work_hours !== null && item.work_hours !== undefined
-    ? item.work_hours + " 小時"
-    : "-"
-  }
-</td>
+        
       `;
 
     });
