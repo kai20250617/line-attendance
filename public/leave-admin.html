@@ -20,6 +20,15 @@ button{
   border-radius:5px;
   color:white;
   cursor:pointer;
+  
+}
+
+input,select{
+  padding:10px;
+  margin:4px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  font-size:16px;
 }
 
 .refresh{background:#4a90e2;}
@@ -42,6 +51,21 @@ button{
 <h1>📝 請假審核管理</h1>
 
 <div class="top">
+  <input type="text" id="filterName" placeholder="搜尋員工">
+
+  <input type="month" id="filterMonth">
+
+  <select id="filterType">
+    <option value="">全部假別</option>
+    <option value="事假">事假</option>
+    <option value="病假">病假</option>
+    <option value="特休">特休</option>
+    <option value="公假">公假</option>
+    <option value="婚假">婚假</option>
+    <option value="喪假">喪假</option>
+  </select>
+
+  <button class="refresh" onclick="applyFilter()">篩選</button>
   <button class="refresh" onclick="loadLeaves()">重新整理</button>
   <button class="export" onclick="exportCSV()">匯出 CSV</button>
   <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
@@ -74,6 +98,7 @@ if(localStorage.getItem("adminLogin") !== "yes"){
 }
 
 let leaveRows = [];
+let allLeaveRows = [];
 
 function formatDate(value){
   if(!value){
@@ -164,8 +189,52 @@ async function loadLeaves(){
       return;
     }
 
-    leaveRows =
-    data;
+    allLeaveRows = data;
+leaveRows = data;
+
+function applyFilter(){
+  const name =
+  document.getElementById("filterName").value.trim();
+
+  const month =
+  document.getElementById("filterMonth").value;
+
+  const type =
+  document.getElementById("filterType").value;
+
+  leaveRows =
+  allLeaveRows.filter(item=>{
+    if(name && !(item.name || "").includes(name)){
+      return false;
+    }
+
+    if(type && item.leave_type !== type){
+      return false;
+    }
+
+    if(month){
+      const start =
+      new Date(item.start_date);
+
+      const y =
+      start.getFullYear();
+
+      const m =
+      String(start.getMonth() + 1).padStart(2,"0");
+
+      const itemMonth =
+      `${y}-${m}`;
+
+      if(itemMonth !== month){
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  renderTable();
+}
 
     renderTable();
 
