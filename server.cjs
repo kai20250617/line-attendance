@@ -1701,45 +1701,7 @@ app.get("/api/export-monthly", async (req, res) => {
   }
 });
 
-// =========================
-// 薪資總表 API
-// =========================
 
-app.get("/api/salary-report", async (req, res) => {
-  try {
-    const employeesResult = await pool.query(
-      "SELECT * FROM employees WHERE status = '在職' ORDER BY id DESC"
-    );
-
-    const result = [];
-
-    for (const emp of employeesResult.rows) {
-      if (!emp.line_user_id) {
-        continue;
-      }
-
-      const salaryRes = await fetch(
-        `https://line-attendance-blt1.onrender.com/api/my-salary/${emp.line_user_id}`
-      );
-
-      const salary = await salaryRes.json();
-
-      if (salary.success) {
-        result.push(salary);
-      }
-    }
-
-    res.json(result);
-
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      success: false,
-      message: "讀取薪資總表失敗"
-    });
-  }
-});
 // =========================
 // 出勤規則設定
 // =========================
