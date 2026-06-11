@@ -3840,10 +3840,9 @@ app.get("/api/attendance-report", async (req, res) => {
       attendance.rows
 
         .filter(item =>
-
-          item.line_user_id === emp.line_user_id
-
-        )
+  item.line_user_id === emp.line_user_id ||
+  item.name === emp.name
+)
 
         .forEach(item => {
 
