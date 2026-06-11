@@ -1,49 +1,28 @@
 <!DOCTYPE html>
-
 <html lang="zh-Hant">
-
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>出勤管理</title>
 
 <style>
-
 body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
-
 h1{text-align:center;}
-
 .top{text-align:center;margin-bottom:20px;}
-
 button{color:white;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;margin:2px;}
-
 .back{background:#222;}
-
 .refresh{background:#1976d2;}
-
 .save{background:#2e7d32;}
-
 .delete{background:#e53935;}
-
 .table-wrap{width:100%;overflow-x:auto;background:white;}
-
-table{width:100%;min-width:860px;border-collapse:collapse;background:white;}
-
+table{width:100%;min-width:1050px;border-collapse:collapse;background:white;}
 th{background:#222;color:white;padding:10px;white-space:nowrap;}
-
 td{border:1px solid #ddd;padding:10px;text-align:center;white-space:nowrap;}
-
 select,input{padding:8px;border:1px solid #ccc;border-radius:6px;margin:3px;}
-
 .weekday{font-weight:bold;color:#1976d2;}
-
 .weekend{font-weight:bold;color:#e53935;}
-
+.missing{color:#e53935;font-weight:bold;}
 </style>
-
 </head>
 
 <body>
@@ -51,87 +30,55 @@ select,input{padding:8px;border:1px solid #ccc;border-radius:6px;margin:3px;}
 <h1>📋 出勤管理</h1>
 
 <div class="top">
-
   <input type="text" id="searchName" placeholder="員工姓名">
 
   <select id="searchType">
-
     <option value="">全部類型</option>
-
     <option value="上班">上班</option>
-
     <option value="下班">下班</option>
-
   </select>
 
   <input type="date" id="startDate">
-
   <input type="date" id="endDate">
 
   <button class="refresh" onclick="loadData()">查詢</button>
-
   <button class="back" onclick="clearFilter()">清除</button>
-
 </div>
 
 <div class="top">
-
   <button class="refresh" onclick="loadData()">重新整理</button>
-
   <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
-
 </div>
 
 <div class="table-wrap">
-
 <table>
-
 <thead>
-
 <tr>
-
   <th>ID</th>
-
   <th>員工</th>
-
-  <th>類型</th>
-
+  <th>日期</th>
   <th>星期</th>
-
-  <th>時間</th>
-
+  <th>上班時間</th>
+  <th>下班時間</th>
   <th>工時</th>
-
   <th>操作</th>
-
 </tr>
-
 </thead>
 
 <tbody id="tbody">
-
 <tr>
-
-  <td colspan="6">讀取中...</td>
-
+  <td colspan="8">讀取中...</td>
 </tr>
-
 </tbody>
-
 </table>
-
 </div>
 
 <script>
-
 if(localStorage.getItem("adminLogin") !== "yes"){
-
   window.location.href = "/login.html";
-
 }
 
 function toDatetimeLocal(value){
-
   if(!value) return "";
 
   const d = new Date(value);
@@ -139,318 +86,242 @@ function toDatetimeLocal(value){
   if(isNaN(d.getTime())) return "";
 
   const local = new Date(
-
     d.getTime() - d.getTimezoneOffset() * 60000
-
   );
 
   return local.toISOString().slice(0,16);
-
 }
 
-function getWeekday(value){
-
-  if(!value) return "-";
-
-  const d = new Date(value);
-
-  if(isNaN(d.getTime())) return "-";
-
-  const weekNames = [
-
-    "星期日",
-
-    "星期一",
-
-    "星期二",
-
-    "星期三",
-
-    "星期四",
-
-    "星期五",
-
-    "星期六"
-
-  ];
-
-  return weekNames[d.getDay()];
-
-}
-
-function getWeekdayClass(value){
-
-  const d = new Date(value);
-
-  if(isNaN(d.getTime())){
-
-    return "weekday";
-
-  }
-
-  const day = d.getDay();
-
-  if(day === 0 || day === 6){
-
+function getWeekdayClass(weekday){
+  if(weekday === "星期日" || weekday === "星期六"){
     return "weekend";
-
   }
 
   return "weekday";
-
 }
 
 async function loadData(){
-
   const tbody = document.getElementById("tbody");
 
   tbody.innerHTML =
-
-  "<tr><td colspan='6'>讀取中...</td></tr>";
+  "<tr><td colspan='8'>讀取中...</td></tr>";
 
   try{
-
     const name = document.getElementById("searchName").value.trim();
-
     const type = document.getElementById("searchType").value;
-
     const startDate = document.getElementById("startDate").value;
-
     const endDate = document.getElementById("endDate").value;
 
     const params = new URLSearchParams();
 
     if(name){
-
       params.append("name", name);
-
     }
 
     if(type){
-
       params.append("type", type);
-
     }
 
     if(startDate){
-
       params.append("startDate", startDate);
-
     }
 
     if(endDate){
-
       params.append("endDate", endDate);
-
     }
 
     let url = "/api/attendance-admin";
 
     if(params.toString()){
-
       url += "?" + params.toString();
-
     }
 
     const res = await fetch(url);
-
     const data = await res.json();
 
     if(!Array.isArray(data) || data.length === 0){
-
       tbody.innerHTML =
-
-      "<tr><td colspan='6'>目前沒有出勤資料</td></tr>";
-
+      "<tr><td colspan='8'>目前沒有出勤資料</td></tr>";
       return;
-
     }
 
     tbody.innerHTML = "";
 
     data.forEach(item=>{
-
       tbody.innerHTML += `
-
         <tr>
-
-          <td>${item.id}</td>
+          <td>${item.id || "-"}</td>
 
           <td>${item.name || "-"}</td>
 
-          <td>
-
-            <select id="type_${item.id}">
-
-              <option value="上班" ${item.type==="上班" ? "selected" : ""}>上班</option>
-
-              <option value="下班" ${item.type==="下班" ? "selected" : ""}>下班</option>
-
-            </select>
-
-          </td>
+          <td>${item.date || "-"}</td>
 
           <td>
-
-            <span class="${getWeekdayClass(item.clock_time)}">
-
-              ${getWeekday(item.clock_time)}
-
+            <span class="${getWeekdayClass(item.weekday)}">
+              ${item.weekday || "-"}
             </span>
-
           </td>
 
           <td>
-
-            <input
-
-              type="datetime-local"
-
-              id="time_${item.id}"
-
-              value="${toDatetimeLocal(item.clock_time)}">
-
+            ${
+              item.start_id
+              ? `
+                <input
+                  type="datetime-local"
+                  id="start_${item.id}"
+                  value="${toDatetimeLocal(item.start_time)}">
+              `
+              : `<span class="missing">缺上班</span>`
+            }
           </td>
 
           <td>
-  ${
-    item.work_hours !== null && item.work_hours !== undefined
-    ? item.work_hours + " 小時"
-    : "-"
-  }
-</td>
-
-          <td>
-
-            <button class="save" onclick="saveData(${item.id})">修改</button>
-
-            <button class="delete" onclick="deleteData(${item.id})">刪除</button>
-
+            ${
+              item.end_id
+              ? `
+                <input
+                  type="datetime-local"
+                  id="end_${item.id}"
+                  value="${toDatetimeLocal(item.end_time)}">
+              `
+              : `<span class="missing">缺下班</span>`
+            }
           </td>
 
+          <td>
+            ${
+              item.work_hours !== null && item.work_hours !== undefined
+              ? item.work_hours + " 小時"
+              : "-"
+            }
+          </td>
+
+          <td>
+            <button class="save" onclick="saveDay(${item.id}, ${item.start_id || "null"}, ${item.end_id || "null"})">
+              修改
+            </button>
+
+            <button class="delete" onclick="deleteDay(${item.start_id || "null"}, ${item.end_id || "null"})">
+              刪除
+            </button>
+          </td>
         </tr>
-
-        
       `;
-
     });
 
   }catch(err){
-
     console.error(err);
 
     tbody.innerHTML =
-
-    "<tr><td colspan='6'>讀取失敗</td></tr>";
-
+    "<tr><td colspan='8'>讀取失敗</td></tr>";
   }
-
 }
 
 function clearFilter(){
-
   document.getElementById("searchName").value = "";
-
   document.getElementById("searchType").value = "";
-
   document.getElementById("startDate").value = "";
-
   document.getElementById("endDate").value = "";
 
   loadData();
-
 }
 
-async function saveData(id){
-
-  const type = document.getElementById("type_" + id).value;
-
-  const rawTime = document.getElementById("time_" + id).value;
-
-  if(!rawTime){
-
-    alert("請輸入時間");
-
+async function updateOne(id, type, rawTime){
+  if(!id || !rawTime){
     return;
-
   }
 
-  const clock_time = rawTime + ":00+08:00";
+  const clock_time =
+  rawTime + ":00+08:00";
 
+  const res =
+  await fetch("/api/attendance-admin/" + id, {
+    method:"PUT",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      type,
+      clock_time
+    })
+  });
+
+  return await res.json();
+}
+
+async function saveDay(rowId, startId, endId){
   try{
+    const startInput =
+    document.getElementById("start_" + rowId);
 
-    const res = await fetch("/api/attendance-admin/" + id, {
+    const endInput =
+    document.getElementById("end_" + rowId);
 
-      method:"PUT",
+    if(startId && startInput){
+      await updateOne(
+        startId,
+        "上班",
+        startInput.value
+      );
+    }
 
-      headers:{
+    if(endId && endInput){
+      await updateOne(
+        endId,
+        "下班",
+        endInput.value
+      );
+    }
 
-        "Content-Type":"application/json"
-
-      },
-
-      body:JSON.stringify({
-
-        type,
-
-        clock_time
-
-      })
-
-    });
-
-    const data = await res.json();
-
-    alert(data.message || "已修改");
+    alert("已修改");
 
     loadData();
 
   }catch(err){
-
     console.error(err);
-
     alert("修改失敗");
-
   }
-
 }
 
-async function deleteData(id){
-
-  if(!confirm("確定刪除這筆出勤資料？")){
-
+async function deleteOne(id){
+  if(!id){
     return;
+  }
 
+  const res =
+  await fetch("/api/attendance-admin/" + id, {
+    method:"DELETE"
+  });
+
+  return await res.json();
+}
+
+async function deleteDay(startId, endId){
+  if(!confirm("確定刪除這一天的上班與下班資料？")){
+    return;
   }
 
   try{
+    if(startId){
+      await deleteOne(startId);
+    }
 
-    const res = await fetch("/api/attendance-admin/" + id, {
+    if(endId){
+      await deleteOne(endId);
+    }
 
-      method:"DELETE"
-
-    });
-
-    const data = await res.json();
-
-    alert(data.message || "已刪除");
+    alert("已刪除");
 
     loadData();
 
   }catch(err){
-
     console.error(err);
-
     alert("刪除失敗");
-
   }
-
 }
 
 loadData();
-
 </script>
 
 </body>
-
 </html>

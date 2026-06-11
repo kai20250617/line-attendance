@@ -3237,70 +3237,94 @@ app.get("/api/attendance-admin", async (req, res) => {
 
     const rows = result.rows;
 
-    const dayGroups = {};
+    const groups = {};
+
+    const getTaipeiDate = value => {
+      return new Date(value).toLocaleDateString("zh-TW", {
+        timeZone:"Asia/Taipei",
+        year:"numeric",
+        month:"2-digit",
+        day:"2-digit"
+      });
+    };
+
+    const getWeekday = value => {
+      const d = new Date(
+        new Date(value).toLocaleString("en-US", {
+          timeZone:"Asia/Taipei"
+        })
+      );
+
+      const weekNames = [
+        "星期日",
+        "星期一",
+        "星期二",
+        "星期三",
+        "星期四",
+        "星期五",
+        "星期六"
+      ];
+
+      return weekNames[d.getDay()];
+    };
 
     rows.forEach(item => {
-      const taipeiDate =
-        new Date(item.clock_time)
-        .toLocaleDateString("zh-TW", {
-          timeZone:"Asia/Taipei"
-        });
+      const date =
+        getTaipeiDate(item.clock_time);
 
       const key =
-        `${item.line_user_id || item.name}_${taipeiDate}`;
+        `${item.line_user_id || item.name}_${date}`;
 
-      if (!dayGroups[key]) {
-        dayGroups[key] = {
-          start:null,
-          end:null
+      if (!groups[key]) {
+        groups[key] = {
+          name:item.name || "-",
+          line_user_id:item.line_user_id || "",
+          date,
+          weekday:getWeekday(item.clock_time),
+          start_id:null,
+          end_id:null,
+          start_time:null,
+          end_time:null,
+          start_raw:null,
+          end_raw:null
         };
       }
 
       if (item.type === "上班") {
         if (
-          !dayGroups[key].start ||
+          !groups[key].start_raw ||
           new Date(item.clock_time) <
-          new Date(dayGroups[key].start)
+          new Date(groups[key].start_raw)
         ) {
-          dayGroups[key].start =
-            item.clock_time;
+          groups[key].start_id = item.id;
+          groups[key].start_time = item.clock_time;
+          groups[key].start_raw = item.clock_time;
         }
       }
 
       if (item.type === "下班") {
         if (
-          !dayGroups[key].end ||
+          !groups[key].end_raw ||
           new Date(item.clock_time) >
-          new Date(dayGroups[key].end)
+          new Date(groups[key].end_raw)
         ) {
-          dayGroups[key].end =
-            item.clock_time;
+          groups[key].end_id = item.id;
+          groups[key].end_time = item.clock_time;
+          groups[key].end_raw = item.clock_time;
         }
       }
     });
 
-    const rowsWithHours =
-      rows.map(item => {
-        const taipeiDate =
-          new Date(item.clock_time)
-          .toLocaleDateString("zh-TW", {
-            timeZone:"Asia/Taipei"
-          });
-
-        const key =
-          `${item.line_user_id || item.name}_${taipeiDate}`;
-
+    const mergedRows =
+      Object.values(groups).map(item => {
         let work_hours = null;
 
-        const group =
-          dayGroups[key];
-
-        if (group && group.start && group.end) {
+        if (item.start_raw && item.end_raw) {
           const start =
-            new Date(group.start);
+            new Date(item.start_raw);
 
           const end =
-            new Date(group.end);
+            new Date(item.end_raw);
 
           const hours =
             (end - start) / 1000 / 60 / 60;
@@ -3310,14 +3334,29 @@ app.get("/api/attendance-admin", async (req, res) => {
         }
 
         return {
-          ...item,
+          id:
+            item.end_id ||
+            item.start_id,
+
+          name:item.name,
+          line_user_id:item.line_user_id,
+
+          date:item.date,
+          weekday:item.weekday,
+
+          start_id:item.start_id,
+          end_id:item.end_id,
+
+          start_time:item.start_time,
+          end_time:item.end_time,
+
           work_hours
         };
       });
 
-    rowsWithHours.sort((a,b)=>b.id - a.id);
+    mergedRows.sort((a,b)=>b.id - a.id);
 
-    res.json(rowsWithHours);
+    res.json(mergedRows);
 
   } catch(err) {
     console.error(err);
