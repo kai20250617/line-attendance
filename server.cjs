@@ -1268,7 +1268,6 @@ ${leave.end_date}
 // =========================
 
 app.post("/api/employees", async (req, res) => {
-
   const {
     lineUserId,
     name,
@@ -1277,6 +1276,7 @@ app.post("/api/employees", async (req, res) => {
     hourlyWage,
     baseSalary,
     fixedAllowance,
+    transportAllowance,
     performanceBonus
   } = req.body;
 
@@ -1288,7 +1288,6 @@ app.post("/api/employees", async (req, res) => {
   }
 
   try {
-
     await pool.query(
       `
       INSERT INTO employees
@@ -1315,12 +1314,8 @@ app.post("/api/employees", async (req, res) => {
         Number(hourlyWage || 0),
         Number(baseSalary || 27000),
         Number(fixedAllowance || 3000),
-
-        // 固定交通津貼 3000
-        3000,
-
+        Number(transportAllowance || 3000),
         Number(performanceBonus || 0),
-
         "在職"
       ]
     );
@@ -1331,22 +1326,17 @@ app.post("/api/employees", async (req, res) => {
     });
 
   } catch(err) {
-
     console.error(err);
 
     res.status(500).json({
       success:false,
       message:"新增員工失敗"
     });
-
   }
-
 });
 
 app.get("/api/employees", async (req, res) => {
-
   try {
-
     const result = await pool.query(
       "SELECT * FROM employees ORDER BY id DESC"
     );
@@ -1354,27 +1344,22 @@ app.get("/api/employees", async (req, res) => {
     res.json(result.rows);
 
   } catch(err) {
-
     console.error(err);
 
     res.status(500).json({
       success:false,
       message:"讀取員工資料失敗"
     });
-
   }
-
 });
 
 app.post("/api/employees/status", async (req, res) => {
-
   const {
     id,
     status
   } = req.body;
 
   try {
-
     await pool.query(
       `
       UPDATE employees
@@ -1393,16 +1378,99 @@ app.post("/api/employees/status", async (req, res) => {
     });
 
   } catch(err) {
-
     console.error(err);
 
     res.status(500).json({
       success:false,
       message:"員工狀態更新失敗"
     });
-
   }
+});
 
+// =========================
+// 修改員工資料
+// =========================
+
+app.put("/api/employees/:id", async(req,res)=>{
+  try{
+    const {id} = req.params;
+
+    const {
+      name,
+      department,
+      position,
+      base_salary,
+      fixed_allowance,
+      transport_allowance,
+      performance_bonus
+    } = req.body;
+
+    await pool.query(
+      `
+      UPDATE employees
+      SET
+        name = $1,
+        department = $2,
+        position = $3,
+        base_salary = $4,
+        fixed_allowance = $5,
+        attendance_bonus = $6,
+        performance_bonus = $7
+      WHERE id = $8
+      `,
+      [
+        name,
+        department,
+        position,
+        Number(base_salary || 0),
+        Number(fixed_allowance || 0),
+        Number(transport_allowance || 0),
+        Number(performance_bonus || 0),
+        id
+      ]
+    );
+
+    res.json({
+      success:true,
+      message:"員工資料已修改"
+    });
+
+  }catch(err){
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"修改員工失敗"
+    });
+  }
+});
+
+// =========================
+// 刪除員工
+// =========================
+
+app.delete("/api/employees/:id", async(req,res)=>{
+  try{
+    const {id} = req.params;
+
+    await pool.query(
+      "DELETE FROM employees WHERE id = $1",
+      [id]
+    );
+
+    res.json({
+      success:true,
+      message:"員工已刪除"
+    });
+
+  }catch(err){
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"刪除員工失敗"
+    });
+  }
 });
 
 // =========================

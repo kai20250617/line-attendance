@@ -17,6 +17,8 @@ button{padding:8px 15px;border:none;border-radius:5px;color:white;cursor:pointer
 .back{background:#2196F3;}
 .bindBtn{background:#ff9800;}
 .copyBtn{background:#6a1b9a;}
+.edit{background:#ff9800;}
+.delete{background:#d32f2f;}
 table{width:100%;border-collapse:collapse;background:white;}
 th{background:#222;color:white;padding:12px;}
 td{border:1px solid #ddd;padding:10px;text-align:center;}
@@ -34,8 +36,6 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
   <input id="name" placeholder="員工姓名">
   <input id="department" placeholder="部門">
   <input id="position" placeholder="職稱">
-  <input id="hourlyWage" type="number" placeholder="時薪">
-
   <input id="baseSalary" type="number" value="27000" placeholder="底薪">
   <input id="fixedAllowance" type="number" value="3000" placeholder="固定津貼">
   <input id="transportAllowance" type="number" value="3000" placeholder="交通津貼">
@@ -51,13 +51,11 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
   <th>姓名</th>
   <th>部門</th>
   <th>職稱</th>
-  <th>時薪</th>
   <th>底薪</th>
   <th>固定津貼</th>
   <th>交通津貼</th>
   <th>績效</th>
   <th>LINE綁定</th>
-  <th>綁定碼</th>
   <th>狀態</th>
   <th>操作</th>
 </tr>
@@ -65,7 +63,7 @@ td{border:1px solid #ddd;padding:10px;text-align:center;}
 
 <tbody id="employeeTable">
 <tr>
-<td colspan="12">讀取中...</td>
+<td colspan="10">讀取中...</td>
 </tr>
 </tbody>
 </table>
@@ -75,11 +73,16 @@ if(localStorage.getItem("adminLogin") !== "yes"){
   window.location.href = "/login.html";
 }
 
+let employees = [];
+
+function money(value){
+  return "NT$" + Number(value || 0).toLocaleString("zh-TW");
+}
+
 async function addEmployee(){
-  const name = document.getElementById("name").value;
-  const department = document.getElementById("department").value;
-  const position = document.getElementById("position").value;
-  const hourlyWage = document.getElementById("hourlyWage").value;
+  const name = document.getElementById("name").value.trim();
+  const department = document.getElementById("department").value.trim();
+  const position = document.getElementById("position").value.trim();
 
   const baseSalary = document.getElementById("baseSalary").value;
   const fixedAllowance = document.getElementById("fixedAllowance").value;
@@ -91,7 +94,7 @@ async function addEmployee(){
     return;
   }
 
-  await fetch("/api/employees",{
+  const res = await fetch("/api/employees",{
     method:"POST",
     headers:{
       "Content-Type":"application/json"
@@ -101,7 +104,7 @@ async function addEmployee(){
       name,
       department,
       position,
-      hourlyWage,
+      hourlyWage:0,
       baseSalary,
       fixedAllowance,
       transportAllowance,
@@ -109,10 +112,13 @@ async function addEmployee(){
     })
   });
 
+  const data = await res.json();
+
+  alert(data.message || "新增完成");
+
   document.getElementById("name").value="";
   document.getElementById("department").value="";
   document.getElementById("position").value="";
-  document.getElementById("hourlyWage").value="";
   document.getElementById("baseSalary").value="27000";
   document.getElementById("fixedAllowance").value="3000";
   document.getElementById("transportAllowance").value="3000";
@@ -124,11 +130,15 @@ async function addEmployee(){
 async function loadEmployees(){
   const tbody = document.getElementById("employeeTable");
 
+  tbody.innerHTML = "<tr><td colspan='10'>讀取中...</td></tr>";
+
   const res = await fetch("/api/employees");
   const data = await res.json();
 
-  if(data.length === 0){
-    tbody.innerHTML = "<tr><td colspan='12'>目前沒有員工資料</td></tr>";
+  employees = data;
+
+  if(!Array.isArray(data) || data.length === 0){
+    tbody.innerHTML = "<tr><td colspan='10'>目前沒有員工資料</td></tr>";
     return;
   }
 
@@ -140,33 +150,134 @@ async function loadEmployees(){
     ? "<span class='binded'>✅ 已綁定</span>"
     : "<span class='unbind'>❌ 未綁定</span>";
 
-    const bindCode =
-    item.bind_code
-    ? `<span class="code">${item.bind_code}</span><br>
-       <button class="copyBtn" onclick="copyText('${item.bind_code}')">複製</button>`
-    : "-";
-
     tbody.innerHTML += `
       <tr>
         <td>${item.name || "-"}</td>
         <td>${item.department || "-"}</td>
         <td>${item.position || "-"}</td>
-        <td>NT$${Number(item.hourly_wage || 0).toLocaleString("zh-TW")}</td>
-        <td>NT$${Number(item.base_salary || 27000).toLocaleString("zh-TW")}</td>
-        <td>NT$${Number(item.fixed_allowance || 3000).toLocaleString("zh-TW")}</td>
-        <td>NT$${Number(item.attendance_bonus || 3000).toLocaleString("zh-TW")}</td>
-        <td>NT$${Number(item.performance_bonus || 0).toLocaleString("zh-TW")}</td>
+        <td>${money(item.base_salary || 27000)}</td>
+        <td>${money(item.fixed_allowance || 3000)}</td>
+        <td>${money(item.transport_allowance || item.attendance_bonus || 3000)}</td>
+        <td>${money(item.performance_bonus || 0)}</td>
         <td>${bindStatus}</td>
-        <td>${bindCode}</td>
         <td>${item.status || "-"}</td>
         <td>
           <button class="bindBtn" onclick="generateBindCode(${item.id})">產生綁定碼</button>
+          <button class="edit" onclick="editEmployee(${item.id})">編輯</button>
           <button class="active" onclick="updateStatus(${item.id}, '在職')">在職</button>
           <button class="leave" onclick="updateStatus(${item.id}, '離職')">離職</button>
+          <button class="delete" onclick="deleteEmployee(${item.id})">刪除</button>
         </td>
       </tr>
     `;
   });
+}
+
+async function editEmployee(id){
+  const emp =
+  employees.find(e => e.id === id);
+
+  if(!emp){
+    alert("找不到員工資料");
+    return;
+  }
+
+  const name =
+  prompt("姓名", emp.name || "");
+
+  if(name === null){
+    return;
+  }
+
+  const department =
+  prompt("部門", emp.department || "");
+
+  if(department === null){
+    return;
+  }
+
+  const position =
+  prompt("職稱", emp.position || "");
+
+  if(position === null){
+    return;
+  }
+
+  const baseSalary =
+  prompt("底薪", emp.base_salary || 27000);
+
+  if(baseSalary === null){
+    return;
+  }
+
+  const fixedAllowance =
+  prompt("固定津貼", emp.fixed_allowance || 3000);
+
+  if(fixedAllowance === null){
+    return;
+  }
+
+  const transportAllowance =
+  prompt("交通津貼", emp.transport_allowance || emp.attendance_bonus || 3000);
+
+  if(transportAllowance === null){
+    return;
+  }
+
+  const performanceBonus =
+  prompt("績效獎金", emp.performance_bonus || 0);
+
+  if(performanceBonus === null){
+    return;
+  }
+
+  const res =
+  await fetch(
+    "/api/employees/" + id,
+    {
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        name,
+        department,
+        position,
+        base_salary:baseSalary,
+        fixed_allowance:fixedAllowance,
+        transport_allowance:transportAllowance,
+        performance_bonus:performanceBonus
+      })
+    }
+  );
+
+  const data =
+  await res.json();
+
+  alert(data.message || "修改完成");
+
+  loadEmployees();
+}
+
+async function deleteEmployee(id){
+  if(!confirm("確定刪除這位員工？這個動作無法復原。")){
+    return;
+  }
+
+  const res =
+  await fetch(
+    "/api/employees/" + id,
+    {
+      method:"DELETE"
+    }
+  );
+
+  const data =
+  await res.json();
+
+  alert(data.message || "刪除完成");
+
+  loadEmployees();
 }
 
 async function generateBindCode(id){
@@ -182,11 +293,6 @@ async function generateBindCode(id){
   }else{
     alert(data.message || "產生綁定碼失敗");
   }
-}
-
-function copyText(text){
-  navigator.clipboard.writeText(text);
-  alert("已複製：" + text);
 }
 
 async function updateStatus(id,status){
