@@ -3369,6 +3369,73 @@ app.get("/api/attendance-admin", async (req, res) => {
 });
 
 // =========================
+// 出勤管理 - 修改單筆出勤
+// =========================
+app.put("/api/attendance-admin/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { type, clock_time } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success:false,
+        message:"缺少出勤ID"
+      });
+    }
+
+    if (!type || !clock_time) {
+      return res.status(400).json({
+        success:false,
+        message:"缺少出勤類型或時間"
+      });
+    }
+
+    if (type !== "上班" && type !== "下班") {
+      return res.status(400).json({
+        success:false,
+        message:"出勤類型只能是上班或下班"
+      });
+    }
+
+    const parsedTime = new Date(clock_time);
+
+    if (isNaN(parsedTime.getTime())) {
+      return res.status(400).json({
+        success:false,
+        message:"時間格式錯誤：" + clock_time
+      });
+    }
+
+    await pool.query(
+      `
+      UPDATE attendance
+      SET type = $1,
+          clock_time = $2
+      WHERE id = $3
+      `,
+      [
+        type,
+        parsedTime.toISOString(),
+        id
+      ]
+    );
+
+    res.json({
+      success:true,
+      message:"出勤資料已修改"
+    });
+
+  } catch(err) {
+    console.error("修改出勤失敗:", err);
+
+    res.status(500).json({
+      success:false,
+      message:"修改出勤失敗：" + err.message
+    });
+  }
+});
+
+// =========================
 // 出勤統計報表
 // =========================
 
