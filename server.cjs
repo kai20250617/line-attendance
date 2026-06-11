@@ -3634,254 +3634,373 @@ app.put("/api/attendance-admin/:id", async (req, res) => {
 });
 
 // =========================
+
 // 出勤統計報表
+
 // =========================
 
 function getTaipeiMinutes(value) {
+
   const d = new Date(value);
 
   const parts = new Intl.DateTimeFormat("zh-TW", {
+
     timeZone: "Asia/Taipei",
+
     hour: "2-digit",
+
     minute: "2-digit",
+
     hour12: false
+
   }).formatToParts(d);
 
-  const hour =
-    Number(parts.find(p => p.type === "hour").value);
+  const hour = Number(parts.find(p => p.type === "hour").value);
 
-  const minute =
-    Number(parts.find(p => p.type === "minute").value);
+  const minute = Number(parts.find(p => p.type === "minute").value);
 
   return hour * 60 + minute;
+
 }
 
 function getTaipeiDate(value) {
+
   const d = new Date(value);
 
   return new Intl.DateTimeFormat("zh-TW", {
+
     timeZone: "Asia/Taipei",
+
     year: "numeric",
+
     month: "2-digit",
+
     day: "2-digit"
+
   }).format(d);
+
 }
 
 app.get("/api/attendance-report", async (req, res) => {
+
   try {
+
     const {
+
       name,
+
       department,
+
       startDate,
+
       endDate
+
     } = req.query;
 
     const rulesResult = await pool.query(
+
       "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
+
     );
 
-    const rules =
-      rulesResult.rows[0] || {};
+    const rules = rulesResult.rows[0] || {};
 
-    const workStart =
-      rules.work_start || "09:00";
+    const workStart = rules.work_start || "09:00";
 
-    const workEnd =
-      rules.work_end || "18:00";
+    const workEnd = rules.work_end || "18:00";
 
-    const breakHours =
-      Number(rules.break_hours || 0);
+    const breakHours = Number(rules.break_hours || 0);
 
-    const lateAllowance =
-      Number(rules.late_allowance || 0);
+    const lateAllowance = Number(rules.late_allowance || 0);
 
-    const earlyAllowance =
-      Number(rules.early_allowance || 0);
+    const earlyAllowance = Number(rules.early_allowance || 0);
 
-    const [startHour, startMinute] =
-      workStart.split(":").map(Number);
+    const [startHour, startMinute] = workStart.split(":").map(Number);
 
-    const [endHour, endMinute] =
-      workEnd.split(":").map(Number);
+    const [endHour, endMinute] = workEnd.split(":").map(Number);
 
     const ruleStartMinutes =
-      startHour * 60 +
-      startMinute +
-      lateAllowance;
+
+      startHour * 60 + startMinute + lateAllowance;
 
     const ruleEndMinutes =
-      endHour * 60 +
-      endMinute -
-      earlyAllowance;
+
+      endHour * 60 + endMinute - earlyAllowance;
 
     let empSql = `
+
       SELECT *
+
       FROM employees
+
       WHERE status = '在職'
+
     `;
 
     const empParams = [];
 
     if (name) {
+
       empParams.push("%" + name + "%");
-      empSql += `
-        AND name ILIKE $${empParams.length}
-      `;
+
+      empSql += ` AND name ILIKE $${empParams.length}`;
+
     }
 
     if (department) {
+
       empParams.push("%" + department + "%");
-      empSql += `
-        AND department ILIKE $${empParams.length}
-      `;
+
+      empSql += ` AND department ILIKE $${empParams.length}`;
+
     }
 
-    empSql += `
-      ORDER BY name
-    `;
+    empSql += ` ORDER BY name`;
 
-    const employees =
-      await pool.query(empSql, empParams);
+    const employees = await pool.query(empSql, empParams);
+
+    // 去除重複員工
+
+    const uniqueEmployees = [];
+
+    const seen = new Set();
+
+    for (const emp of employees.rows) {
+
+      const key = emp.line_user_id || emp.name;
+
+      if (!seen.has(key)) {
+
+        seen.add(key);
+
+        uniqueEmployees.push(emp);
+
+      }
+
+    }
 
     let attSql = `
+
       SELECT *
+
       FROM attendance
+
       WHERE 1 = 1
+
     `;
 
     const attParams = [];
 
     if (startDate) {
+
       attParams.push(startDate);
+
       attSql += `
+
         AND DATE(clock_time AT TIME ZONE 'Asia/Taipei')
+
         >= $${attParams.length}
+
       `;
+
     }
 
     if (endDate) {
+
       attParams.push(endDate);
+
       attSql += `
+
         AND DATE(clock_time AT TIME ZONE 'Asia/Taipei')
+
         <= $${attParams.length}
+
       `;
+
     }
 
-    attSql += `
-      ORDER BY clock_time ASC
-    `;
+    attSql += ` ORDER BY clock_time ASC`;
 
-    const attendance =
-      await pool.query(attSql, attParams);
+    const attendance = await pool.query(attSql, attParams);
 
     const result = [];
 
-    for (const emp of employees.rows) {
+    for (const emp of uniqueEmployees) {
+
       let totalHours = 0;
+
       let lateCount = 0;
+
       let earlyLeaveCount = 0;
+
       let workDays = 0;
 
       const dayGroups = {};
 
       attendance.rows
+
         .filter(item =>
+
           item.line_user_id === emp.line_user_id
+
         )
+
         .forEach(item => {
-          const date =
-            getTaipeiDate(item.clock_time);
+
+          const date = getTaipeiDate(item.clock_time);
 
           if (!dayGroups[date]) {
+
             dayGroups[date] = {
+
               start:null,
+
               end:null
+
             };
+
           }
 
           if (item.type === "上班") {
+
             if (
+
               !dayGroups[date].start ||
+
               new Date(item.clock_time) <
+
               new Date(dayGroups[date].start)
+
             ) {
-              dayGroups[date].start =
-                item.clock_time;
+
+              dayGroups[date].start = item.clock_time;
+
             }
+
           }
 
           if (item.type === "下班") {
+
             if (
+
               !dayGroups[date].end ||
+
               new Date(item.clock_time) >
+
               new Date(dayGroups[date].end)
+
             ) {
-              dayGroups[date].end =
-                item.clock_time;
+
+              dayGroups[date].end = item.clock_time;
+
             }
+
           }
+
         });
 
       Object.values(dayGroups).forEach(day => {
-        if (day.start && day.end) {
-          const start =
-            new Date(day.start);
 
-          const end =
-            new Date(day.end);
+        if (day.start && day.end) {
 
           const rawHours =
-            (end - start) / 1000 / 60 / 60;
+
+            (new Date(day.end) - new Date(day.start)) /
+
+            1000 / 60 / 60;
 
           const workHours =
-            Math.max(
-              0,
-              rawHours - breakHours
-            );
+
+            Math.max(0, rawHours - breakHours);
 
           if (workHours > 0) {
+
             workDays++;
+
             totalHours += workHours;
+
           }
 
-          const startMinutes =
-            getTaipeiMinutes(day.start);
+          const startMinutes = getTaipeiMinutes(day.start);
 
-          const endMinutes =
-            getTaipeiMinutes(day.end);
+          const endMinutes = getTaipeiMinutes(day.end);
 
           if (startMinutes > ruleStartMinutes) {
+
             lateCount++;
+
           }
 
           if (endMinutes < ruleEndMinutes) {
+
             earlyLeaveCount++;
+
           }
+
         }
+
       });
 
+      const averageHours =
+
+        workDays > 0
+
+        ? Number((totalHours / workDays).toFixed(2))
+
+        : 0;
+
+      let normalDays =
+
+        workDays - lateCount - earlyLeaveCount;
+
+      if (normalDays < 0) {
+
+        normalDays = 0;
+
+      }
+
       result.push({
+
         name: emp.name,
+
         department: emp.department || "-",
+
         position: emp.position || "-",
+
         workDays,
+
+        normalDays,
+
         breakHours,
+
         totalHours: totalHours.toFixed(2),
+
+        averageHours: averageHours.toFixed(2),
+
         lateCount,
+
         earlyLeaveCount
+
       });
+
     }
 
     res.json(result);
 
   } catch(err) {
+
     console.error("讀取出勤報表失敗:", err);
 
     res.status(500).json({
+
       success:false,
+
       message:"讀取出勤報表失敗"
+
     });
+
   }
+
 });
 // =========================
 // 產生員工綁定碼
