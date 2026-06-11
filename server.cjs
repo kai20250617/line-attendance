@@ -1142,26 +1142,54 @@ https://line-attendance-blt1.onrender.com/leave-admin.html`
 });
 
 app.get("/api/leaves", async (req, res) => {
-
   try {
-
     const result = await pool.query(
-      "SELECT * FROM leaves ORDER BY id DESC"
+      `
+      SELECT *
+      FROM leaves
+      ORDER BY id DESC
+      `
     );
 
     res.json(result.rows);
 
   } catch(err) {
-
     console.error(err);
 
     res.status(500).json({
       success:false,
       message:"讀取請假資料失敗"
     });
-
   }
+});
 
+// =========================
+// 刪除請假紀錄
+// =========================
+
+app.delete("/api/leaves/:id", async (req,res)=>{
+  try{
+    await pool.query(
+      `
+      DELETE FROM leaves
+      WHERE id = $1
+      `,
+      [req.params.id]
+    );
+
+    res.json({
+      success:true,
+      message:"請假紀錄已刪除"
+    });
+
+  }catch(err){
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"刪除失敗"
+    });
+  }
 });
 
 // =========================
