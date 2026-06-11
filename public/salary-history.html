@@ -1,26 +1,53 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>薪資歷史</title>
 
 <style>
+
 body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
+
 h1{text-align:center;font-size:38px;}
+
 .top{text-align:center;margin-bottom:20px;}
+
 .filter{background:white;padding:15px;border-radius:10px;margin-bottom:20px;text-align:center;}
+
 input,button,a{padding:10px 14px;margin:5px;border-radius:6px;border:1px solid #ccc;font-size:16px;}
+
 button{background:#1976d2;color:white;border:none;cursor:pointer;}
+
 a{display:inline-block;background:#222;color:white;text-decoration:none;}
+
 .table-wrap{width:100%;overflow-x:auto;background:white;}
-table{min-width:760px;width:100%;border-collapse:collapse;background:white;font-size:16px;}
+
+table{min-width:900px;width:100%;border-collapse:collapse;background:white;font-size:16px;}
+
 th{background:#222;color:white;padding:12px;white-space:nowrap;}
+
 td{border:1px solid #ddd;padding:12px;text-align:center;white-space:nowrap;}
+
 .amount{font-weight:bold;}
+
 .net{color:#0d47a1;font-weight:bold;}
+
+.signed{color:#2e7d32;font-weight:bold;}
+
+.unsigned{color:#c62828;font-weight:bold;}
+
+.small{font-size:13px;color:#555;margin-top:4px;}
+
 .empty{text-align:center;padding:20px;}
+
 </style>
+
 </head>
 
 <body>
@@ -28,46 +55,77 @@ td{border:1px solid #ddd;padding:12px;text-align:center;white-space:nowrap;}
 <h1>📄 薪資歷史</h1>
 
 <div class="top">
+
   <a href="/dashboard.html">返回後台</a>
+
 </div>
 
 <div class="filter">
+
   <input type="month" id="month">
+
   <input type="text" id="name" placeholder="搜尋員工姓名">
+
   <button onclick="loadHistory()">查詢</button>
+
   <button onclick="resetFilter()">清除</button>
+
 </div>
 
 <div class="table-wrap">
+
 <table>
+
 <thead>
+
 <tr>
+
   <th>月份</th>
+
   <th>員工</th>
+
   <th>應發薪資</th>
+
   <th>實發薪資</th>
+
   <th>結算時間</th>
+
+  <th>簽收狀態</th>
+
 </tr>
+
 </thead>
 
 <tbody id="tbody">
+
 <tr>
-  <td colspan="5" class="empty">讀取中...</td>
+
+  <td colspan="6" class="empty">讀取中...</td>
+
 </tr>
+
 </tbody>
+
 </table>
+
 </div>
 
 <script>
+
 if(localStorage.getItem("adminLogin") !== "yes"){
+
   window.location.href = "/login.html";
+
 }
 
 function formatMoney(value){
+
   return "NT$" + Number(value || 0).toLocaleString("zh-TW");
+
 }
 
 function formatDateTime(value){
+
   if(!value) return "-";
 
   const d = new Date(value);
@@ -75,75 +133,155 @@ function formatDateTime(value){
   if(isNaN(d.getTime())) return value;
 
   return d.toLocaleString("zh-TW", {
+
     timeZone:"Asia/Taipei"
+
   });
+
 }
 
 function formatName(name){
+
   if(!name) return "-";
+
   return name.charAt(0).toUpperCase() + name.slice(1);
+
+}
+
+function formatSignStatus(item){
+
+  const isSigned =
+
+  item.is_signed === true ||
+
+  item.is_signed === "true" ||
+
+  item.is_signed === 1 ||
+
+  item.is_signed === "1";
+
+  if(isSigned){
+
+    return `
+
+      <div class="signed">✅ 已簽收</div>
+
+      <div class="small">
+
+        ${formatDateTime(item.signed_at)}
+
+      </div>
+
+    `;
+
+  }
+
+  return `
+
+    <div class="unsigned">❌ 未簽收</div>
+
+  `;
+
 }
 
 async function loadHistory(){
+
   const tbody = document.getElementById("tbody");
+
   const month = document.getElementById("month").value;
+
   const name = document.getElementById("name").value.trim();
 
   tbody.innerHTML =
-  "<tr><td colspan='5' class='empty'>讀取中...</td></tr>";
+
+  "<tr><td colspan='6' class='empty'>讀取中...</td></tr>";
 
   try{
+
     let url = "/api/salary-history?";
+
     const params = [];
 
     if(month){
+
       params.push("month=" + encodeURIComponent(month));
+
     }
 
     if(name){
+
       params.push("name=" + encodeURIComponent(name));
+
     }
 
     url += params.join("&");
 
     const res = await fetch(url);
+
     const data = await res.json();
 
     if(!Array.isArray(data) || data.length === 0){
+
       tbody.innerHTML =
-      "<tr><td colspan='5' class='empty'>目前沒有薪資歷史</td></tr>";
+
+      "<tr><td colspan='6' class='empty'>目前沒有薪資歷史</td></tr>";
+
       return;
+
     }
 
     tbody.innerHTML = "";
 
     data.forEach(item=>{
+
       tbody.innerHTML += `
+
         <tr>
+
           <td>${item.salary_month || "-"}</td>
+
           <td>${formatName(item.employee_name)}</td>
+
           <td class="amount">${formatMoney(item.gross_salary)}</td>
+
           <td class="net">${formatMoney(item.net_salary)}</td>
+
           <td>${formatDateTime(item.created_at)}</td>
+
+          <td>${formatSignStatus(item)}</td>
+
         </tr>
+
       `;
+
     });
 
   }catch(error){
+
     console.error(error);
+
     tbody.innerHTML =
-    "<tr><td colspan='5' class='empty'>讀取失敗</td></tr>";
+
+    "<tr><td colspan='6' class='empty'>讀取失敗</td></tr>";
+
   }
+
 }
 
 function resetFilter(){
+
   document.getElementById("month").value = "";
+
   document.getElementById("name").value = "";
+
   loadHistory();
+
 }
 
 loadHistory();
+
 </script>
 
 </body>
+
 </html>
