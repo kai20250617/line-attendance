@@ -3492,6 +3492,38 @@ app.delete("/api/attendance-admin/:id", async (req, res) => {
 });
 
 // =========================
+// 刪除補打卡申請
+// =========================
+
+app.delete("/api/clock-request/:id", async (req, res) => {
+  try {
+
+    await pool.query(
+      `
+      DELETE FROM clock_requests
+      WHERE id = $1
+      `,
+      [req.params.id]
+    );
+
+    res.json({
+      success:true,
+      message:"補打卡申請已刪除"
+    });
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"刪除補打卡失敗"
+    });
+
+  }
+});
+
+// =========================
 // 出勤管理
 // =========================
 
