@@ -3621,11 +3621,16 @@ app.get("/api/attendance-admin", async (req, res) => {
           const end =
             new Date(item.end_raw);
 
-          const hours =
-            (end - start) / 1000 / 60 / 60;
+          const rawHours =
+  (end - start) / 1000 / 60 / 60;
 
-          work_hours =
-            Number(hours.toFixed(2));
+const breakHours = 1;
+
+const hours =
+  Math.max(0, rawHours - breakHours);
+
+work_hours =
+  Number(hours.toFixed(2));
         }
 
         return {
