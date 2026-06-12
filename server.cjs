@@ -858,7 +858,12 @@ app.get("/api/attendance", async (req, res) => {
       }
     });
 
-    const rawHours =
+    const finalRows =
+      Object.values(groups).map(item => {
+        let work_hours = null;
+
+        if (item.start_time && item.end_time) {
+          const rawHours =
 (
   new Date(item.end_time) -
   new Date(item.start_time)
