@@ -1151,12 +1151,18 @@ https://line-attendance-blt1.onrender.com/leave-admin.html`
 app.get("/api/leaves", async (req, res) => {
   try {
     const result = await pool.query(
-      `
-      SELECT *
-      FROM leaves
-      ORDER BY id DESC
-      `
-    );
+  `
+  SELECT
+    l.*,
+    COALESCE(e.name, l.name) AS name,
+    e.department,
+    e.position
+  FROM leaves l
+  LEFT JOIN employees e
+    ON e.line_user_id = l.line_user_id
+  ORDER BY l.id DESC
+  `
+);
 
     res.json(result.rows);
 
