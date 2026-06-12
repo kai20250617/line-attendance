@@ -858,17 +858,19 @@ app.get("/api/attendance", async (req, res) => {
       }
     });
 
-    const finalRows =
-      Object.values(groups).map(item => {
-        let work_hours = null;
+    const rawHours =
+(
+  new Date(item.end_time) -
+  new Date(item.start_time)
+) / 1000 / 60 / 60;
 
-        if (item.start_time && item.end_time) {
-          const hours =
-            (new Date(item.end_time) - new Date(item.start_time)) /
-            1000 / 60 / 60;
+const breakHours = 1;
 
-          work_hours =
-            Number(hours.toFixed(2));
+const hours =
+Math.max(0, rawHours - breakHours);
+
+work_hours =
+Number(hours.toFixed(2));
         }
 
         return {
