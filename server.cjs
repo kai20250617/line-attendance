@@ -2198,8 +2198,13 @@ let overtimeDetails = [];
       earlyLeaveCount++;
     }
 
-    const totalHours =
-      (endTime - startTime) / 1000 / 60 / 60;
+    const rawHours =
+(end - start) / 1000 / 60 / 60;
+
+const breakHours = 1;
+
+const hours =
+Math.max(0, rawHours - breakHours);
 
     const workHours =
       Math.max(
