@@ -1736,7 +1736,14 @@ app.get("/api/export-monthly", async (req, res) => {
         const workHours =
           Math.max(
             0,
-            totalHours - breakHours
+            const rawHours =
+(endTime - startTime) / 1000 / 60 / 60;
+
+const workHours =
+Math.max(
+  0,
+  rawHours - breakHours
+);
           );
 
         monthly[key].hours += workHours;
