@@ -1993,485 +1993,680 @@ app.get("/test-line", async (req, res) => {
 
 
 // =========================
+
 // 我的薪資 API
+
 // =========================
 
 app.get("/api/my-salary/:lineUserId", async (req, res) => {
+
   try {
+
     const lineUserId = req.params.lineUserId;
 
     const empResult = await pool.query(
+
       `
+
       SELECT *
+
       FROM employees
+
       WHERE line_user_id = $1
+
       AND status = '在職'
+
       LIMIT 1
+
       `,
+
       [lineUserId]
+
     );
 
     if (empResult.rows.length === 0) {
+
       return res.status(404).json({
+
         success:false,
+
         message:"找不到員工資料"
+
       });
+
     }
 
     const emp = empResult.rows[0];
 
     const ruleResult = await pool.query(
+
       "SELECT * FROM rules ORDER BY id ASC LIMIT 1"
+
     );
 
     const rule = ruleResult.rows[0] || {};
 
     const workStart = rule.work_start || "09:00";
+
     const workEnd = rule.work_end || "18:00";
+
     const breakHours = Number(rule.break_hours || 1);
+
     const lateAllowance = Number(rule.late_allowance || 0);
+
     const earlyAllowance = Number(rule.early_allowance || 0);
 
     const [workStartHour, workStartMinute] =
+
       workStart.split(":").map(Number);
 
     const [workEndHour, workEndMinute] =
+
       workEnd.split(":").map(Number);
 
     const ruleStartMinutes =
+
       workStartHour * 60 + workStartMinute + lateAllowance;
 
     const ruleEndMinutes =
+
       workEndHour * 60 + workEndMinute - earlyAllowance;
 
     const standardHours =
+
       Math.max(
+
         0,
+
         ((workEndHour * 60 + workEndMinute) -
+
         (workStartHour * 60 + workStartMinute)) / 60 -
+
         breakHours
+
       );
 
     const baseSalary = Number(emp.base_salary || 27000);
+
     const fixedAllowance = Number(emp.fixed_allowance || 3000);
-    const transportAllowance = 3000;
+
+    const transportAllowance =
+
+      Number(emp.transport_allowance || emp.attendance_bonus || 3000);
+
     const performanceBonus = Number(emp.performance_bonus || 0);
 
     let lateCount = 0;
+
     let earlyLeaveCount = 0;
 
     let overtimePay = 0;
-let restDayOvertimePay = 0;
-let holidayOvertimePay = 0;
 
-let overtimeDetails = [];
+    let restDayOvertimePay = 0;
+
+    let holidayOvertimePay = 0;
+
+    let overtimeDetails = [];
 
     let leaveDeduction = 0;
+
     let totalWorkHours = 0;
+
     let attendanceQualified = true;
 
     const attendanceResult = await pool.query(
+
       `
+
       SELECT *
+
       FROM attendance
+
       WHERE line_user_id = $1
+
       ORDER BY clock_time ASC
+
       `,
+
       [lineUserId]
+
     );
 
     const dayGroups = {};
 
     attendanceResult.rows.forEach(item => {
+
       const date =
+
       new Date(item.clock_time)
+
       .toLocaleDateString("zh-TW", {
+
         timeZone:"Asia/Taipei"
+
       });
 
       if (!dayGroups[date]) {
+
         dayGroups[date] = {
+
           start:null,
+
           end:null
+
         };
+
       }
 
       if (item.type === "上班") {
+
         if (
+
           !dayGroups[date].start ||
+
           new Date(item.clock_time) <
+
           new Date(dayGroups[date].start)
+
         ) {
+
           dayGroups[date].start = item.clock_time;
+
         }
+
       }
 
       if (item.type === "下班") {
+
         if (
+
           !dayGroups[date].end ||
+
           new Date(item.clock_time) >
+
           new Date(dayGroups[date].end)
+
         ) {
+
           dayGroups[date].end = item.clock_time;
+
         }
+
       }
+
     });
 
     for (const day of Object.values(dayGroups)) {
 
-  if (day.start && day.end) {
+      if (day.start && day.end) {
 
-    const startTime = new Date(day.start);
-    const endTime = new Date(day.end);
+        const startTime = new Date(day.start);
 
-    const taipeiStart = new Date(
-      startTime.toLocaleString("en-US", {
-        timeZone:"Asia/Taipei"
-      })
-    );
+        const endTime = new Date(day.end);
 
-    const dayOfWeek =
-      taipeiStart.getDay();
+        const taipeiStart = new Date(
 
-    const weekNames = [
-      "星期日",
-      "星期一",
-      "星期二",
-      "星期三",
-      "星期四",
-      "星期五",
-      "星期六"
-    ];
+          startTime.toLocaleString("en-US", {
 
-    const weekDay =
-      weekNames[dayOfWeek];
+            timeZone:"Asia/Taipei"
 
-    const fullDate =
-      taipeiStart.toLocaleDateString("zh-TW", {
-        timeZone:"Asia/Taipei"
-      });
+          })
 
-    const isRestDay =
-      dayOfWeek === 6;
-
-    const isSunday =
-      dayOfWeek === 0;
-
-    const holidayDate =
-      taipeiStart.getFullYear() + "-" +
-      String(taipeiStart.getMonth() + 1).padStart(2, "0") + "-" +
-      String(taipeiStart.getDate()).padStart(2, "0");
-
-    const holidayResult =
-      await pool.query(
-        `
-        SELECT *
-        FROM holidays
-        WHERE holiday_date = $1
-        `,
-        [holidayDate]
-      );
-
-    const isNationalHoliday =
-      holidayResult.rows.length > 0;
-
-    if (isSunday) {
-      continue;
-    }
-
-    const startText =
-      startTime.toLocaleTimeString("en-GB", {
-        timeZone:"Asia/Taipei",
-        hour12:false
-      });
-
-    const endText =
-      endTime.toLocaleTimeString("en-GB", {
-        timeZone:"Asia/Taipei",
-        hour12:false
-      });
-
-    const [startHour, startMinute] =
-      startText.split(":").map(Number);
-
-    const [endHour, endMinute] =
-      endText.split(":").map(Number);
-
-    const startMinutes =
-      startHour * 60 + startMinute;
-
-    const endMinutes =
-      endHour * 60 + endMinute;
-
-    if (startMinutes > ruleStartMinutes) {
-      lateCount++;
-    }
-
-    if (endMinutes < ruleEndMinutes) {
-      earlyLeaveCount++;
-    }
-
-   const rawHours =
-(end - start) / 1000 / 60 / 60;
-
-const breakHours = 1;
-
-const hours =
-Math.max(0, rawHours - breakHours);
-
-const workHours =
-Math.max(
-  0,
-  totalHours - breakHours
-);
-        totalHours - breakHours
-      );
-
-    if (workHours > 0) {
-      totalWorkHours += workHours;
-    }
-
-    const monthlyRegularWage =
-      baseSalary +
-      fixedAllowance +
-      transportAllowance;
-
-    const hourlyRate =
-      monthlyRegularWage / 30 / 8;
-
-    if (isNationalHoliday) {
-
-      const holidayName =
-        holidayResult.rows[0].holiday_name || "國定假日";
-
-      const first8Hours =
-        Math.min(workHours, 8);
-
-      const after8Hours =
-        Math.max(0, workHours - 8);
-
-      const holidayPay =
-        first8Hours * hourlyRate * 2 +
-        after8Hours * hourlyRate * 2.67;
-
-      holidayOvertimePay += holidayPay;
-
-      overtimeDetails.push({
-        date: fullDate,
-        weekday: weekDay,
-        type: holidayName + "加班",
-        hours: Number(workHours.toFixed(2)),
-        pay: Math.round(holidayPay)
-      });
-
-    } else if (isRestDay) {
-
-      const first2Hours =
-        Math.min(workHours, 2);
-
-      const after2Hours =
-        Math.max(0, workHours - 2);
-
-      const restPay =
-        first2Hours * hourlyRate * 1.34 +
-        after2Hours * hourlyRate * 1.67;
-
-      restDayOvertimePay += restPay;
-
-      overtimeDetails.push({
-        date: fullDate,
-        weekday: weekDay,
-        type: "休息日加班",
-        hours: Number(workHours.toFixed(2)),
-        pay: Math.round(restPay)
-      });
-
-    } else {
-
-      const overtimeHours =
-        Math.max(
-          0,
-          workHours - standardHours
         );
 
-      const first2Hours =
-        Math.min(overtimeHours, 2);
+        const dayOfWeek =
 
-      const after2Hours =
-        Math.max(0, overtimeHours - 2);
+          taipeiStart.getDay();
 
-      const normalPay =
-        first2Hours * hourlyRate * 1.34 +
-        after2Hours * hourlyRate * 1.67;
+        const weekNames = [
 
-      overtimePay += normalPay;
+          "星期日",
 
-      if (overtimeHours > 0) {
+          "星期一",
 
-        overtimeDetails.push({
-          date: fullDate,
-          weekday: weekDay,
-          type: "平日加班",
-          hours: Number(overtimeHours.toFixed(2)),
-          pay: Math.round(normalPay)
-        });
+          "星期二",
+
+          "星期三",
+
+          "星期四",
+
+          "星期五",
+
+          "星期六"
+
+        ];
+
+        const weekDay =
+
+          weekNames[dayOfWeek];
+
+        const fullDate =
+
+          taipeiStart.toLocaleDateString("zh-TW", {
+
+            timeZone:"Asia/Taipei"
+
+          });
+
+        const isRestDay =
+
+          dayOfWeek === 6;
+
+        const isSunday =
+
+          dayOfWeek === 0;
+
+        const holidayDate =
+
+          taipeiStart.getFullYear() + "-" +
+
+          String(taipeiStart.getMonth() + 1).padStart(2, "0") + "-" +
+
+          String(taipeiStart.getDate()).padStart(2, "0");
+
+        const holidayResult =
+
+          await pool.query(
+
+            `
+
+            SELECT *
+
+            FROM holidays
+
+            WHERE holiday_date = $1
+
+            `,
+
+            [holidayDate]
+
+          );
+
+        const isNationalHoliday =
+
+          holidayResult.rows.length > 0;
+
+        if (isSunday) {
+
+          continue;
+
+        }
+
+        const startText =
+
+          startTime.toLocaleTimeString("en-GB", {
+
+            timeZone:"Asia/Taipei",
+
+            hour12:false
+
+          });
+
+        const endText =
+
+          endTime.toLocaleTimeString("en-GB", {
+
+            timeZone:"Asia/Taipei",
+
+            hour12:false
+
+          });
+
+        const [startHour, startMinute] =
+
+          startText.split(":").map(Number);
+
+        const [endHour, endMinute] =
+
+          endText.split(":").map(Number);
+
+        const startMinutes =
+
+          startHour * 60 + startMinute;
+
+        const endMinutes =
+
+          endHour * 60 + endMinute;
+
+        if (startMinutes > ruleStartMinutes) {
+
+          lateCount++;
+
+        }
+
+        if (endMinutes < ruleEndMinutes) {
+
+          earlyLeaveCount++;
+
+        }
+
+        const rawHours =
+
+          (endTime - startTime) / 1000 / 60 / 60;
+
+        const workHours =
+
+          Math.max(
+
+            0,
+
+            rawHours - breakHours
+
+          );
+
+        if (workHours > 0) {
+
+          totalWorkHours += workHours;
+
+        }
+
+        const monthlyRegularWage =
+
+          baseSalary +
+
+          fixedAllowance +
+
+          transportAllowance;
+
+        const hourlyRate =
+
+          monthlyRegularWage / 30 / 8;
+
+        if (isNationalHoliday) {
+
+          const holidayName =
+
+            holidayResult.rows[0].holiday_name || "國定假日";
+
+          const first8Hours =
+
+            Math.min(workHours, 8);
+
+          const after8Hours =
+
+            Math.max(0, workHours - 8);
+
+          const holidayPay =
+
+            first8Hours * hourlyRate * 2 +
+
+            after8Hours * hourlyRate * 2.67;
+
+          holidayOvertimePay += holidayPay;
+
+          overtimeDetails.push({
+
+            date: fullDate,
+
+            weekday: weekDay,
+
+            type: holidayName + "加班",
+
+            hours: Number(workHours.toFixed(2)),
+
+            pay: Math.round(holidayPay)
+
+          });
+
+        } else if (isRestDay) {
+
+          const first2Hours =
+
+            Math.min(workHours, 2);
+
+          const after2Hours =
+
+            Math.max(0, workHours - 2);
+
+          const restPay =
+
+            first2Hours * hourlyRate * 1.34 +
+
+            after2Hours * hourlyRate * 1.67;
+
+          restDayOvertimePay += restPay;
+
+          overtimeDetails.push({
+
+            date: fullDate,
+
+            weekday: weekDay,
+
+            type: "休息日加班",
+
+            hours: Number(workHours.toFixed(2)),
+
+            pay: Math.round(restPay)
+
+          });
+
+        } else {
+
+          const overtimeHours =
+
+            Math.max(
+
+              0,
+
+              workHours - standardHours
+
+            );
+
+          const first2Hours =
+
+            Math.min(overtimeHours, 2);
+
+          const after2Hours =
+
+            Math.max(0, overtimeHours - 2);
+
+          const normalPay =
+
+            first2Hours * hourlyRate * 1.34 +
+
+            after2Hours * hourlyRate * 1.67;
+
+          overtimePay += normalPay;
+
+          if (overtimeHours > 0) {
+
+            overtimeDetails.push({
+
+              date: fullDate,
+
+              weekday: weekDay,
+
+              type: "平日加班",
+
+              hours: Number(overtimeHours.toFixed(2)),
+
+              pay: Math.round(normalPay)
+
+            });
+
+          }
+
+        }
 
       }
 
     }
 
-  }
+    overtimePay =
 
-}
+      Math.round(overtimePay);
 
-overtimePay =
-  Math.round(overtimePay);
+    restDayOvertimePay =
 
-restDayOvertimePay =
-  Math.round(restDayOvertimePay);
+      Math.round(restDayOvertimePay);
 
-holidayOvertimePay =
-  Math.round(holidayOvertimePay);
+    holidayOvertimePay =
 
-const leavesResult = await pool.query(
-  `
-  SELECT *
-  FROM leaves
-  WHERE line_user_id = $1
-  AND (
-    status = '已核准'
-    OR
-    status = '核准'
-  )
-  `,
-  [lineUserId]
-);
+      Math.round(holidayOvertimePay);
 
-const dailySalary =
-  baseSalary / 30;
+    const leavesResult = await pool.query(
 
-leavesResult.rows.forEach(leave => {
+      `
 
-  const start =
-    new Date(leave.start_date);
+      SELECT *
 
-  const end =
-    new Date(leave.end_date);
+      FROM leaves
 
-  const days =
-    Math.floor(
-      (end - start) /
-      (1000 * 60 * 60 * 24)
-    ) + 1;
+      WHERE line_user_id = $1
 
-  switch (leave.leave_type) {
+      AND (
 
-    case "事假":
-      leaveDeduction +=
-        dailySalary * days;
-      break;
+        status = '已核准'
 
-    case "病假":
-      leaveDeduction +=
-        dailySalary * 0.5 * days;
-      break;
+        OR
 
-    case "曠職":
-      leaveDeduction +=
-        dailySalary * days;
-      break;
+        status = '核准'
 
-    case "特休":
-    case "公假":
-      break;
+      )
 
-  }
+      `,
 
-});
+      [lineUserId]
 
-leaveDeduction =
-  Math.round(leaveDeduction);
+    );
 
-attendanceQualified =
-  lateCount === 0 &&
-  earlyLeaveCount === 0 &&
-  leaveDeduction === 0;
+    const dailySalary =
 
-const grossSalary =
-  baseSalary +
-  fixedAllowance +
-  transportAllowance +
-  performanceBonus +
-  overtimePay +
-  restDayOvertimePay +
-  holidayOvertimePay;
+      baseSalary / 30;
 
-const laborInsurance =
-  Math.round(grossSalary * 0.02);
+    leavesResult.rows.forEach(leave => {
 
-const healthInsurance =
-  Math.round(grossSalary * 0.015);
+      const start =
 
-const laborPension =
-  Math.round(grossSalary * 0.06);
+        new Date(leave.start_date);
 
-const netSalary =
-  grossSalary -
-  leaveDeduction -
-  laborInsurance -
-  healthInsurance;
+      const end =
 
-res.json({
-  success:true,
+        new Date(leave.end_date);
 
-  employeeId:emp.id,
+      const days =
 
-  name:emp.name,
-  department:emp.department || "-",
-  position:emp.position || "-",
-  salaryMonth:new Date().toISOString().slice(0,7),
+        Math.floor(
 
-  workStart,
-  workEnd,
-  breakHours,
-  lateAllowance,
-  earlyAllowance,
+          (end - start) /
 
-  totalWorkHours:Number(totalWorkHours.toFixed(2)),
+          (1000 * 60 * 60 * 24)
 
-  baseSalary,
-  fixedAllowance,
-  transportAllowance,
-  attendanceBonus:transportAllowance,
-  performanceBonus,
+        ) + 1;
 
-  overtimePay,
-  restDayOvertimePay,
-  holidayOvertimePay,
-  leaveDeduction,
+      switch (leave.leave_type) {
 
-  lateCount,
-  earlyLeaveCount,
-  attendanceQualified,
+        case "事假":
 
-  grossSalary,
-  laborInsurance,
-  healthInsurance,
-  laborPension,
-  netSalary,
+          leaveDeduction +=
 
-  overtimeDetails
-});
+            dailySalary * days;
 
-  } catch(err) {
-    console.error(err);
+          break;
 
-    res.status(500).json({
-      success:false,
-      message:"讀取薪資失敗"
+        case "病假":
+
+          leaveDeduction +=
+
+            dailySalary * 0.5 * days;
+
+          break;
+
+        case "曠職":
+
+          leaveDeduction +=
+
+            dailySalary * days;
+
+          break;
+
+        case "特休":
+
+        case "公假":
+
+          break;
+
+      }
+
     });
-  }
-});
+
+    leaveDeduction =
+
+      Math.round(leaveDeduction);
+
+    attendanceQualified =
+
+      lateCount === 0 &&
+
+      earlyLeaveCount === 0 &&
+
+      leaveDeduction === 0;
+
+    const grossSalary =
+
+      baseSalary +
+
+      fixedAllowance +
+
+      transportAllowance +
+
+      performanceBonus +
+
+      overtimePay +
+
+      restDayOvertimePay +
+
+      holidayOvertimePay;
+
+    const laborInsurance =
+
+      Math.round(grossSalary * 0.02);
+
+    const healthInsurance =
+
+      Math.round(grossSalary * 0.015);
+
+    const laborPension =
+
+      Math.round(grossSalary * 0.06);
+
+    const netSalary =
+
+      grossSalary -
+
+      leaveDeduction -
+
+      laborInsurance -
+
+      healthInsurance;
+
+    res.json({
+
+      success:true,
+
+      employeeId:emp.id,
+
+      name:emp.name,
+
+      department:emp.department || "-",
+
+      position:emp.position || "-",
+
+      salaryMonth:new Date().toISOString().slice(0,7),
+
+      workStart,
+
+      workEnd,
+
+      breakHours,
+
+      lateAllowance,
+
+      earlyAllowance,
+
+      totalWorkHours:Number(totalWorkHours.toFixed(2)),
+
+      baseSal
 // =========================
 
 // PDF 產生 API - 企業版薪資單
