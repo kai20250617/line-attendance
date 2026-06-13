@@ -1736,14 +1736,7 @@ app.get("/api/export-monthly", async (req, res) => {
         const workHours =
           Math.max(
             0,
-            const rawHours =
-(endTime - startTime) / 1000 / 60 / 60;
-
-const workHours =
-Math.max(
-  0,
-  rawHours - breakHours
-);
+            totalHours - breakHours
           );
 
         monthly[key].hours += workHours;
@@ -2671,9 +2664,41 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 
       earlyAllowance,
 
-      totalWorkHours:Number(totalWorkHours.toFixed(2)),
+            totalWorkHours:Number(totalWorkHours.toFixed(2)),
 
-      baseSal
+      baseSalary,
+      fixedAllowance,
+      transportAllowance,
+      attendanceBonus:transportAllowance,
+      performanceBonus,
+
+      overtimePay,
+      restDayOvertimePay,
+      holidayOvertimePay,
+      leaveDeduction,
+
+      lateCount,
+      earlyLeaveCount,
+      attendanceQualified,
+
+      grossSalary,
+      laborInsurance,
+      healthInsurance,
+      laborPension,
+      netSalary,
+
+      overtimeDetails
+    });
+
+  } catch(err) {
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取薪資失敗"
+    });
+  }
+});
 // =========================
 
 // PDF 產生 API - 企業版薪資單
@@ -2834,11 +2859,13 @@ app.get("/api/payslip/:id", async (req, res) => {
 
     };
 
+    app.post("/api/sign-salary/:id", async (req, res) => {
+  try {
+
 // =========================
 // 薪資單簽收
 // =========================
-app.post("/api/sign-salary/:id", async (req, res) => {
-  try {
+
 
     const salaryId = req.params.id;
 
