@@ -219,6 +219,24 @@ ALTER TABLE attendance
 ADD COLUMN IF NOT EXISTS address TEXT
 `);
 
+await pool.query(`
+CREATE TABLE IF NOT EXISTS reimbursements (
+  id SERIAL PRIMARY KEY,
+  line_user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  expense_date DATE NOT NULL,
+  category TEXT NOT NULL,
+  amount NUMERIC(12,2) NOT NULL,
+  description TEXT,
+  receipt_url TEXT,
+  status TEXT DEFAULT '待審核',
+  payment_status TEXT DEFAULT '未付款',
+  created_at TIMESTAMP DEFAULT NOW(),
+  approved_at TIMESTAMP,
+  paid_at TIMESTAMP
+)
+`);
+
 console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
 
@@ -4506,6 +4524,220 @@ app.post("/api/bind-line", async (req, res) => {
   }
 });
 
+// =========================
+// 代墊申請
+// =========================
+
+app.post("/api/reimbursement", async (req, res) => {
+  try {
+
+    const {
+      lineUserId,
+      name,
+      expenseDate,
+      category,
+      amount,
+      description
+    } = req.body;
+
+    if(
+      !lineUserId ||
+      !name ||
+      !expenseDate ||
+      !category ||
+      !amount
+    ){
+      return res.status(400).json({
+        success:false,
+        message:"資料不完整"
+      });
+    }
+
+    await pool.query(
+      `
+      INSERT INTO reimbursements
+      (
+        line_user_id,
+        name,
+        expense_date,
+        category,
+        amount,
+        description
+      )
+      VALUES
+      ($1,$2,$3,$4,$5,$6)
+      `,
+      [
+        lineUserId,
+        name,
+        expenseDate,
+        category,
+        amount,
+        description || ""
+      ]
+    );
+
+    res.json({
+      success:true,
+      message:"代墊申請已送出"
+    });
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"送出失敗"
+    });
+
+  }
+});
+
+
+// =========================
+// 讀取全部代墊紀錄
+// =========================
+app.get("/api/reimbursements", async (req, res) => {
+
+  try {
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM reimbursements
+      ORDER BY id DESC
+      `
+    );
+
+    res.json(result.rows);
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取失敗"
+    });
+
+  }
+
+});
+
+// =========================
+// 代墊核准/駁回
+// =========================
+app.post("/api/reimbursement/status", async (req, res) => {
+
+  try {
+
+    const {
+      id,
+      status
+    } = req.body;
+
+    await pool.query(
+      `
+      UPDATE reimbursements
+      SET
+        status = $1,
+        approved_at = NOW()
+      WHERE id = $2
+      `,
+      [
+        status,
+        id
+      ]
+    );
+
+    res.json({
+      success:true,
+      message:"已更新"
+    });
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"更新失敗"
+    });
+
+  }
+
+});
+
+// =========================
+// 標註已付款
+// =========================
+app.post("/api/reimbursement/pay", async (req, res) => {
+
+  try {
+
+    const { id } = req.body;
+
+    await pool.query(
+      `
+      UPDATE reimbursements
+      SET
+        payment_status = '已付款',
+        paid_at = NOW()
+      WHERE id = $1
+      `,
+      [id]
+    );
+
+    res.json({
+      success:true,
+      message:"已標記付款"
+    });
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"付款失敗"
+    });
+
+  }
+
+});
+// =========================
+// 刪除
+// =========================
+app.delete("/api/reimbursement/:id", async (req, res) => {
+
+  try {
+
+    await pool.query(
+      `
+      DELETE FROM reimbursements
+      WHERE id = $1
+      `,
+      [req.params.id]
+    );
+
+    res.json({
+      success:true,
+      message:"已刪除"
+    });
+
+  } catch(err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"刪除失敗"
+    });
+
+  }
+
+});
 // =========================
 // 啟動伺服器
 // =========================
