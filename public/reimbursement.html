@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>員工代墊申請</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+*{box-sizing:border-box;}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:#f3f6fb;
+  color:#111827;
+}
+
+.page{
+  min-height:100vh;
+  padding:24px 18px 40px;
+}
+
+.header{
+  text-align:center;
+  margin:20px 0 24px;
+}
+
+.brand{
+  font-size:14px;
+  letter-spacing:2px;
+  color:#8a6a2f;
+  font-weight:700;
+}
+
+h1{
+  margin:10px 0 6px;
+  font-size:34px;
+}
+
+.subtitle{
+  color:#6b7280;
+  font-size:15px;
+}
+
+.card{
+  background:white;
+  max-width:560px;
+  margin:0 auto;
+  border-radius:24px;
+  padding:24px;
+  box-shadow:0 16px 40px rgba(15,23,42,.12);
+}
+
+.employee{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  padding:14px;
+  border-radius:16px;
+  margin-bottom:18px;
+  font-weight:700;
+}
+
+label{
+  display:block;
+  margin-top:16px;
+  margin-bottom:6px;
+  font-weight:800;
+}
+
+input,select,textarea{
+  width:100%;
+  padding:13px;
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  font-size:16px;
+}
+
+textarea{
+  resize:vertical;
+  min-height:90px;
+}
+
+button{
+  width:100%;
+  padding:15px;
+  border:none;
+  border-radius:14px;
+  color:white;
+  font-size:18px;
+  font-weight:800;
+  cursor:pointer;
+  margin-top:16px;
+}
+
+.submit{
+  background:linear-gradient(135deg,#16a34a,#166534);
+}
+
+.back{
+  background:linear-gradient(135deg,#374151,#111827);
+}
+
+.preview{
+  margin-top:12px;
+  text-align:center;
+}
+
+.preview img{
+  max-width:100%;
+  border-radius:14px;
+  border:1px solid #ddd;
+  display:none;
+}
+
+#status{
+  margin-top:18px;
+  text-align:center;
+  font-weight:800;
+}
+
+.success{color:#15803d;}
+.error{color:#dc2626;}
+.info{color:#2563eb;}
+
+.note{
+  margin-top:14px;
+  color:#6b7280;
+  font-size:14px;
+  line-height:1.7;
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+  <div class="header">
+    <div class="brand">AURUM HOUSE</div>
+    <h1>員工代墊申請</h1>
+    <div class="subtitle">Reimbursement Application</div>
+  </div>
+
+  <div class="card">
+
+    <div id="employeeName" class="employee">
+      LINE 登入中...
+    </div>
+
+    <label>代墊日期</label>
+    <input type="date" id="expenseDate">
+
+    <label>代墊類別</label>
+    <select id="category">
+      <option value="交通費">交通費</option>
+      <option value="餐費">餐費</option>
+      <option value="材料費">材料費</option>
+      <option value="文具費">文具費</option>
+      <option value="客戶招待">客戶招待</option>
+      <option value="差旅費">差旅費</option>
+      <option value="其他">其他</option>
+    </select>
+
+    <label>代墊金額</label>
+    <input type="number" id="amount" placeholder="請輸入金額">
+
+    <label>說明</label>
+    <textarea id="description" placeholder="例如：客戶拜訪停車費、材料採購、交通費..."></textarea>
+
+    <label>發票 / 收據照片</label>
+    <input type="file" id="receipt" accept="image/*" capture="environment">
+
+    <div class="preview">
+      <img id="previewImage">
+    </div>
+
+    <button class="submit" onclick="submitReimbursement()">
+      送出代墊申請
+    </button>
+
+    <button class="back" onclick="goBack()">
+      返回員工專區
+    </button>
+
+    <div class="note">
+      送出後會進入後台審核，審核通過後由公司標記付款狀態。
+    </div>
+
+    <div id="status"></div>
+
+  </div>
+
+</div>
+
+<script>
+const LIFF_ID = "2010241581-YtDxQgWd";
+
+let profile = null;
+
+function setStatus(message, type){
+  document.getElementById("status").innerHTML =
+  `<span class="${type || "info"}">${message}</span>`;
+}
+
+function goBack(){
+  if(document.referrer){
+    history.back();
+  }else{
+    location.href = "/";
+  }
+}
+
+function setToday(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2,"0");
+  const d = String(now.getDate()).padStart(2,"0");
+
+  document.getElementById("expenseDate").value =
+  `${y}-${m}-${d}`;
+}
+
+document.getElementById("receipt").addEventListener("change", function(){
+  const file = this.files[0];
+  const img = document.getElementById("previewImage");
+
+  if(!file){
+    img.style.display = "none";
+    img.src = "";
+    return;
+  }
+
+  img.src = URL.createObjectURL(file);
+  img.style.display = "block";
+});
+
+async function init(){
+  try{
+    await liff.init({
+      liffId:LIFF_ID
+    });
+
+    if(!liff.isLoggedIn()){
+      liff.login();
+      return;
+    }
+
+    profile =
+    await liff.getProfile();
+
+    document.getElementById("employeeName").innerHTML =
+    "員工：<b>" + profile.displayName + "</b>";
+
+    setToday();
+
+  }catch(err){
+    console.error(err);
+
+    document.getElementById("employeeName").innerHTML =
+    "<span class='error'>LINE 登入失敗</span>";
+
+    setStatus("請使用 LINE 開啟此頁面", "error");
+  }
+}
+
+async function uploadReceipt(){
+  const file =
+  document.getElementById("receipt").files[0];
+
+  if(!file){
+    return "";
+  }
+
+  const fd =
+  new FormData();
+
+  fd.append("receipt", file);
+
+  const res =
+  await fetch("/api/upload-receipt", {
+    method:"POST",
+    body:fd
+  });
+
+  const data =
+  await res.json();
+
+  if(!res.ok || data.success === false){
+    throw new Error(data.message || "發票上傳失敗");
+  }
+
+  return data.url || "";
+}
+
+async function submitReimbursement(){
+  if(!profile){
+    alert("尚未完成 LINE 登入");
+    return;
+  }
+
+  const expenseDate =
+  document.getElementById("expenseDate").value;
+
+  const category =
+  document.getElementById("category").value;
+
+  const amount =
+  document.getElementById("amount").value;
+
+  const description =
+  document.getElementById("description").value.trim();
+
+  if(!expenseDate){
+    alert("請選擇代墊日期");
+    return;
+  }
+
+  if(!amount || Number(amount) <= 0){
+    alert("請輸入正確金額");
+    return;
+  }
+
+  try{
+    setStatus("發票上傳中...", "info");
+
+    const receiptUrl =
+    await uploadReceipt();
+
+    setStatus("代墊申請送出中...", "info");
+
+    const res =
+    await fetch("/api/reimbursement", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        lineUserId:profile.userId,
+        name:profile.displayName,
+        expenseDate,
+        category,
+        amount,
+        description,
+        receiptUrl
+      })
+    });
+
+    const data =
+    await res.json();
+
+    if(!res.ok || data.success === false){
+      setStatus(data.message || "送出失敗", "error");
+      return;
+    }
+
+    setStatus("✅ " + (data.message || "代墊申請已送出"), "success");
+
+    document.getElementById("amount").value = "";
+    document.getElementById("description").value = "";
+    document.getElementById("receipt").value = "";
+    document.getElementById("previewImage").style.display = "none";
+    document.getElementById("previewImage").src = "";
+
+  }catch(err){
+    console.error(err);
+    setStatus(err.message || "送出失敗", "error");
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
