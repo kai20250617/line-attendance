@@ -199,6 +199,7 @@ button{
 const LIFF_ID = "2010241581-YtDxQgWd";
 
 let profile = null;
+let employee = null;
 
 function setStatus(message, type){
   document.getElementById("status").innerHTML =
@@ -251,19 +252,29 @@ async function init(){
     profile =
     await liff.getProfile();
 
-   const empRes = await fetch(
-  "/api/check-employee/" + profile.userId
-);
+    const empRes =
+    await fetch(
+      "/api/check-employee/" +
+      profile.userId
+    );
 
-const empData = await empRes.json();
+    const empData =
+    await empRes.json();
 
-if(empData.success && empData.isEmployee){
-  document.getElementById("employeeName").innerHTML =
-  "員工：<b>" + empData.employee.name + "</b>";
-}else{
-  document.getElementById("employeeName").innerHTML =
-  "員工：<b>" + profile.displayName + "</b>";
-}
+    if(empData.success && empData.isEmployee){
+      employee =
+      empData.employee;
+
+      document.getElementById("employeeName").innerHTML =
+      "員工：<b>" + employee.name + "</b>";
+    }else{
+      employee = {
+        name:profile.displayName
+      };
+
+      document.getElementById("employeeName").innerHTML =
+      "員工：<b>" + profile.displayName + "</b>";
+    }
 
     setToday();
 
@@ -312,6 +323,11 @@ async function submitReimbursement(){
     return;
   }
 
+  if(!employee){
+    alert("尚未取得員工資料");
+    return;
+  }
+
   const expenseDate =
   document.getElementById("expenseDate").value;
 
@@ -350,7 +366,7 @@ async function submitReimbursement(){
       },
       body:JSON.stringify({
         lineUserId:profile.userId,
-        name: profile.displayName
+        name:employee.name,
         expenseDate,
         category,
         amount,
