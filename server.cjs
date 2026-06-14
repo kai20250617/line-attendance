@@ -4,8 +4,60 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const PDFDocument = require("pdfkit");
+const multer = require("multer");
+
 
 const app = express();
+
+// =========================
+// 建立 uploads 資料夾
+// =========================
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
+}
+
+// =========================
+// 開放圖片讀取(發票)
+// =========================
+app.use(
+  "/uploads",
+  express.static("uploads")
+);
+
+
+// =========================
+// Multer設定
+// =========================
+const storage = multer.diskStorage({
+
+  destination: function(req,file,cb){
+
+    cb(null,"uploads/");
+
+  },
+
+  filename: function(req,file,cb){
+
+    const ext =
+
+    path.extname(file.originalname);
+
+    cb(
+
+      null,
+
+      Date.now() + ext
+
+    );
+
+  }
+
+});
+
+const upload =
+
+multer({ storage });
+
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -118,6 +170,7 @@ late_allowance INTEGER DEFAULT 10,
 early_allowance INTEGER DEFAULT 5
     )
   `);
+
 await pool.query(`
 CREATE TABLE IF NOT EXISTS salary_history (
   id SERIAL PRIMARY KEY,
@@ -235,6 +288,11 @@ CREATE TABLE IF NOT EXISTS reimbursements (
   approved_at TIMESTAMP,
   paid_at TIMESTAMP
 )
+`);
+
+await pool.query(`
+ALTER TABLE reimbursements
+ADD COLUMN IF NOT EXISTS receipt_url TEXT
 `);
 
 console.log("✅ PostgreSQL Tables Ready");
@@ -4738,6 +4796,49 @@ app.delete("/api/reimbursement/:id", async (req, res) => {
   }
 
 });
+
+// =========================
+// 上傳發票
+// =========================
+
+app.post(
+  "/api/upload-receipt",
+  upload.single("receipt"),
+  async (req,res)=>{
+
+    try{
+
+      if(!req.file){
+
+        return res.status(400).json({
+          success:false,
+          message:"沒有檔案"
+        });
+
+      }
+
+      const url =
+      `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+
+      res.json({
+        success:true,
+        url
+      });
+
+    }catch(err){
+
+      console.error(err);
+
+      res.status(500).json({
+        success:false,
+        message:"上傳失敗"
+      });
+
+    }
+
+  }
+);
+
 // =========================
 // 啟動伺服器
 // =========================
