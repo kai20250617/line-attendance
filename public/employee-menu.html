@@ -1,203 +1,423 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>員工專區</title>
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
+
 *{
+
   box-sizing:border-box;
+
 }
 
 body{
+
   margin:0;
+
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-  background:linear-gradient(180deg,#f3f6fb,#eef2f7);
-  color:#111827;
+
+  background:
+
+    radial-gradient(circle at top,#fffaf0 0%,#f6efe4 35%,#efe7d8 100%);
+
+  color:#10201d;
+
 }
 
 .page{
+
   min-height:100vh;
-  padding:24px 18px 40px;
+
+  padding:24px 18px 42px;
+
 }
 
 .header{
+
   text-align:center;
-  margin:18px 0 22px;
+
+  margin:18px 0 24px;
+
 }
 
 .brand{
+
   font-size:14px;
-  letter-spacing:3px;
-  color:#8a6a2f;
-  font-weight:800;
+
+  letter-spacing:5px;
+
+  color:#a9792b;
+
+  font-weight:900;
+
 }
 
 h1{
-  margin:10px 0 6px;
-  font-size:36px;
+
+  margin:12px 0 6px;
+
+  font-size:38px;
+
+  color:#0f2421;
+
+  letter-spacing:2px;
+
 }
 
 .subtitle{
-  color:#6b7280;
+
+  color:#8b7d69;
+
   font-size:15px;
+
+  letter-spacing:1px;
+
 }
 
 .card{
-  background:#fff;
+
+  background:rgba(255,255,255,.92);
+
   max-width:620px;
+
   margin:0 auto;
-  border-radius:26px;
+
+  border-radius:30px;
+
   padding:24px;
-  box-shadow:0 18px 45px rgba(15,23,42,.12);
+
+  border:1px solid #e7d9c2;
+
+  box-shadow:
+
+    0 22px 50px rgba(61,43,18,.14),
+
+    inset 0 1px 0 rgba(255,255,255,.7);
+
 }
 
 .profile{
+
   display:flex;
+
   align-items:center;
-  gap:16px;
-  padding-bottom:18px;
-  border-bottom:1px solid #e5e7eb;
+
+  gap:18px;
+
+  padding-bottom:20px;
+
+  border-bottom:1px solid #eadfcf;
+
 }
 
 .avatar{
-  width:62px;
-  height:62px;
-  border-radius:18px;
-  background:linear-gradient(135deg,#111827,#374151);
-  color:#f5c76b;
+
+  width:78px;
+
+  height:78px;
+
+  border-radius:22px;
+
+  background:#fff;
+
+  border:1px solid #e6d6bd;
+
+  overflow:hidden;
+
   display:flex;
+
   align-items:center;
+
   justify-content:center;
-  font-size:26px;
-  font-weight:900;
+
+  box-shadow:0 8px 20px rgba(0,0,0,.08);
+
+}
+
+.avatar img{
+
+  width:100%;
+
+  height:100%;
+
+  object-fit:contain;
+
+  padding:6px;
+
 }
 
 .empName{
-  font-size:26px;
-  font-weight:900;
+
+  font-size:29px;
+
+  font-weight:950;
+
+  color:#0f2421;
+
 }
 
 .empRole{
-  margin-top:4px;
-  color:#6b7280;
-  font-size:15px;
+
+  margin-top:6px;
+
+  color:#756957;
+
+  font-size:16px;
+
 }
 
 .stats{
+
   display:grid;
+
   grid-template-columns:1fr 1fr;
-  gap:12px;
-  margin:22px 0;
+
+  gap:13px;
+
+  margin:24px 0;
+
 }
 
 .stat{
-  background:#f8fafc;
-  border:1px solid #e5e7eb;
-  border-radius:18px;
-  padding:16px;
+
+  background:#fffaf3;
+
+  border:1px solid #eadfcf;
+
+  border-radius:20px;
+
+  padding:17px;
+
   text-align:left;
+
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.75);
+
 }
 
 .statLabel{
-  color:#6b7280;
+
+  color:#8b7d69;
+
   font-size:14px;
-  font-weight:700;
+
+  font-weight:800;
+
 }
 
 .stat strong{
+
   display:block;
-  font-size:21px;
-  color:#0f172a;
-  margin-top:8px;
+
+  font-size:22px;
+
+  color:#10201d;
+
+  margin-top:9px;
+
 }
 
 .sectionTitle{
-  margin:24px 0 12px;
-  font-weight:900;
-  color:#111827;
+
+  margin:26px 0 13px;
+
+  font-weight:950;
+
+  color:#10201d;
+
   text-align:left;
-  font-size:18px;
+
+  font-size:20px;
+
+  letter-spacing:1px;
+
 }
 
 .grid{
+
   display:grid;
+
   grid-template-columns:1fr 1fr;
-  gap:12px;
+
+  gap:13px;
+
 }
 
 .menuItem{
+
   display:flex;
+
   align-items:center;
+
   gap:10px;
-  min-height:70px;
-  padding:14px;
-  border-radius:18px;
+
+  min-height:72px;
+
+  padding:15px;
+
+  border-radius:20px;
+
   color:white;
+
   text-decoration:none;
+
   font-size:17px;
-  font-weight:900;
-  box-shadow:0 8px 18px rgba(0,0,0,.10);
+
+  font-weight:950;
+
+  box-shadow:0 10px 22px rgba(0,0,0,.16);
+
+  transition:.15s ease;
+
+}
+
+.menuItem:active{
+
+  transform:scale(.98);
+
 }
 
 .menuItem span{
-  font-size:24px;
+
+  font-size:25px;
+
 }
 
-.blue{background:linear-gradient(135deg,#2563eb,#1d4ed8);}
-.green{background:linear-gradient(135deg,#16a34a,#166534);}
-.orange{background:linear-gradient(135deg,#f59e0b,#b45309);}
-.purple{background:linear-gradient(135deg,#7c3aed,#5b21b6);}
-.teal{background:linear-gradient(135deg,#0d9488,#0f766e);}
-.gray{background:linear-gradient(135deg,#475569,#1f2937);}
-.red{background:linear-gradient(135deg,#dc2626,#991b1b);}
-.gold{background:linear-gradient(135deg,#b7791f,#7c4a03);}
+.gold{
+
+  background:
+
+    linear-gradient(135deg,#c79b45,#8a5f1f);
+
+}
+
+.dark{
+
+  background:
+
+    linear-gradient(135deg,#10201d,#061514);
+
+}
+
+.green{
+
+  background:
+
+    linear-gradient(135deg,#123c35,#0b241f);
+
+}
+
+.brown{
+
+  background:
+
+    linear-gradient(135deg,#7a4f1d,#3b2710);
+
+}
+
+.red{
+
+  background:
+
+    linear-gradient(135deg,#8b1e1e,#4a0f0f);
+
+}
 
 .error{
-  color:#dc2626;
+
+  color:#b91c1c;
+
   font-weight:900;
+
   font-size:20px;
+
 }
 
 .debug{
+
   margin-top:12px;
-  color:#dc2626;
+
+  color:#b91c1c;
+
   font-size:14px;
+
   word-break:break-all;
+
   line-height:1.7;
+
   text-align:left;
+
 }
 
 .loading{
+
   text-align:center;
-  color:#6b7280;
-  font-weight:800;
-  padding:40px 10px;
+
+  color:#8b7d69;
+
+  font-weight:900;
+
+  padding:42px 10px;
+
 }
 
 @media(max-width:480px){
+
   h1{
-    font-size:32px;
+
+    font-size:34px;
+
   }
 
   .card{
+
     padding:20px;
-    border-radius:24px;
+
+    border-radius:28px;
+
+  }
+
+  .avatar{
+
+    width:72px;
+
+    height:72px;
+
+  }
+
+  .empName{
+
+    font-size:27px;
+
   }
 
   .stats{
+
     grid-template-columns:1fr 1fr;
+
   }
 
   .menuItem{
+
     font-size:16px;
-    min-height:66px;
+
+    min-height:68px;
+
   }
+
 }
+
 </style>
+
 </head>
 
 <body>
@@ -205,45 +425,69 @@ h1{
 <div class="page">
 
   <div class="header">
+
     <div class="brand">AURUM HOUSE</div>
+
     <h1>員工專區</h1>
+
     <div class="subtitle">Employee Portal</div>
+
   </div>
 
   <div id="box" class="card">
+
     <div class="loading">LINE 登入中...</div>
+
   </div>
 
 </div>
 
 <script>
+
 const LIFF_ID = "2010241581-YtDxQgWd";
 
 async function getJson(url){
+
   const res = await fetch(url);
+
   const text = await res.text();
 
   try{
+
     return JSON.parse(text);
+
   }catch(err){
+
     throw new Error("API不是JSON：" + url + " / " + text.slice(0,120));
+
   }
+
 }
 
 async function init(){
+
   const box = document.getElementById("box");
+
   let step = "開始";
 
   try{
+
     step = "LIFF初始化";
+
     await liff.init({
+
       liffId: LIFF_ID
+
     });
 
     step = "檢查登入";
+
     if(!liff.isLoggedIn()){
+
       liff.login();
+
       return;
+
     }
 
     step = "取得LINE Profile";
@@ -251,238 +495,381 @@ async function init(){
     let profile;
 
     try{
+
       profile = await liff.getProfile();
+
     }catch(err){
+
       if(
+
         String(err.message || "").includes("access token expired") ||
+
         String(err.message || "").includes("The access token expired")
+
       ){
+
         liff.logout();
+
         liff.login();
+
         return;
+
       }
 
       throw err;
+
     }
 
     if(!profile || !profile.userId){
+
       throw new Error("沒有取得 LINE User ID");
+
     }
 
     const lineUserId = profile.userId;
 
     step = "檢查員工身份";
+
     const empData =
+
     await getJson("/api/check-employee/" + lineUserId);
 
     if(!empData.success){
+
       throw new Error(empData.message || "員工身份檢查失敗");
+
     }
 
     if(!empData.isEmployee || !empData.employee){
+
       location.href = "/customer-menu.html";
+
       return;
+
     }
 
     const emp = empData.employee;
 
     step = "讀取薪資";
+
     const salary =
+
     await getJson("/api/my-salary/" + lineUserId);
 
     if(!salary.success){
+
       throw new Error(salary.message || "薪資資料讀取失敗");
+
     }
 
     step = "讀取工時";
+
     const workData =
+
     await getJson("/api/my-worktime/" + lineUserId);
 
     let totalHours = 0;
 
     const ruleRes =
+
     await fetch("/api/rules");
 
     const ruleData =
+
     await ruleRes.json();
 
     const rule =
+
     ruleData.rules || ruleData;
 
     const breakHours =
+
     Number(rule.break_hours || 0);
 
     if(Array.isArray(workData)){
+
       const groups = {};
 
       workData.forEach(item=>{
+
         const date =
+
         new Date(item.clock_time)
+
         .toLocaleDateString("zh-TW", {
+
           timeZone:"Asia/Taipei"
+
         });
 
         if(!groups[date]){
+
           groups[date] = {
+
             start:null,
+
             end:null
+
           };
+
         }
 
         if(item.type === "上班"){
+
           if(
+
             !groups[date].start ||
+
             new Date(item.clock_time) <
+
             new Date(groups[date].start)
+
           ){
+
             groups[date].start =
+
             item.clock_time;
+
           }
+
         }
 
         if(item.type === "下班"){
+
           if(
+
             !groups[date].end ||
+
             new Date(item.clock_time) >
+
             new Date(groups[date].end)
+
           ){
+
             groups[date].end =
+
             item.clock_time;
+
           }
+
         }
+
       });
 
       Object.values(groups).forEach(day=>{
+
         if(day.start && day.end){
+
           const rawHours =
+
           (new Date(day.end) - new Date(day.start)) /
+
           1000 / 60 / 60;
 
           const workHours =
+
           Math.max(
+
             0,
+
             rawHours - breakHours
+
           );
 
           totalHours += workHours;
+
         }
+
       });
+
     }
 
     const leaveDays =
+
     Number(salary.leaveDeduction || 0) > 0
+
     ? Math.round(
+
         Number(salary.leaveDeduction || 0) /
+
         (Number(salary.baseSalary || 27000) / 30)
+
       )
+
     : 0;
 
     const attendanceStatus =
+
     salary.attendanceQualified
+
     ? "符合"
+
     : "不符合";
 
     step = "產生畫面";
 
     box.innerHTML = `
+
       <div class="profile">
-        <div class="avatar">AH</div>
+
+        <div class="avatar">
+
+          <img src="/images/logo.jpg" alt="Aurum House">
+
+        </div>
 
         <div>
+
           <div class="empName">
+
             ${emp.name || profile.displayName || "-"}
+
           </div>
 
           <div class="empRole">
+
             ${emp.department || "-"} / ${emp.position || "-"}
+
           </div>
+
         </div>
+
       </div>
 
       <div class="stats">
+
         <div class="stat">
+
           <div class="statLabel">本月工時</div>
+
           <strong>${Number(totalHours || 0).toFixed(1)} 小時</strong>
+
         </div>
 
         <div class="stat">
+
           <div class="statLabel">預估薪資</div>
+
           <strong>NT$${Number(salary.netSalary || 0).toLocaleString("zh-TW")}</strong>
+
         </div>
 
         <div class="stat">
+
           <div class="statLabel">本月請假</div>
+
           <strong>${leaveDays} 天</strong>
+
         </div>
 
         <div class="stat">
+
           <div class="statLabel">交通津貼</div>
+
           <strong>${attendanceStatus}</strong>
+
         </div>
+
       </div>
 
       <div class="sectionTitle">
+
         常用功能
+
       </div>
 
       <div class="grid">
-        <a class="menuItem blue" href="/attendance.html">
+
+        <a class="menuItem gold" href="/attendance.html">
+
           <span>🕒</span>我要打卡
+
         </a>
 
-        <a class="menuItem orange" href="/clock-request.html">
+        <a class="menuItem brown" href="/clock-request.html">
+
           <span>⏱️</span>補打卡
+
         </a>
 
         <a class="menuItem green" href="/leave.html">
+
           <span>📝</span>我要請假
+
         </a>
 
-        <a class="menuItem purple" href="/my-leave.html">
+        <a class="menuItem dark" href="/my-leave.html">
+
           <span>📋</span>請假紀錄
+
         </a>
 
-        <a class="menuItem teal" href="/worktime.html">
+        <a class="menuItem green" href="/worktime.html">
+
           <span>⏰</span>我的工時
+
         </a>
 
-        <a class="menuItem gray" href="/my-salary.html">
+        <a class="menuItem gold" href="/my-salary.html">
+
           <span>💰</span>我的薪資
+
         </a>
 
-        <a class="menuItem orange" href="/my-salary-history.html">
+        <a class="menuItem brown" href="/my-salary-history.html">
+
           <span>📄</span>薪資歷史
+
         </a>
 
-        <a class="menuItem green" href="/reimbursement.html">
+        <a class="menuItem gold" href="/reimbursement.html">
+
           <span>💳</span>代墊申請
+
         </a>
 
-        <a class="menuItem gold" href="/my-reimbursement.html">
+        <a class="menuItem dark" href="/my-reimbursement.html">
+
           <span>🧾</span>我的代墊
+
         </a>
 
         <a class="menuItem red" href="/dashboard.html">
+
           <span>📊</span>管理首頁
+
         </a>
+
       </div>
+
     `;
 
   }catch(err){
+
     console.error(err);
 
     box.innerHTML = `
+
       <div class="error">讀取失敗</div>
+
       <div class="debug">
+
         錯誤位置：${step}<br>
+
         錯誤訊息：${err.message || err}
+
       </div>
+
     `;
+
   }
+
 }
 
 init();
+
 </script>
 
 </body>
+
 </html>
