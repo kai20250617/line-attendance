@@ -4838,6 +4838,43 @@ app.post(
   }
 );
 
+
+// =========================
+// 我的代墊紀錄
+// =========================
+
+app.get(
+"/api/my-reimbursements/:lineUserId",
+async(req,res)=>{
+
+try{
+
+const lineUserId=
+req.params.lineUserId;
+
+const result=
+await pool.query(
+`
+SELECT *
+FROM reimbursements
+WHERE line_user_id=$1
+ORDER BY id DESC
+`,
+[lineUserId]
+);
+
+res.json(result.rows);
+
+}catch(err){
+
+console.error(err);
+
+res.status(500).json([]);
+
+}
+
+});
+
 // =========================
 // 啟動伺服器
 // =========================

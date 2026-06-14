@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>我的代墊紀錄</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+
+body{
+  margin:0;
+  font-family:Arial;
+  background:#f5f7fb;
+}
+
+.container{
+  max-width:1000px;
+  margin:auto;
+  padding:20px;
+}
+
+h1{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.card{
+  background:white;
+  border-radius:12px;
+  padding:15px;
+  margin-bottom:15px;
+  box-shadow:0 2px 10px rgba(0,0,0,.1);
+}
+
+.row{
+  margin-bottom:8px;
+}
+
+.status{
+  font-weight:bold;
+}
+
+.pending{
+  color:orange;
+}
+
+.approved{
+  color:green;
+}
+
+.rejected{
+  color:red;
+}
+
+.paid{
+  color:blue;
+}
+
+img{
+  width:120px;
+  border-radius:8px;
+  margin-top:10px;
+}
+
+.back{
+  width:100%;
+  padding:15px;
+  border:none;
+  border-radius:10px;
+  background:#111827;
+  color:white;
+  font-size:18px;
+  margin-top:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>💰 我的代墊紀錄</h1>
+
+<div id="list">
+載入中...
+</div>
+
+<button class="back"
+onclick="location.href='/employee.html'">
+返回員工專區
+</button>
+
+</div>
+
+<script>
+
+const LIFF_ID="2010241581-YtDxQgWd";
+
+async function loadData(){
+
+  await liff.init({
+    liffId:LIFF_ID
+  });
+
+  if(!liff.isLoggedIn()){
+    liff.login();
+    return;
+  }
+
+  const profile=
+  await liff.getProfile();
+
+  const res=
+  await fetch(
+    "/api/my-reimbursements/" +
+    profile.userId
+  );
+
+  const data=
+  await res.json();
+
+  const list=
+  document.getElementById("list");
+
+  if(!data.length){
+
+    list.innerHTML=
+    `
+    <div class="card">
+      尚無代墊紀錄
+    </div>
+    `;
+
+    return;
+  }
+
+  list.innerHTML=
+  data.map(item=>`
+
+    <div class="card">
+
+      <div class="row">
+        <b>日期：</b>
+        ${item.expense_date?.substring(0,10)}
+      </div>
+
+      <div class="row">
+        <b>類別：</b>
+        ${item.category}
+      </div>
+
+      <div class="row">
+        <b>金額：</b>
+        NT$${item.amount}
+      </div>
+
+      <div class="row">
+        <b>說明：</b>
+        ${item.description || "-"}
+      </div>
+
+      <div class="row">
+        <b>審核：</b>
+
+        <span class="
+        ${item.status==='已核准'?'approved':
+          item.status==='已駁回'?'rejected':
+          'pending'}">
+
+        ${item.status}
+
+        </span>
+      </div>
+
+      <div class="row">
+        <b>付款：</b>
+
+        <span class="
+        ${item.payment_status==='已付款'
+        ?'paid':'pending'}">
+
+        ${item.payment_status || '未付款'}
+
+        </span>
+      </div>
+
+      ${
+        item.receipt_url
+        ?
+        `
+        <div>
+          <a href="${item.receipt_url}" target="_blank">
+            <img src="${item.receipt_url}">
+          </a>
+        </div>
+        `
+        :
+        ''
+      }
+
+    </div>
+
+  `).join('');
+
+}
+
+loadData();
+
+</script>
+
+</body>
+</html>
