@@ -251,8 +251,19 @@ async function init(){
     profile =
     await liff.getProfile();
 
-    document.getElementById("employeeName").innerHTML =
-    "員工：<b>" + profile.displayName + "</b>";
+   const empRes = await fetch(
+  "/api/check-employee/" + profile.userId
+);
+
+const empData = await empRes.json();
+
+if(empData.success && empData.isEmployee){
+  document.getElementById("employeeName").innerHTML =
+  "員工：<b>" + empData.employee.name + "</b>";
+}else{
+  document.getElementById("employeeName").innerHTML =
+  "員工：<b>" + profile.displayName + "</b>";
+}
 
     setToday();
 
@@ -339,7 +350,7 @@ async function submitReimbursement(){
       },
       body:JSON.stringify({
         lineUserId:profile.userId,
-        name:profile.displayName,
+        name:empData.employee.name,
         expenseDate,
         category,
         amount,
