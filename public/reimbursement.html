@@ -350,7 +350,7 @@ async function submitReimbursement(){
       },
       body:JSON.stringify({
         lineUserId:profile.userId,
-        name:empData.employee.name,
+        name: profile.displayName
         expenseDate,
         category,
         amount,
