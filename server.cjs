@@ -4588,14 +4588,14 @@ app.post("/api/bind-line", async (req, res) => {
 
 app.post("/api/reimbursement", async (req, res) => {
   try {
-
     const {
       lineUserId,
       name,
       expenseDate,
       category,
       amount,
-      description
+      description,
+      receiptUrl
     } = req.body;
 
     if(
@@ -4620,10 +4620,11 @@ app.post("/api/reimbursement", async (req, res) => {
         expense_date,
         category,
         amount,
-        description
+        description,
+        receipt_url
       )
       VALUES
-      ($1,$2,$3,$4,$5,$6)
+      ($1,$2,$3,$4,$5,$6,$7)
       `,
       [
         lineUserId,
@@ -4631,7 +4632,8 @@ app.post("/api/reimbursement", async (req, res) => {
         expenseDate,
         category,
         amount,
-        description || ""
+        description || "",
+        receiptUrl || ""
       ]
     );
 
@@ -4641,17 +4643,14 @@ app.post("/api/reimbursement", async (req, res) => {
     });
 
   } catch(err) {
-
     console.error(err);
 
     res.status(500).json({
       success:false,
       message:"送出失敗"
     });
-
   }
 });
-
 
 // =========================
 // 讀取全部代墊紀錄
