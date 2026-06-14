@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代墊款審核管理</title>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
+h1{text-align:center;}
+.top{text-align:center;margin-bottom:20px;}
+input,select,button{padding:10px;margin:4px;border-radius:6px;border:1px solid #ccc;font-size:16px;}
+button{color:white;border:none;cursor:pointer;}
+.search{background:#1976d2;}
+.clear{background:#555;}
+.export{background:#2e7d32;}
+.back{background:#222;}
+.approve{background:#2e7d32;}
+.reject{background:#c62828;}
+.pay{background:#6a1b9a;}
+.delete{background:#b71c1c;}
+.table-wrap{width:100%;overflow-x:auto;background:white;}
+table{width:100%;min-width:1200px;border-collapse:collapse;background:white;}
+th{background:#222;color:white;padding:12px;white-space:nowrap;}
+td{border:1px solid #ddd;padding:10px;text-align:center;white-space:nowrap;}
+.pending{color:#f57c00;font-weight:bold;}
+.approved{color:green;font-weight:bold;}
+.rejected{color:red;font-weight:bold;}
+.unpaid{color:#c62828;font-weight:bold;}
+.paid{color:green;font-weight:bold;}
+.thumb{width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid #ddd;cursor:pointer;}
+</style>
+</head>
+
+<body>
+
+<h1>💳 代墊款審核管理</h1>
+
+<div class="top">
+  <input type="text" id="filterName" placeholder="搜尋員工">
+  <input type="month" id="filterMonth">
+
+  <select id="filterCategory">
+    <option value="">全部類別</option>
+    <option value="交通費">交通費</option>
+    <option value="餐費">餐費</option>
+    <option value="材料費">材料費</option>
+    <option value="文具費">文具費</option>
+    <option value="客戶招待">客戶招待</option>
+    <option value="差旅費">差旅費</option>
+    <option value="其他">其他</option>
+  </select>
+
+  <select id="filterStatus">
+    <option value="">全部審核狀態</option>
+    <option value="待審核">待審核</option>
+    <option value="已核准">已核准</option>
+    <option value="已駁回">已駁回</option>
+  </select>
+
+  <select id="filterPayment">
+    <option value="">全部付款狀態</option>
+    <option value="未付款">未付款</option>
+    <option value="已付款">已付款</option>
+  </select>
+
+  <button class="search" onclick="applyFilter()">篩選</button>
+  <button class="clear" onclick="clearFilter()">清除</button>
+  <button class="export" onclick="exportCSV()">匯出 CSV</button>
+  <button class="search" onclick="loadData()">重新整理</button>
+  <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+  <th>員工</th>
+  <th>日期</th>
+  <th>類別</th>
+  <th>金額</th>
+  <th>說明</th>
+  <th>發票</th>
+  <th>審核狀態</th>
+  <th>付款狀態</th>
+  <th>操作</th>
+</tr>
+</thead>
+
+<tbody id="tbody">
+<tr>
+<td colspan="9">讀取中...</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<script>
+if(localStorage.getItem("adminLogin") !== "yes"){
+  window.location.href = "/login.html";
+}
+
+let allRows = [];
+let rows = [];
+
+function money(value){
+  return "NT$" + Number(value || 0).toLocaleString("zh-TW");
+}
+
+function formatDate(value){
+  if(!value) return "-";
+
+  const d = new Date(value);
+
+  if(isNaN(d.getTime())) return value;
+
+  return d.toLocaleDateString("zh-TW", {
+    timeZone:"Asia/Taipei",
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit"
+  });
+}
+
+function getMonth(value){
+  if(!value) return "";
+
+  const d = new Date(value);
+
+  if(isNaN(d.getTime())) return "";
+
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2,"0");
+
+  return `${y}-${m}`;
+}
+
+function statusClass(status){
+  if(status === "已核准" || status === "核准") return "approved";
+  if(status === "已駁回" || status === "駁回") return "rejected";
+  return "pending";
+}
+
+function paymentClass(status){
+  if(status === "已付款") return "paid";
+  return "unpaid";
+}
+
+function receiptHtml(url){
+  if(!url){
+    return "-";
+  }
+
+  return `
+    <a href="${url}" target="_blank">
+      <img class="thumb" src="${url}">
+    </a>
+  `;
+}
+
+async function loadData(){
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "<tr><td colspan='9'>讀取中...</td></tr>";
+
+  try{
+    const res = await fetch("/api/reimbursements");
+    const data = await res.json();
+
+    if(!Array.isArray(data) || data.length === 0){
+      allRows = [];
+      rows = [];
+
+      tbody.innerHTML =
+      "<tr><td colspan='9'>目前沒有代墊申請</td></tr>";
+
+      return;
+    }
+
+    allRows = data;
+    rows = data;
+
+    renderTable();
+
+  }catch(err){
+    console.error(err);
+    tbody.innerHTML =
+    "<tr><td colspan='9'>讀取失敗</td></tr>";
+  }
+}
+
+function applyFilter(){
+  const name = document.getElementById("filterName").value.trim();
+  const month = document.getElementById("filterMonth").value;
+  const category = document.getElementById("filterCategory").value;
+  const status = document.getElementById("filterStatus").value;
+  const payment = document.getElementById("filterPayment").value;
+
+  rows = allRows.filter(item=>{
+    if(name && !(item.name || "").includes(name)){
+      return false;
+    }
+
+    if(month && getMonth(item.expense_date) !== month){
+      return false;
+    }
+
+    if(category && item.category !== category){
+      return false;
+    }
+
+    if(status && item.status !== status){
+      return false;
+    }
+
+    if(payment && item.payment_status !== payment){
+      return false;
+    }
+
+    return true;
+  });
+
+  renderTable();
+}
+
+function clearFilter(){
+  document.getElementById("filterName").value = "";
+  document.getElementById("filterMonth").value = "";
+  document.getElementById("filterCategory").value = "";
+  document.getElementById("filterStatus").value = "";
+  document.getElementById("filterPayment").value = "";
+
+  rows = allRows;
+  renderTable();
+}
+
+function renderTable(){
+  const tbody = document.getElementById("tbody");
+
+  if(!rows || rows.length === 0){
+    tbody.innerHTML =
+    "<tr><td colspan='9'>沒有符合條件的資料</td></tr>";
+    return;
+  }
+
+  tbody.innerHTML = "";
+
+  rows.forEach(item=>{
+    tbody.innerHTML += `
+      <tr>
+        <td>${item.name || "-"}</td>
+        <td>${formatDate(item.expense_date)}</td>
+        <td>${item.category || "-"}</td>
+        <td>${money(item.amount)}</td>
+        <td>${item.description || "-"}</td>
+        <td>${receiptHtml(item.receipt_url)}</td>
+
+        <td class="${statusClass(item.status)}">
+          ${item.status || "待審核"}
+        </td>
+
+        <td class="${paymentClass(item.payment_status)}">
+          ${item.payment_status || "未付款"}
+        </td>
+
+        <td>
+          <button class="approve" onclick="updateStatus(${item.id}, '已核准')">核准</button>
+          <button class="reject" onclick="updateStatus(${item.id}, '已駁回')">駁回</button>
+          <button class="pay" onclick="markPaid(${item.id})">已付款</button>
+          <button class="delete" onclick="deleteItem(${item.id})">刪除</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function updateStatus(id,status){
+  if(!confirm("確定要改為【" + status + "】嗎？")){
+    return;
+  }
+
+  try{
+    const res = await fetch("/api/reimbursement/status", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        id,
+        status
+      })
+    });
+
+    const data = await res.json();
+
+    alert(data.message || "已更新");
+
+    loadData();
+
+  }catch(err){
+    console.error(err);
+    alert("更新失敗");
+  }
+}
+
+async function markPaid(id){
+  if(!confirm("確定標記為已付款？")){
+    return;
+  }
+
+  try{
+    const res = await fetch("/api/reimbursement/pay", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        id
+      })
+    });
+
+    const data = await res.json();
+
+    alert(data.message || "已付款");
+
+    loadData();
+
+  }catch(err){
+    console.error(err);
+    alert("付款失敗");
+  }
+}
+
+async function deleteItem(id){
+  if(!confirm("確定刪除這筆代墊紀錄？")){
+    return;
+  }
+
+  try{
+    const res = await fetch("/api/reimbursement/" + id, {
+      method:"DELETE"
+    });
+
+    const data = await res.json();
+
+    alert(data.message || "已刪除");
+
+    loadData();
+
+  }catch(err){
+    console.error(err);
+    alert("刪除失敗");
+  }
+}
+
+function exportCSV(){
+  if(!rows || rows.length === 0){
+    alert("沒有資料可匯出");
+    return;
+  }
+
+  let csv =
+  "\uFEFF員工,日期,類別,金額,說明,發票,審核狀態,付款狀態\n";
+
+  rows.forEach(item=>{
+    csv += [
+      item.name || "-",
+      formatDate(item.expense_date),
+      item.category || "-",
+      item.amount || 0,
+      item.description || "-",
+      item.receipt_url || "-",
+      item.status || "待審核",
+      item.payment_status || "未付款"
+    ].map(v =>
+      `"${String(v).replace(/"/g,'""')}"`
+    ).join(",") + "\n";
+  });
+
+  const blob = new Blob([csv], {
+    type:"text/csv;charset=utf-8;"
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "reimbursements.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+loadData();
+</script>
+
+</body>
+</html>
