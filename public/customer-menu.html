@@ -1,35 +1,321 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>客戶專區</title>
+
 <style>
-body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;text-align:center;}
-.card{background:white;border-radius:12px;padding:20px;max-width:520px;margin:20px auto;box-shadow:0 2px 8px rgba(0,0,0,.1);}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;}
-a{display:block;padding:18px 10px;border-radius:10px;background:#d4af37;color:white;text-decoration:none;font-size:20px;font-weight:bold;}
-.dark{background:#222;}
-.green{background:#2e7d32;}
-.blue{background:#1976d2;}
+
+*{
+
+  box-sizing:border-box;
+
+}
+
+body{
+
+  margin:0;
+
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+
+  background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+
+  color:#10201d;
+
+}
+
+.page{
+
+  min-height:100vh;
+
+  padding:24px 18px 40px;
+
+}
+
+.header{
+
+  text-align:center;
+
+  margin:20px 0 24px;
+
+}
+
+.brand{
+
+  font-size:14px;
+
+  letter-spacing:6px;
+
+  color:#a9792b;
+
+  font-weight:900;
+
+}
+
+h1{
+
+  margin:12px 0 6px;
+
+  font-size:38px;
+
+  color:#0b3029;
+
+  letter-spacing:2px;
+
+}
+
+.subtitle{
+
+  color:#8b7d69;
+
+  font-size:15px;
+
+}
+
+.card{
+
+  background:rgba(255,255,255,.94);
+
+  max-width:620px;
+
+  margin:0 auto;
+
+  border-radius:34px;
+
+  padding:26px;
+
+  border:1px solid #e4d4b8;
+
+  box-shadow:0 24px 60px rgba(66,43,16,.15);
+
+}
+
+.logoBox{
+
+  text-align:center;
+
+  margin-bottom:18px;
+
+}
+
+.logoBox img{
+
+  width:140px;
+
+  max-width:100%;
+
+}
+
+.company{
+
+  text-align:center;
+
+  font-size:30px;
+
+  font-weight:950;
+
+  color:#0b3029;
+
+}
+
+.desc{
+
+  text-align:center;
+
+  color:#756957;
+
+  margin-top:8px;
+
+  margin-bottom:24px;
+
+  line-height:1.7;
+
+}
+
+.grid{
+
+  display:grid;
+
+  grid-template-columns:1fr 1fr;
+
+  gap:14px;
+
+}
+
+.menu{
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  min-height:92px;
+
+  border-radius:22px;
+
+  color:white;
+
+  text-decoration:none;
+
+  font-size:18px;
+
+  font-weight:950;
+
+  box-shadow:0 10px 22px rgba(0,0,0,.15);
+
+}
+
+.gold{
+
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+
+}
+
+.dark{
+
+  background:linear-gradient(135deg,#10201d,#050b0a);
+
+}
+
+.green{
+
+  background:linear-gradient(135deg,#1f6b4f,#0d3828);
+
+}
+
+.blue{
+
+  background:linear-gradient(135deg,#1d4ed8,#1e3a8a);
+
+}
+
+.footer{
+
+  margin-top:24px;
+
+  text-align:center;
+
+  color:#8b7d69;
+
+  font-size:14px;
+
+}
+
+@media(max-width:480px){
+
+  h1{
+
+    font-size:34px;
+
+  }
+
+  .card{
+
+    padding:20px;
+
+    border-radius:28px;
+
+  }
+
+  .grid{
+
+    grid-template-columns:1fr;
+
+  }
+
+}
+
 </style>
+
 </head>
 
 <body>
 
-<h1>🛒 客戶專區</h1>
+<div class="page">
 
-<div class="card">
-  <h2>Aurum House</h2>
-  <p>黃金商品・金豆・財富配置</p>
+  <div class="header">
 
-  <div class="grid">
-    <a href="https://www.aurum-house.com/gold-">🥇 黃金商品</a>
-    <a class="dark" href="https://www.aurum-house.com/price-chart-">📈 即時金價</a>
-    <a class="green" href="https://www.aurum-house.com/contact">📞 聯絡客服</a>
-    <a class="blue" href="https://www.aurum-house.com/">🌐 官方網站</a>
+    <div class="brand">AURUM HOUSE</div>
+
+    <h1>客戶專區</h1>
+
+    <div class="subtitle">Customer Center</div>
+
   </div>
+
+  <div class="card">
+
+    <div class="logoBox">
+
+      <img
+
+        src="/images/logo.jpg"
+
+        alt="Aurum House"
+
+        onerror="this.style.display='none';"
+
+      >
+
+    </div>
+
+    <div class="company">
+
+      Aurum House
+
+    </div>
+
+    <div class="desc">
+
+      黃金商品・金豆收藏・財富配置
+
+    </div>
+
+    <div class="grid">
+
+      <a class="menu gold" href="https://www.aurum-house.com/gold-">
+
+        🥇 黃金商品
+
+      </a>
+
+      <a class="menu dark" href="https://www.aurum-house.com/price-chart-">
+
+        📈 即時金價
+
+      </a>
+
+      <a class="menu green" href="https://www.aurum-house.com/contact">
+
+        📞 聯絡客服
+
+      </a>
+
+      <a class="menu blue" href="https://www.aurum-house.com/">
+
+        🌐 官方網站
+
+      </a>
+
+    </div>
+
+    <div class="footer">
+
+      © Aurum House Gold Investment
+
+    </div>
+
+  </div>
+
 </div>
 
 </body>
+
 </html>
