@@ -1,11 +1,7 @@
 <!DOCTYPE html>
-
 <html lang="zh-Hant">
-
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>員工請假系統</title>
@@ -13,317 +9,233 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
-
-*{
-
-  box-sizing:border-box;
-
-}
+*{box-sizing:border-box;}
 
 body{
-
   margin:0;
-
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-
   background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
-
   color:#10201d;
-
   padding:24px 18px 44px;
-
 }
 
 .header{
-
   text-align:center;
-
   margin:18px 0 26px;
-
 }
 
 .brand{
-
   font-size:14px;
-
   letter-spacing:6px;
-
   color:#a9792b;
-
   font-weight:900;
-
 }
 
 h1{
-
   margin:12px 0 6px;
-
   font-size:38px;
-
   color:#0b3029;
-
   letter-spacing:3px;
-
 }
 
 .subtitle{
-
   color:#8b7d69;
-
   font-size:15px;
-
   letter-spacing:1px;
-
 }
 
 .card{
-
   max-width:620px;
-
   margin:0 auto;
-
   padding:24px;
-
   border-radius:34px;
-
   background:rgba(255,255,255,.94);
-
   border:1px solid #e4d4b8;
-
   box-shadow:0 26px 60px rgba(66,43,16,.16);
-
+  overflow:hidden;
 }
 
 .employeeBox{
-
   background:#fffaf3;
-
   border:1px solid #eadfcf;
-
   border-radius:22px;
-
   padding:18px;
-
   margin-bottom:22px;
-
   color:#0b3029;
-
   font-weight:950;
-
   line-height:1.7;
+}
 
+.formGroup{
+  margin-bottom:18px;
 }
 
 label{
-
   display:block;
-
-  margin-top:18px;
-
   margin-bottom:8px;
-
   color:#756957;
-
   font-weight:900;
-
 }
 
 select,
-
 input{
-
   width:100%;
-
-  padding:15px;
-
+  max-width:100%;
+  height:68px;
+  padding:0 18px;
   border:1px solid #d8c8ad;
-
-  border-radius:18px;
-
+  border-radius:20px;
   background:#fffdf8;
-
   color:#10201d;
-
-  font-size:16px;
-
+  font-size:18px;
   outline:none;
+  display:block;
+  box-sizing:border-box;
+}
 
+input[type="date"]{
+  appearance:none;
+  -webkit-appearance:none;
+  min-width:0;
 }
 
 select:focus,
-
 input:focus{
-
   border-color:#cfa54f;
-
   box-shadow:0 0 0 3px rgba(207,165,79,.18);
+}
 
+.dateHint{
+  margin-top:8px;
+  color:#8b7d69;
+  font-size:14px;
+  font-weight:800;
+}
+
+.summaryBox{
+  margin:18px 0;
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:20px;
+  padding:16px;
+  color:#0b3029;
+  font-weight:950;
+  line-height:1.7;
 }
 
 button{
-
   width:100%;
-
   padding:16px;
-
   margin-top:16px;
-
   border:none;
-
   border-radius:20px;
-
   color:white;
-
   font-size:18px;
-
   font-weight:950;
-
   cursor:pointer;
-
 }
 
 .submitBtn{
-
   background:linear-gradient(135deg,#cfa54f,#8b5f1e);
-
 }
 
 .backBtn{
-
   background:linear-gradient(135deg,#10201d,#050b0a);
-
 }
 
 .note{
-
   margin-top:18px;
-
   background:#fffaf3;
-
   border:1px solid #eadfcf;
-
   border-radius:18px;
-
   padding:14px;
-
   color:#756957;
-
   font-size:14px;
-
   line-height:1.7;
-
 }
 
 #status{
-
   margin-top:18px;
-
   text-align:center;
-
   font-weight:950;
-
 }
 
-.success{
-
-  color:#166534;
-
-}
-
-.error{
-
-  color:#b91c1c;
-
-}
+.success{color:#166534;}
+.error{color:#b91c1c;}
 
 @media(max-width:480px){
-
   h1{
-
     font-size:34px;
-
   }
 
   .card{
-
     padding:20px;
-
     border-radius:30px;
-
   }
 
+  select,
+  input{
+    height:64px;
+    font-size:17px;
+  }
 }
-
 </style>
-
 </head>
 
 <body>
 
 <div class="header">
-
   <div class="brand">AURUM HOUSE</div>
-
   <h1>員工請假申請</h1>
-
   <div class="subtitle">Leave Application</div>
-
 </div>
 
 <div class="card">
 
   <div id="employeeName" class="employeeBox">
-
     LINE 登入中...
-
   </div>
 
-  <label>請假類型</label>
+  <div class="formGroup">
+    <label>請假類型</label>
+    <select id="leaveType">
+      <option value="特休">特休</option>
+      <option value="病假">病假</option>
+      <option value="事假">事假</option>
+      <option value="公假">公假</option>
+      <option value="婚假">婚假</option>
+      <option value="(陪)產假">(陪)產假</option>
+      <option value="育嬰假">育嬰假</option>
+      <option value="喪假">喪假</option>
+    </select>
+  </div>
 
-  <select id="leaveType">
+  <div class="formGroup">
+    <label>開始日期</label>
+    <input type="date" id="startDate" onchange="updateSummary()">
+    <div id="startWeek" class="dateHint"></div>
+  </div>
 
-    <option value="特休">特休</option>
+  <div class="formGroup">
+    <label>結束日期</label>
+    <input type="date" id="endDate" onchange="updateSummary()">
+    <div id="endWeek" class="dateHint"></div>
+  </div>
 
-    <option value="病假">病假</option>
-
-    <option value="事假">事假</option>
-
-    <option value="公假">公假</option>
-
-    <option value="婚假">婚假</option>
-
-    <option value="(陪)產假">(陪)產假</option>
-
-    <option value="育嬰假">育嬰假</option>
-
-    <option value="喪假">喪假</option>
-
-  </select>
-
-  <label>開始日期</label>
-
-  <input type="date" id="startDate">
-
-  <label>結束日期</label>
-
-  <input type="date" id="endDate">
+  <div id="summaryBox" class="summaryBox">
+    請假天數：1 天
+  </div>
 
   <button class="submitBtn" onclick="submitLeave()">
-
     送出請假申請
-
   </button>
 
   <button class="backBtn" onclick="goBack()">
-
     返回員工專區
-
   </button>
 
   <div class="note">
-
     請假申請送出後，需由管理員審核。審核通過後，請假日將自動納入出勤與薪資計算。
-
   </div>
 
   <div id="status"></div>
@@ -331,249 +243,218 @@ button{
 </div>
 
 <script>
-
 const LIFF_ID = "2010241581-YtDxQgWd";
 
 let profile = null;
-
 let employee = null;
 
 function setStatus(message,type){
-
   document.getElementById("status").innerHTML =
-
   `<span class="${type || ""}">${message}</span>`;
-
 }
 
 function goBack(){
-
   if(document.referrer){
-
     history.back();
-
   }else{
-
     location.href="/employee-home.html";
+  }
+}
 
+function weekText(dateString){
+  if(!dateString){
+    return "";
   }
 
+  const d = new Date(dateString + "T00:00:00");
+
+  const weeks =
+  ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
+
+  return weeks[d.getDay()];
+}
+
+function calcLeaveDays(startDate,endDate){
+  if(!startDate || !endDate){
+    return 0;
+  }
+
+  const start =
+  new Date(startDate + "T00:00:00");
+
+  const end =
+  new Date(endDate + "T00:00:00");
+
+  if(end < start){
+    return 0;
+  }
+
+  return Math.floor(
+    (end - start) / (1000 * 60 * 60 * 24)
+  ) + 1;
+}
+
+function updateSummary(){
+  const startDate =
+  document.getElementById("startDate").value;
+
+  const endDate =
+  document.getElementById("endDate").value;
+
+  document.getElementById("startWeek").innerHTML =
+  startDate ? "開始日：" + weekText(startDate) : "";
+
+  document.getElementById("endWeek").innerHTML =
+  endDate ? "結束日：" + weekText(endDate) : "";
+
+  const days =
+  calcLeaveDays(startDate,endDate);
+
+  document.getElementById("summaryBox").innerHTML =
+  days > 0
+  ? `請假天數：${days} 天`
+  : "結束日期不能早於開始日期";
 }
 
 function setToday(){
-
   const now = new Date();
-
   const y = now.getFullYear();
-
   const m = String(now.getMonth() + 1).padStart(2,"0");
-
   const d = String(now.getDate()).padStart(2,"0");
 
   const today =
-
   `${y}-${m}-${d}`;
 
   document.getElementById("startDate").value =
-
   today;
 
   document.getElementById("endDate").value =
-
   today;
 
+  updateSummary();
 }
 
 async function init(){
-
   const employeeBox =
-
   document.getElementById("employeeName");
 
   try{
-
     await liff.init({
-
       liffId: LIFF_ID
-
     });
 
     if(!liff.isLoggedIn()){
-
       liff.login();
-
       return;
-
     }
 
     profile =
-
     await liff.getProfile();
 
     const empRes =
-
     await fetch(
-
       "/api/check-employee/" +
-
       profile.userId
-
     );
 
     const empData =
-
     await empRes.json();
 
     if(empData.success && empData.isEmployee){
-
       employee =
-
       empData.employee;
 
       employeeBox.innerHTML =
-
       `員工：${employee.name || profile.displayName || "-"}<br>
-
        部門：${employee.department || "-"} / ${employee.position || "-"}`;
-
     }else{
-
       employee = {
-
         name:profile.displayName
-
       };
 
       employeeBox.innerHTML =
-
       `員工：${profile.displayName}`;
-
     }
 
     setToday();
 
   }catch(err){
-
     console.error(err);
 
     employeeBox.innerHTML =
-
     "<span class='error'>LINE 登入失敗，請重新開啟頁面</span>";
-
   }
-
 }
 
 async function submitLeave(){
-
   if(!profile){
-
     alert("尚未完成 LINE 登入");
-
     return;
-
   }
 
   const leaveType =
-
   document.getElementById("leaveType").value;
 
   const startDate =
-
   document.getElementById("startDate").value;
 
   const endDate =
-
   document.getElementById("endDate").value;
 
   const reason = "";
 
   if(!startDate){
-
     alert("請選擇開始日期");
-
     return;
-
   }
 
   if(!endDate){
-
     alert("請選擇結束日期");
-
     return;
-
   }
 
   if(endDate < startDate){
-
     alert("結束日期不能早於開始日期");
-
     return;
-
   }
 
   try{
-
     setStatus("請假申請送出中...","");
 
     const response =
-
     await fetch("/api/leave",{
-
       method:"POST",
-
       headers:{
-
         "Content-Type":"application/json"
-
       },
-
       body:JSON.stringify({
-
         lineUserId: profile.userId,
-
         name: employee.name || profile.displayName,
-
         leaveType,
-
         startDate,
-
         endDate,
-
         reason
-
       })
-
     });
 
     const data =
-
     await response.json();
 
     if(!response.ok || data.success === false){
-
       setStatus(data.message || "送出失敗","error");
-
       return;
-
     }
 
     setStatus("✅ " + (data.message || "請假申請已送出"),"success");
 
   }catch(err){
-
     console.error(err);
-
     setStatus("送出失敗，請稍後再試","error");
-
   }
-
 }
 
 init();
-
 </script>
 
 </body>
-
 </html>
