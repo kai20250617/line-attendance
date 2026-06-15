@@ -76,6 +76,7 @@ input,
 select,
 textarea{
   width:100%;
+  max-width:100%;
   padding:15px;
   border:1px solid #d8c8ad;
   border-radius:18px;
@@ -83,6 +84,18 @@ textarea{
   color:#10201d;
   font-size:16px;
   outline:none;
+  box-sizing:border-box;
+}
+
+input[type="datetime-local"]{
+  width:100%;
+  max-width:100%;
+  height:68px;
+  padding:0 18px;
+  display:block;
+  min-width:0;
+  -webkit-appearance:none;
+  appearance:none;
 }
 
 textarea{
