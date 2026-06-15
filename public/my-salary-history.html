@@ -3,413 +3,427 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>我的薪資歷史</title>
+<title>我的薪資</title>
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
+*{box-sizing:border-box;}
+
 body{
-  font-family:Arial,sans-serif;
-  background:#f5f5f5;
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+  color:#10201d;
+  padding:24px 18px 40px;
+}
+
+.header{text-align:center;margin:18px 0 24px;}
+.brand{font-size:14px;letter-spacing:5px;color:#a9792b;font-weight:900;}
+h1{margin:10px 0 6px;font-size:36px;color:#0b3029;letter-spacing:2px;}
+.subtitle{color:#8b7d69;font-size:15px;}
+
+.card{
+  background:rgba(255,255,255,.94);
+  max-width:650px;
+  margin:0 auto 20px;
+  padding:24px;
+  border-radius:30px;
+  border:1px solid #e4d4b8;
+  box-shadow:0 24px 60px rgba(66,43,16,.15);
+}
+
+.profile{
+  border-bottom:1px solid #eadfcf;
+  padding-bottom:18px;
+  margin-bottom:20px;
+}
+
+.profile h2{
+  margin:0;
+  font-size:28px;
+  color:#0b3029;
+}
+
+.profile p{
+  color:#756957;
+  margin:8px 0 0;
+}
+
+.netCard{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+  color:white;
+  padding:26px;
+  border-radius:24px;
+  text-align:center;
+  margin-bottom:22px;
+}
+
+.netTitle{font-size:15px;opacity:.9;}
+.netMoney{font-size:38px;font-weight:950;margin-top:10px;}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  padding:14px 0;
+  border-bottom:1px solid #ece2d1;
+  text-align:left;
+}
+
+.row span{color:#756957;font-weight:800;}
+.row strong{color:#10201d;text-align:right;}
+
+.sectionTitle{
+  margin:24px 0 12px;
+  font-size:20px;
+  font-weight:950;
+  color:#0b3029;
+  text-align:left;
+}
+
+.detail{
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:18px;
+  padding:14px;
+  margin:10px 0;
+  text-align:left;
+  line-height:1.8;
+}
+
+.signBox{
+  margin-top:20px;
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:20px;
   padding:20px;
+}
+
+.signed{color:#2e7d32;font-weight:900;font-size:18px;}
+.unsigned{color:#c62828;font-weight:900;font-size:18px;}
+
+button{
+  width:100%;
+  margin-top:12px;
+  padding:15px;
+  border:none;
+  border-radius:18px;
+  color:white;
+  font-size:18px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.downloadBtn{background:linear-gradient(135deg,#123c35,#071b17);}
+.signBtn{background:linear-gradient(135deg,#cfa54f,#8b5f1e);}
+.backBtn{background:linear-gradient(135deg,#10201d,#050b0a);}
+.disabledBtn{background:#777;}
+
+.error{
+  color:#b91c1c;
+  font-weight:900;
   text-align:center;
 }
 
-h1{
-  font-size:38px;
-}
-
-.card{
-  background:white;
-  max-width:600px;
-  margin:20px auto;
-  padding:25px;
-  border-radius:16px;
-  box-shadow:0 2px 10px rgba(0,0,0,.1);
-}
-
-.filter{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  margin-bottom:20px;
-  flex-wrap:wrap;
-}
-
-select,button{
-  padding:10px;
-  font-size:16px;
-  border-radius:8px;
-  border:1px solid #ccc;
-}
-
-button{
-  background:#1976d2;
-  color:white;
-  border:none;
-  cursor:pointer;
-  margin:5px;
-}
-
-.pdf{
-  background:#0d47a1;
-}
-
-.sign{
-  background:#2e7d32;
-}
-
-.signed{
-  background:#777;
-}
-
-.clear{
-  background:#555;
-}
-
-.item{
-  border-bottom:1px solid #eee;
-  padding:20px 0;
-}
-
-.month{
-  font-size:28px;
-  font-weight:bold;
-}
-
-.gross{
-  font-size:22px;
-}
-
-.net{
-  color:#0d47a1;
-  font-size:28px;
-  font-weight:bold;
-}
-
-.status{
-  font-size:18px;
-  font-weight:bold;
-}
-
-.error{
-  color:red;
-  font-weight:bold;
+.loading{
+  color:#8b7d69;
+  font-weight:900;
+  text-align:center;
+  padding:30px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>📄 我的薪資歷史</h1>
+<div class="header">
+  <div class="brand">AURUM HOUSE</div>
+  <h1>我的薪資</h1>
+  <div class="subtitle">Salary Center</div>
+</div>
 
-<div class="card">
-
-  <div class="filter">
-    <select id="yearFilter">
-      <option value="">全部年份</option>
-    </select>
-
-    <select id="monthFilter">
-      <option value="">全部月份</option>
-      <option value="1">1 月</option>
-      <option value="2">2 月</option>
-      <option value="3">3 月</option>
-      <option value="4">4 月</option>
-      <option value="5">5 月</option>
-      <option value="6">6 月</option>
-      <option value="7">7 月</option>
-      <option value="8">8 月</option>
-      <option value="9">9 月</option>
-      <option value="10">10 月</option>
-      <option value="11">11 月</option>
-      <option value="12">12 月</option>
-    </select>
-
-    <button onclick="renderList()">篩選</button>
-    <button class="clear" onclick="clearFilter()">清除</button>
-  </div>
-
-  <div id="list">LINE 登入中...</div>
-
+<div id="content" class="card">
+  <div class="loading">LINE 登入中...</div>
 </div>
 
 <script>
 const LIFF_ID = "2010241581-YtDxQgWd";
 
-let salaryHistory = [];
-let employeeId = null;
+let profile = null;
+let salaryData = null;
+let currentSalaryHistory = null;
 
-async function init(){
-  const list = document.getElementById("list");
+async function loadMySalary(){
+  const box = document.getElementById("content");
 
   try{
-    await liff.init({
-      liffId:LIFF_ID
-    });
+    await liff.init({ liffId:LIFF_ID });
 
     if(!liff.isLoggedIn()){
       liff.login();
       return;
     }
 
-    const profile =
-    await liff.getProfile();
+    profile = await liff.getProfile();
 
-    const salaryRes =
-    await fetch("/api/my-salary/" + profile.userId);
+    const res = await fetch("/api/my-salary/" + profile.userId);
+    const data = await res.json();
 
-    const salaryData =
-    await salaryRes.json();
-
-    if(salaryData.success){
-      employeeId =
-      salaryData.employeeId;
-    }
-
-    const res =
-    await fetch("/api/my-salary-history/" + profile.userId);
-
-    const data =
-    await res.json();
-
-    if(!data.success){
-      list.innerHTML =
-      "<div class='error'>讀取薪資歷史失敗</div>";
+    if(!res.ok || data.success === false){
+      box.innerHTML =
+      `<div class="error">${data.message || "找不到薪資資料，請先完成 LINE 綁定"}</div>`;
       return;
     }
 
-    salaryHistory =
-    data.data || data.rows || [];
+    salaryData = data;
 
-    buildYearFilter();
-    renderList();
+    await loadSalaryHistory(profile.userId);
 
-  }catch(err){
-    console.error(err);
+    const lateCount = Number(data.lateCount || 0);
+    const earlyLeaveCount = Number(data.earlyLeaveCount || 0);
 
-    list.innerHTML =
+    let overtimeHtml = "";
+
+    if(data.overtimeDetails && data.overtimeDetails.length > 0){
+      overtimeHtml = `<div class="sectionTitle">加班明細</div>`;
+
+      data.overtimeDetails.forEach(item=>{
+        overtimeHtml += `
+          <div class="detail">
+            <strong>${item.date}（${item.weekday}）</strong><br>
+            類型：${item.type}<br>
+            加班時數：${Number(item.hours || 0).toFixed(2)} 小時<br>
+            加班費：NT$${Number(item.pay || 0).toLocaleString("zh-TW")}
+          </div>
+        `;
+      });
+    }else{
+      overtimeHtml = `
+        <div class="sectionTitle">加班明細</div>
+        <div class="detail">本月無加班紀錄</div>
+      `;
+    }
+
+    box.innerHTML = `
+      <div class="profile">
+        <h2>${data.name || "-"}</h2>
+        <p>${data.department || "-"} / ${data.position || "-"}</p>
+      </div>
+
+      <div class="netCard">
+        <div class="netTitle">本月實發薪資</div>
+        <div class="netMoney">
+          NT$${Number(data.netSalary || 0).toLocaleString("zh-TW")}
+        </div>
+      </div>
+
+      <div class="row">
+        <span>底薪</span>
+        <strong>NT$${Number(data.baseSalary || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>固定津貼</span>
+        <strong>NT$${Number(data.fixedAllowance || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>績效獎金</span>
+        <strong>NT$${Number(data.performanceBonus || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>平日加班費</span>
+        <strong>NT$${Number(data.overtimePay || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>休息日加班費</span>
+        <strong>NT$${Number(data.restDayOvertimePay || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>假日加班費</span>
+        <strong>NT$${Number(data.holidayOvertimePay || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>請假扣款</span>
+        <strong>NT$${Number(data.leaveDeduction || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>遲到次數</span>
+        <strong>${lateCount} 次</strong>
+      </div>
+
+      <div class="row">
+        <span>早退次數</span>
+        <strong>${earlyLeaveCount} 次</strong>
+      </div>
+
+      <div class="sectionTitle">扣除項目</div>
+
+      <div class="row">
+        <span>勞保</span>
+        <strong>NT$${Number(data.laborInsurance || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>健保</span>
+        <strong>NT$${Number(data.healthInsurance || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>勞退提繳</span>
+        <strong>NT$${Number(data.laborPension || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="sectionTitle">薪資合計</div>
+
+      <div class="row">
+        <span>應發薪資</span>
+        <strong>NT$${Number(data.grossSalary || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      <div class="row">
+        <span>實發薪資</span>
+        <strong>NT$${Number(data.netSalary || 0).toLocaleString("zh-TW")}</strong>
+      </div>
+
+      ${overtimeHtml}
+
+      <button class="downloadBtn" onclick="downloadPayslip()">
+        下載 PDF 薪資單
+      </button>
+
+      ${buildSignHtml()}
+
+      <button class="backBtn" onclick="history.back()">
+        返回上一頁
+      </button>
+    `;
+
+  }catch(error){
+    console.error(error);
+    box.innerHTML =
     "<div class='error'>讀取失敗，請稍後再試</div>";
   }
 }
 
-function getYearMonth(item){
-  let year = item.year;
-  let month = item.month;
+async function loadSalaryHistory(lineUserId){
+  try{
+    const res = await fetch("/api/my-salary-history/" + lineUserId);
+    const data = await res.json();
 
-  if((!year || !month) && item.salary_month){
-    const parts =
-    String(item.salary_month).split("-");
+    if(!data.success){
+      currentSalaryHistory = null;
+      return;
+    }
 
-    year = parts[0];
-    month = parts[1];
+    const rows = data.data || data.rows || [];
+
+    const salaryMonth =
+    salaryData && salaryData.salaryMonth
+    ? salaryData.salaryMonth
+    : new Date().toISOString().slice(0,7);
+
+    currentSalaryHistory =
+    rows.find(item=>{
+      if(item.salary_month){
+        return String(item.salary_month).slice(0,7) === salaryMonth;
+      }
+
+      if(item.year && item.month){
+        const m =
+        String(item.month).padStart(2,"0");
+
+        return `${item.year}-${m}` === salaryMonth;
+      }
+
+      return false;
+    }) || null;
+
+  }catch(err){
+    console.error("讀取薪資歷史失敗:", err);
+    currentSalaryHistory = null;
   }
-
-  return {
-    year: year ? Number(year) : null,
-    month: month ? Number(month) : null
-  };
 }
 
-function buildYearFilter(){
-  const yearFilter =
-  document.getElementById("yearFilter");
-
-  yearFilter.innerHTML =
-  `<option value="">全部年份</option>`;
-
-  let years = [];
-
-  salaryHistory.forEach(item=>{
-    const ym = getYearMonth(item);
-
-    if(ym.year){
-      years.push(ym.year);
-    }
-  });
-
-  years =
-  [...new Set(years)]
-  .sort((a,b)=>b-a);
-
-  years.forEach(year=>{
-    yearFilter.innerHTML += `
-      <option value="${year}">
-        ${year} 年
-      </option>
-    `;
-  });
-}
-
-function renderList(){
-  const list =
-  document.getElementById("list");
-
-  const year =
-  document.getElementById("yearFilter").value;
-
-  const month =
-  document.getElementById("monthFilter").value;
-
-  let rows =
-  salaryHistory.filter(item=>{
-    const ym = getYearMonth(item);
-
-    if(
-      year &&
-      Number(ym.year) !== Number(year)
-    ){
-      return false;
-    }
-
-    if(
-      month &&
-      Number(ym.month) !== Number(month)
-    ){
-      return false;
-    }
-
-    return true;
-  });
-
-  if(rows.length === 0){
-    list.innerHTML =
-    "<p>目前沒有符合條件的薪資紀錄</p>";
-    return;
-  }
-
-  let html = "";
-
-  rows.forEach(item=>{
-    const gross =
-    Number(
-      item.gross_salary ||
-      item.grossSalary ||
-      item.gross ||
-      item.total_salary ||
-      item.totalSalary ||
-      0
-    );
-
-    const net =
-    Number(
-      item.net_salary ||
-      item.netSalary ||
-      item.net ||
-      item.final_salary ||
-      item.finalSalary ||
-      0
-    );
-
-    const ym =
-    getYearMonth(item);
-
-    const y =
-    ym.year || "-";
-
-    const m =
-    ym.month
-    ? String(ym.month).padStart(2,"0")
-    : "-";
-
-    const signedText =
-    item.is_signed
-    ? "✅ 已簽收"
-    : "❌ 未簽收";
-
-    const signedTime =
-    item.signed_at
-    ? new Date(item.signed_at).toLocaleString("zh-TW", {
-        timeZone:"Asia/Taipei"
-      })
-    : "";
-
-    html += `
-      <div class="item">
-        <div class="month">${y}-${m}</div>
-
-        <p class="gross">
-          應發薪資：
-          NT$${gross.toLocaleString("zh-TW")}
-        </p>
-
-        <p class="net">
-          實發薪資：
-          NT$${net.toLocaleString("zh-TW")}
-        </p>
-
-        <p class="status">
-          ${signedText}
-        </p>
-
-        ${
-          signedTime
-          ? `<p>簽收時間：${signedTime}</p>`
-          : ""
-        }
-
-        <button class="pdf" onclick="downloadPdf()">
-          下載 PDF
-        </button>
-
-        ${
-          item.is_signed
-          ? `<button class="signed" disabled>已簽收</button>`
-          : `<button class="sign" onclick="signSalary(${item.id})">薪資單簽收</button>`
-        }
+function buildSignHtml(){
+  if(!currentSalaryHistory){
+    return `
+      <div class="signBox">
+        <p class="unsigned">尚未產生本月結薪紀錄，暫時無法簽收</p>
       </div>
     `;
-  });
+  }
 
-  list.innerHTML = html;
+  if(currentSalaryHistory.is_signed){
+    const signedTime =
+    currentSalaryHistory.signed_at
+    ? new Date(currentSalaryHistory.signed_at).toLocaleString("zh-TW", {
+        timeZone:"Asia/Taipei"
+      })
+    : "-";
+
+    return `
+      <div class="signBox">
+        <p class="signed">薪資單已簽收</p>
+        <p>簽收時間：${signedTime}</p>
+        <button class="disabledBtn" disabled>
+          已完成簽收
+        </button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="signBox">
+      <p class="unsigned">薪資單尚未簽收</p>
+      <button class="signBtn" onclick="signSalary()">
+        確認簽收
+      </button>
+    </div>
+  `;
 }
 
-function clearFilter(){
-  document.getElementById("yearFilter").value = "";
-  document.getElementById("monthFilter").value = "";
-
-  renderList();
-}
-
-function downloadPdf(){
-  if(!employeeId){
-    alert("找不到員工 ID，無法下載 PDF");
+async function signSalary(){
+  if(!profile || !profile.userId){
+    alert("尚未完成 LINE 登入");
     return;
   }
 
-  location.href =
-  "/api/payslip/" + employeeId;
-}
-
-async function signSalary(id){
-  if(!id){
-    alert("找不到薪資紀錄 ID");
+  if(!currentSalaryHistory || !currentSalaryHistory.salary_month){
+    alert("找不到本月薪資紀錄，請先月結薪資");
     return;
   }
 
-  if(
-    !confirm("確認簽收本月薪資單？")
-  ){
+  if(!confirm("確定要簽收本月薪資單嗎？")){
     return;
   }
 
   try{
-    const res =
-    await fetch(
-      "/api/sign-salary/" + id,
-      {
-        method:"POST"
-      }
-    );
+    const res = await fetch("/api/sign-salary", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        lineUserId:profile.userId,
+        salaryMonth:String(currentSalaryHistory.salary_month).slice(0,7)
+      })
+    });
 
-    const data =
-    await res.json();
+    const data = await res.json();
 
-    alert(
-      data.message ||
-      "簽收完成"
-    );
+    if(!res.ok || data.success === false){
+      alert(data.message || "簽收失敗，請稍後再試");
+      return;
+    }
 
+    alert(data.message || "薪資單已簽收");
     location.reload();
 
   }catch(err){
@@ -418,7 +432,19 @@ async function signSalary(id){
   }
 }
 
-init();
+function downloadPayslip(){
+  if(!salaryData || !salaryData.employeeId){
+    alert("找不到員工資料，無法下載薪資單");
+    return;
+  }
+
+  window.open(
+    "/api/payslip/" + salaryData.employeeId,
+    "_blank"
+  );
+}
+
+loadMySalary();
 </script>
 
 </body>

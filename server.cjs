@@ -2935,26 +2935,67 @@ app.get("/api/payslip/:id", async (req, res) => {
 
     };
 
-    app.post("/api/sign-salary/:id", async (req, res) => {
-  try {
+   
 
 // =========================
 // 薪資單簽收
 // =========================
 
+app.post("/api/sign-salary", async (req, res) => {
+  try {
+    const {
+      lineUserId,
+      salaryMonth
+    } = req.body;
 
-    const salaryId = req.params.id;
+    if(!lineUserId || !salaryMonth){
+      return res.status(400).json({
+        success:false,
+        message:"缺少員工LINE ID或薪資月份"
+      });
+    }
 
-    await pool.query(
+    const empResult = await pool.query(
+      `
+      SELECT *
+      FROM employees
+      WHERE line_user_id = $1
+      LIMIT 1
+      `,
+      [lineUserId]
+    );
+
+    if(empResult.rows.length === 0){
+      return res.status(404).json({
+        success:false,
+        message:"找不到員工資料"
+      });
+    }
+
+    const emp = empResult.rows[0];
+
+    const result = await pool.query(
       `
       UPDATE salary_history
       SET
         is_signed = true,
         signed_at = NOW()
-      WHERE id = $1
+      WHERE employee_id = $1
+      AND salary_month = $2
+      RETURNING *
       `,
-      [salaryId]
+      [
+        emp.id,
+        salaryMonth
+      ]
     );
+
+    if(result.rows.length === 0){
+      return res.status(404).json({
+        success:false,
+        message:"找不到本月薪資紀錄，請先月結薪資"
+      });
+    }
 
     res.json({
       success:true,
@@ -2962,14 +3003,12 @@ app.get("/api/payslip/:id", async (req, res) => {
     });
 
   } catch(err) {
-
     console.error(err);
 
     res.status(500).json({
       success:false,
       message:"簽收失敗"
     });
-
   }
 });
 
