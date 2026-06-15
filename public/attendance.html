@@ -14,85 +14,101 @@
 body{
   margin:0;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-  background:linear-gradient(180deg,#f3f6fb,#eef1f5);
-  color:#111827;
-}
-
-.page{
-  min-height:100vh;
-  padding:24px 18px 40px;
+  background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+  color:#10201d;
+  padding:24px 18px 44px;
 }
 
 .header{
   text-align:center;
-  margin-top:20px;
-  margin-bottom:24px;
+  margin:18px 0 26px;
 }
 
 .brand{
   font-size:14px;
-  letter-spacing:2px;
-  color:#8a6a2f;
-  font-weight:700;
+  letter-spacing:6px;
+  color:#a9792b;
+  font-weight:900;
 }
 
 h1{
-  margin:10px 0 6px;
+  margin:12px 0 6px;
   font-size:38px;
-  letter-spacing:1px;
+  color:#0b3029;
+  letter-spacing:3px;
 }
 
 .subtitle{
-  color:#6b7280;
+  color:#8b7d69;
   font-size:15px;
+  letter-spacing:1px;
 }
 
 .card{
-  background:#fff;
-  max-width:520px;
+  max-width:620px;
   margin:0 auto;
-  border-radius:26px;
-  padding:26px;
-  box-shadow:0 16px 40px rgba(15,23,42,.12);
+  padding:24px;
+  border-radius:34px;
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  box-shadow:0 26px 60px rgba(66,43,16,.16);
 }
 
 .profile{
   display:flex;
   align-items:center;
-  gap:16px;
+  gap:18px;
   padding-bottom:20px;
-  border-bottom:1px solid #e5e7eb;
+  border-bottom:1px solid #eadfcf;
 }
 
-.avatar{
-  width:58px;
-  height:58px;
-  border-radius:50%;
-  background:linear-gradient(135deg,#1f2937,#0f172a);
-  color:#f5c76b;
+.logoBox{
+  width:120px;
+  height:80px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+
+.logoBox img{
+  max-width:120px;
+  max-height:80px;
+  object-fit:contain;
+  display:block;
+}
+
+.logoFallback{
+  width:86px;
+  height:60px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#0b3029,#061514);
+  color:#c9a45d;
   display:flex;
   align-items:center;
   justify-content:center;
   font-size:28px;
-  font-weight:800;
+  font-weight:950;
+  letter-spacing:2px;
 }
 
 .name{
-  font-size:26px;
-  font-weight:800;
+  font-size:29px;
+  font-weight:950;
+  color:#0b3029;
 }
 
 .role{
-  margin-top:4px;
-  color:#6b7280;
-  font-size:15px;
+  margin-top:6px;
+  color:#756957;
+  font-size:16px;
 }
 
 .statusBox{
-  margin-top:20px;
-  background:#f8fafc;
-  border:1px solid #e5e7eb;
-  border-radius:18px;
+  margin-top:22px;
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:22px;
   padding:18px;
   text-align:left;
   line-height:1.8;
@@ -100,24 +116,25 @@ h1{
 }
 
 .statusTitle{
-  font-weight:800;
-  margin-bottom:6px;
-  color:#111827;
+  font-weight:950;
+  margin-bottom:8px;
+  color:#0b3029;
+  font-size:18px;
 }
 
 .success{
-  color:#15803d;
-  font-weight:800;
+  color:#166534;
+  font-weight:950;
 }
 
 .error{
-  color:#dc2626;
-  font-weight:800;
+  color:#b91c1c;
+  font-weight:950;
 }
 
 .info{
-  color:#2563eb;
-  font-weight:800;
+  color:#8a5f1e;
+  font-weight:950;
 }
 
 .actions{
@@ -128,14 +145,14 @@ h1{
 
 button{
   width:100%;
-  padding:18px;
+  padding:17px;
   border:none;
-  border-radius:18px;
+  border-radius:20px;
   color:white;
-  font-size:22px;
-  font-weight:800;
+  font-size:20px;
+  font-weight:950;
   cursor:pointer;
-  box-shadow:0 8px 18px rgba(0,0,0,.12);
+  box-shadow:0 12px 26px rgba(0,0,0,.16);
 }
 
 button:active{
@@ -143,106 +160,180 @@ button:active{
 }
 
 .clockin{
-  background:linear-gradient(135deg,#16a34a,#166534);
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
 }
 
 .clockout{
-  background:linear-gradient(135deg,#ef4444,#b91c1c);
+  background:linear-gradient(135deg,#8b1e1e,#4a0f0f);
 }
 
 .refresh{
-  background:linear-gradient(135deg,#2563eb,#1e40af);
+  background:linear-gradient(135deg,#123c35,#071b17);
 }
 
 .back{
-  background:linear-gradient(135deg,#374151,#111827);
+  background:linear-gradient(135deg,#10201d,#050b0a);
+}
+
+.mapBox{
+  margin-top:18px;
+  border:1px solid #eadfcf;
+  border-radius:22px;
+  overflow:hidden;
+  background:#fffaf3;
+}
+
+.mapBox iframe{
+  width:100%;
+  height:260px;
+  border:0;
+  display:block;
+}
+
+.mapActions{
+  padding:12px;
+}
+
+.mapLink{
+  display:block;
+  text-align:center;
+  text-decoration:none;
+  padding:13px;
+  border-radius:16px;
+  background:linear-gradient(135deg,#123c35,#071b17);
+  color:white;
+  font-weight:950;
 }
 
 .footerNote{
   margin-top:18px;
-  color:#6b7280;
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:18px;
+  padding:14px;
+  color:#756957;
   font-size:14px;
   line-height:1.7;
 }
 
 .gps{
   display:inline-block;
-  margin-top:6px;
-  padding:6px 10px;
-  background:#eef2ff;
-  color:#1d4ed8;
+  margin-top:8px;
+  padding:7px 12px;
+  background:#f7ead0;
+  color:#8a5f1e;
   border-radius:999px;
   font-size:13px;
-  font-weight:700;
+  font-weight:900;
 }
 
 .loading{
-  color:#6b7280;
+  color:#8b7d69;
+  font-weight:900;
 }
 
 @media(max-width:480px){
-  h1{font-size:34px;}
-  .card{padding:22px;}
-  button{font-size:20px;}
+  h1{
+    font-size:34px;
+  }
+
+  .card{
+    padding:20px;
+    border-radius:30px;
+  }
+
+  .profile{
+    gap:14px;
+  }
+
+  .logoBox{
+    width:108px;
+    height:72px;
+  }
+
+  .logoBox img{
+    max-width:108px;
+    max-height:72px;
+  }
+
+  .name{
+    font-size:27px;
+  }
+
+  button{
+    font-size:18px;
+  }
+
+  .mapBox iframe{
+    height:230px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div class="page">
+<div class="header">
+  <div class="brand">AURUM HOUSE</div>
+  <h1>員工打卡</h1>
+  <div class="subtitle">Attendance Clock System</div>
+</div>
 
-  <div class="header">
-    <div class="brand">AURUM HOUSE</div>
-    <h1>員工打卡</h1>
-    <div class="subtitle">Attendance Clock System</div>
-  </div>
+<div class="card">
 
-  <div class="card">
+  <div class="profile">
 
-    <div class="profile">
-      <div class="avatar">AH</div>
+    <div class="logoBox">
+      <img
+        src="/images/logo.jpg"
+        alt="Aurum House"
+        onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=logoFallback>AH</div>';"
+      >
+    </div>
 
-      <div>
-        <div id="employeeName" class="name">
-          LINE登入中...
-        </div>
+    <div>
+      <div id="employeeName" class="name">
+        LINE 登入中...
+      </div>
 
-        <div id="employeeRole" class="role">
-          請稍候...
-        </div>
+      <div id="employeeRole" class="role">
+        請稍候...
       </div>
     </div>
 
-    <div id="status" class="statusBox">
-      <div class="statusTitle">目前狀態</div>
-      <div class="loading">正在確認員工資料...</div>
-    </div>
+  </div>
 
-    <div class="actions">
-      <button class="clockin" onclick="clock('上班')">
-        上班打卡
-      </button>
+  <div id="status" class="statusBox">
+    <div class="statusTitle">目前狀態</div>
+    <div class="loading">正在確認員工資料...</div>
+  </div>
 
-      <button class="clockout" onclick="clock('下班')">
-        下班打卡
-      </button>
+  <div id="mapArea"></div>
 
-      <button class="refresh" onclick="location.reload()">
-        重新整理
-      </button>
+  <div class="actions">
 
-      <button class="back" onclick="goBack()">
-        返回員工專區
-      </button>
-    </div>
+    <button class="clockin" onclick="clock('上班')">
+      上班打卡
+    </button>
 
-    <div class="footerNote">
-      打卡時系統會取得 GPS 定位，用於出勤紀錄與位置確認。
-      <br>
-      <span class="gps">GPS 定位啟用</span>
-    </div>
+    <button class="clockout" onclick="clock('下班')">
+      下班打卡
+    </button>
 
+    <button class="refresh" onclick="location.reload()">
+      重新整理
+    </button>
+
+    <button class="back" onclick="goBack()">
+      返回員工專區
+    </button>
+
+  </div>
+
+  <div class="footerNote">
+    打卡時系統會取得 GPS 定位，用於出勤紀錄與位置確認。
+    <br>
+    <span class="gps">GPS 定位啟用</span>
   </div>
 
 </div>
@@ -261,7 +352,7 @@ function goBack(){
   if(document.referrer){
     history.back();
   }else{
-    location.href = "/";
+    location.href = "/employee-home.html";
   }
 }
 
@@ -279,9 +370,48 @@ function formatDateTime(value){
   });
 }
 
+function showMap(latitude, longitude){
+  const lat =
+  Number(latitude);
+
+  const lng =
+  Number(longitude);
+
+  if(!lat || !lng){
+    document.getElementById("mapArea").innerHTML = "";
+    return;
+  }
+
+  const mapUrl =
+  `https://www.google.com/maps?q=${lat},${lng}`;
+
+  const embedUrl =
+  `https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
+
+  document.getElementById("mapArea").innerHTML =
+  `
+  <div class="mapBox">
+    <iframe
+      src="${embedUrl}"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade">
+    </iframe>
+
+    <div class="mapActions">
+      <a class="mapLink" href="${mapUrl}" target="_blank">
+        開啟 Google 地圖
+      </a>
+    </div>
+  </div>
+  `;
+}
+
 async function init(){
-  const nameBox = document.getElementById("employeeName");
-  const roleBox = document.getElementById("employeeRole");
+  const nameBox =
+  document.getElementById("employeeName");
+
+  const roleBox =
+  document.getElementById("employeeRole");
 
   try{
     await liff.init({
@@ -293,13 +423,17 @@ async function init(){
       return;
     }
 
-    profile = await liff.getProfile();
+    profile =
+    await liff.getProfile();
 
-    const res = await fetch(
-      "/api/check-employee/" + profile.userId
+    const res =
+    await fetch(
+      "/api/check-employee/" +
+      profile.userId
     );
 
-    const data = await res.json();
+    const data =
+    await res.json();
 
     if(!data.success || !data.isEmployee){
       nameBox.innerHTML =
@@ -316,7 +450,8 @@ async function init(){
       return;
     }
 
-    employee = data.employee;
+    employee =
+    data.employee;
 
     nameBox.innerHTML =
     employee.name || "-";
@@ -379,6 +514,8 @@ async function clock(type){
   }
 
   try{
+    document.getElementById("mapArea").innerHTML = "";
+
     setStatus(`
       <div class="statusTitle">打卡處理中</div>
       <div class="info">正在取得 GPS 定位...</div>
@@ -387,9 +524,16 @@ async function clock(type){
     const location =
     await getLocation();
 
+    showMap(
+      location.latitude,
+      location.longitude
+    );
+
     setStatus(`
       <div class="statusTitle">打卡處理中</div>
       <div class="info">正在送出打卡資料...</div>
+      <div>緯度：${location.latitude}</div>
+      <div>經度：${location.longitude}</div>
     `);
 
     const res =
@@ -426,6 +570,8 @@ async function clock(type){
       <div class="success">✅ ${type}打卡成功</div>
       <div>時間：${formatDateTime(data.time)}</div>
       <div>位置：${data.address || "已記錄 GPS 位置"}</div>
+      <div>緯度：${location.latitude}</div>
+      <div>經度：${location.longitude}</div>
     `);
 
   }catch(error){
