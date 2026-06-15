@@ -100,8 +100,7 @@ if(localStorage.getItem("adminLogin") !== "yes"){
   window.location.href = "/login.html";
 }
 
-let allRows = [];
-let rows = [];
+
 
 function money(value){
   return "NT$" + Number(value || 0).toLocaleString("zh-TW");
