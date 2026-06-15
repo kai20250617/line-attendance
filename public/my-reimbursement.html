@@ -9,73 +9,224 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
+*{
+  box-sizing:border-box;
+}
 
 body{
   margin:0;
-  font-family:Arial;
-  background:#f5f7fb;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+  color:#10201d;
 }
 
 .container{
-  max-width:1000px;
+  max-width:900px;
   margin:auto;
-  padding:20px;
+  padding:24px 18px 44px;
+}
+
+.header{
+  text-align:center;
+  margin:18px 0 26px;
+}
+
+.brand{
+  font-size:14px;
+  letter-spacing:6px;
+  color:#a9792b;
+  font-weight:900;
 }
 
 h1{
-  text-align:center;
+  margin:12px 0 6px;
+  font-size:38px;
+  color:#0b3029;
+  letter-spacing:3px;
+}
+
+.subtitle{
+  color:#8b7d69;
+  font-size:15px;
+  letter-spacing:1px;
+}
+
+.employeeBox{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:26px;
+  padding:18px;
+  margin-bottom:18px;
+  color:#0b3029;
+  font-weight:950;
+  line-height:1.7;
+  box-shadow:0 16px 40px rgba(66,43,16,.12);
+}
+
+.summary{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
   margin-bottom:20px;
 }
 
+.summaryCard{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:24px;
+  padding:18px;
+  text-align:center;
+  box-shadow:0 16px 40px rgba(66,43,16,.12);
+}
+
+.summaryTitle{
+  color:#756957;
+  font-size:14px;
+  font-weight:900;
+}
+
+.summaryValue{
+  margin-top:8px;
+  font-size:28px;
+  font-weight:950;
+  color:#0b3029;
+}
+
 .card{
-  background:white;
-  border-radius:12px;
-  padding:15px;
-  margin-bottom:15px;
-  box-shadow:0 2px 10px rgba(0,0,0,.1);
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:28px;
+  padding:22px;
+  margin-bottom:18px;
+  box-shadow:0 16px 40px rgba(66,43,16,.12);
+}
+
+.cardTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.date{
+  font-size:20px;
+  font-weight:950;
+  color:#0b3029;
+}
+
+.amount{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+  color:white;
+  padding:10px 16px;
+  border-radius:999px;
+  font-weight:950;
+  white-space:nowrap;
 }
 
 .row{
   margin-bottom:8px;
+  color:#756957;
+  font-weight:850;
+  line-height:1.8;
 }
 
-.status{
-  font-weight:bold;
+.row b{
+  color:#10201d;
+}
+
+.badges{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+
+.badge{
+  padding:8px 14px;
+  border-radius:999px;
+  font-weight:950;
+  font-size:14px;
 }
 
 .pending{
-  color:orange;
+  background:#fff3cd;
+  color:#b45309;
 }
 
 .approved{
-  color:green;
+  background:#dcfce7;
+  color:#166534;
 }
 
 .rejected{
-  color:red;
+  background:#fee2e2;
+  color:#991b1b;
 }
 
 .paid{
-  color:blue;
+  background:#dbeafe;
+  color:#1d4ed8;
 }
 
-img{
-  width:120px;
-  border-radius:8px;
-  margin-top:10px;
+.receipt{
+  margin-top:16px;
+}
+
+.receipt img{
+  width:100%;
+  max-width:280px;
+  border-radius:18px;
+  border:1px solid #eadfcf;
+  box-shadow:0 10px 26px rgba(0,0,0,.10);
+}
+
+.empty,
+.loading{
+  text-align:center;
+  padding:34px 16px;
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:24px;
+  color:#8b7d69;
+  font-weight:900;
 }
 
 .back{
   width:100%;
-  padding:15px;
+  padding:16px;
   border:none;
-  border-radius:10px;
-  background:#111827;
+  border-radius:20px;
+  background:linear-gradient(135deg,#10201d,#050b0a);
   color:white;
   font-size:18px;
+  font-weight:950;
   margin-top:20px;
+  cursor:pointer;
 }
 
+.error{
+  color:#b91c1c;
+  font-weight:950;
+}
+
+@media(max-width:480px){
+  h1{
+    font-size:34px;
+  }
+
+  .summary{
+    grid-template-columns:1fr;
+  }
+
+  .cardTop{
+    flex-direction:column;
+  }
+
+  .amount{
+    align-self:flex-start;
+  }
+}
 </style>
 </head>
 
@@ -83,133 +234,242 @@ img{
 
 <div class="container">
 
-<h1>💰 我的代墊紀錄</h1>
+  <div class="header">
+    <div class="brand">AURUM HOUSE</div>
+    <h1>我的代墊紀錄</h1>
+    <div class="subtitle">Reimbursement History</div>
+  </div>
 
-<div id="list">
-載入中...
-</div>
+  <div id="employeeBox" class="employeeBox">
+    LINE 登入中...
+  </div>
 
-<button class="back"
-onclick="location.href='/employee-menu.html'">
-返回員工專區
-</button>
+  <div class="summary">
+
+    <div class="summaryCard">
+      <div class="summaryTitle">申請筆數</div>
+      <div class="summaryValue" id="totalCount">0</div>
+    </div>
+
+    <div class="summaryCard">
+      <div class="summaryTitle">待審核</div>
+      <div class="summaryValue" id="pendingCount">0</div>
+    </div>
+
+    <div class="summaryCard">
+      <div class="summaryTitle">已付款</div>
+      <div class="summaryValue" id="paidCount">0</div>
+    </div>
+
+  </div>
+
+  <div id="list">
+    <div class="loading">載入中...</div>
+  </div>
+
+  <button class="back" onclick="goBack()">
+    返回員工專區
+  </button>
 
 </div>
 
 <script>
+const LIFF_ID = "2010241581-YtDxQgWd";
 
-const LIFF_ID="2010241581-YtDxQgWd";
+function goBack(){
+  if(document.referrer){
+    history.back();
+  }else{
+    location.href="/employee-home.html";
+  }
+}
+
+function formatDate(value){
+  if(!value){
+    return "-";
+  }
+
+  const d = new Date(value);
+
+  if(isNaN(d.getTime())){
+    return String(value).substring(0,10);
+  }
+
+  return d.toLocaleDateString("zh-TW", {
+    timeZone:"Asia/Taipei",
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit"
+  });
+}
+
+function money(value){
+  return "NT$" + Number(value || 0).toLocaleString("zh-TW");
+}
+
+function statusBadge(status){
+  if(status === "已核准" || status === "核准"){
+    return "approved";
+  }
+
+  if(status === "已駁回" || status === "駁回"){
+    return "rejected";
+  }
+
+  return "pending";
+}
+
+function paymentBadge(status){
+  if(status === "已付款"){
+    return "paid";
+  }
+
+  return "pending";
+}
 
 async function loadData(){
+  const list = document.getElementById("list");
+  const employeeBox = document.getElementById("employeeBox");
 
-  await liff.init({
-    liffId:LIFF_ID
-  });
+  try{
+    await liff.init({
+      liffId:LIFF_ID
+    });
 
-  if(!liff.isLoggedIn()){
-    liff.login();
-    return;
-  }
+    if(!liff.isLoggedIn()){
+      liff.login();
+      return;
+    }
 
-  const profile=
-  await liff.getProfile();
+    const profile =
+    await liff.getProfile();
 
-  const res=
-  await fetch(
-    "/api/my-reimbursements/" +
-    profile.userId
-  );
+    const empRes =
+    await fetch(
+      "/api/check-employee/" +
+      profile.userId
+    );
 
-  const data=
-  await res.json();
+    const empData =
+    await empRes.json();
 
-  const list=
-  document.getElementById("list");
+    if(empData.success && empData.isEmployee){
+      employeeBox.innerHTML =
+      `員工：${empData.employee.name || profile.displayName || "-"}<br>
+       部門：${empData.employee.department || "-"} / ${empData.employee.position || "-"}`;
+    }else{
+      employeeBox.innerHTML =
+      `員工：${profile.displayName}`;
+    }
 
-  if(!data.length){
+    const res =
+    await fetch(
+      "/api/my-reimbursements/" +
+      profile.userId
+    );
 
-    list.innerHTML=
+    const data =
+    await res.json();
+
+    if(!Array.isArray(data) || data.length === 0){
+      document.getElementById("totalCount").innerHTML = "0";
+      document.getElementById("pendingCount").innerHTML = "0";
+      document.getElementById("paidCount").innerHTML = "0";
+
+      list.innerHTML =
+      `
+      <div class="empty">
+        尚無代墊紀錄
+      </div>
+      `;
+
+      return;
+    }
+
+    document.getElementById("totalCount").innerHTML =
+    data.length;
+
+    document.getElementById("pendingCount").innerHTML =
+    data.filter(item =>
+      (item.status || "待審核") === "待審核"
+    ).length;
+
+    document.getElementById("paidCount").innerHTML =
+    data.filter(item =>
+      item.payment_status === "已付款"
+    ).length;
+
+    list.innerHTML =
+    data.map(item=>`
+
+      <div class="card">
+
+        <div class="cardTop">
+
+          <div class="date">
+            ${formatDate(item.expense_date)}
+          </div>
+
+          <div class="amount">
+            ${money(item.amount)}
+          </div>
+
+        </div>
+
+        <div class="row">
+          <b>類別：</b>${item.category || "-"}
+        </div>
+
+        <div class="row">
+          <b>說明：</b>${item.description || "-"}
+        </div>
+
+        <div class="badges">
+
+          <span class="badge ${statusBadge(item.status)}">
+            ${item.status || "待審核"}
+          </span>
+
+          <span class="badge ${paymentBadge(item.payment_status)}">
+            ${item.payment_status || "未付款"}
+          </span>
+
+        </div>
+
+        ${
+          item.receipt_url
+          ?
+          `
+          <div class="receipt">
+            <a href="${item.receipt_url}" target="_blank">
+              <img src="${item.receipt_url}">
+            </a>
+          </div>
+          `
+          :
+          ""
+        }
+
+      </div>
+
+    `).join("");
+
+  }catch(err){
+    console.error(err);
+
+    employeeBox.innerHTML =
+    "<span class='error'>LINE 登入失敗</span>";
+
+    list.innerHTML =
     `
-    <div class="card">
-      尚無代墊紀錄
+    <div class="empty error">
+      讀取失敗，請稍後再試
     </div>
     `;
-
-    return;
   }
-
-  list.innerHTML=
-  data.map(item=>`
-
-    <div class="card">
-
-      <div class="row">
-        <b>日期：</b>
-        ${item.expense_date?.substring(0,10)}
-      </div>
-
-      <div class="row">
-        <b>類別：</b>
-        ${item.category}
-      </div>
-
-      <div class="row">
-        <b>金額：</b>
-        NT$${item.amount}
-      </div>
-
-      <div class="row">
-        <b>說明：</b>
-        ${item.description || "-"}
-      </div>
-
-      <div class="row">
-        <b>審核：</b>
-
-        <span class="
-        ${item.status==='已核准'?'approved':
-          item.status==='已駁回'?'rejected':
-          'pending'}">
-
-        ${item.status}
-
-        </span>
-      </div>
-
-      <div class="row">
-        <b>付款：</b>
-
-        <span class="
-        ${item.payment_status==='已付款'
-        ?'paid':'pending'}">
-
-        ${item.payment_status || '未付款'}
-
-        </span>
-      </div>
-
-      ${
-        item.receipt_url
-        ?
-        `
-        <div>
-          <a href="${item.receipt_url}" target="_blank">
-            <img src="${item.receipt_url}">
-          </a>
-        </div>
-        `
-        :
-        ''
-      }
-
-    </div>
-
-  `).join('');
-
 }
 
 loadData();
-
 </script>
 
 </body>
