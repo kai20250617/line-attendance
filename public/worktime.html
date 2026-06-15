@@ -557,46 +557,36 @@ function normalizeDate(value){
 }
 
 function formatDateWithWeek(value){
-
   if(!value){
-
     return "-";
-    
   }
 
-  const clean =
-  String(value)
-  .replace(/\//g,"-")
-  .slice(0,10);
+  let text =
+  String(value).trim();
 
-  const d =
+  let y, m, d;
 
-  new Date(clean + "T00:00:00");
-
-  if(isNaN(d.getTime())){
-
-    return value;
-
+  if(text.includes("/")){
+    const parts = text.split("/");
+    y = Number(parts[0]);
+    m = Number(parts[1]);
+    d = Number(parts[2]);
+  }else if(text.includes("-")){
+    const parts = text.split("-");
+    y = Number(parts[0]);
+    m = Number(parts[1]);
+    d = Number(parts[2]);
+  }else{
+    return text;
   }
+
+  const dateObj =
+  new Date(y, m - 1, d);
 
   const weeks =
-
   ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
 
-  const y =
-
-  d.getFullYear();
-
-  const m =
-
-  String(d.getMonth() + 1).padStart(2,"0");
-
-  const day =
-
-  String(d.getDate()).padStart(2,"0");
-
-  return `${y}/${m}/${day}（${weeks[d.getDay()]}）`;
-
+  return `${y}/${m}/${d}（${weeks[dateObj.getDay()]}）`;
 }
 
 function formatTime(value){
