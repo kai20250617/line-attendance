@@ -54,9 +54,15 @@ h1{
   box-shadow:0 26px 60px rgba(66,43,16,.16);
 }
 
-.employeeBox{
+.employeeBox,
+.filterBox,
+.summary,
+.workCard{
   background:#fffaf3;
   border:1px solid #eadfcf;
+}
+
+.employeeBox{
   border-radius:22px;
   padding:18px;
   margin-bottom:22px;
@@ -65,9 +71,47 @@ h1{
   line-height:1.7;
 }
 
+.filterBox{
+  border-radius:22px;
+  padding:18px;
+  margin-bottom:18px;
+}
+
+.filterGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.filterBox label{
+  display:block;
+  color:#756957;
+  font-weight:900;
+  margin-bottom:8px;
+}
+
+.filterBox input{
+  width:100%;
+  max-width:100%;
+  height:58px;
+  padding:0 16px;
+  border:1px solid #d8c8ad;
+  border-radius:18px;
+  background:#fffdf8;
+  color:#10201d;
+  font-size:16px;
+  box-sizing:border-box;
+}
+
+.filterBox input[type="date"]{
+  appearance:none;
+  -webkit-appearance:none;
+  min-width:0;
+}
+
 .top{
   display:grid;
-  grid-template-columns:1fr;
+  grid-template-columns:1fr 1fr;
   gap:12px;
   margin-bottom:20px;
 }
@@ -83,8 +127,13 @@ button{
   cursor:pointer;
 }
 
-.refreshBtn{
+.refreshBtn,
+.filterBtn{
   background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+}
+
+.clearBtn{
+  background:linear-gradient(135deg,#756957,#3b3025);
 }
 
 .backBtn{
@@ -92,8 +141,6 @@ button{
 }
 
 .summary{
-  background:#fffaf3;
-  border:1px solid #eadfcf;
   border-radius:22px;
   padding:18px;
   margin-bottom:20px;
@@ -120,8 +167,6 @@ button{
 }
 
 .workCard{
-  background:#fffaf3;
-  border:1px solid #eadfcf;
   border-radius:22px;
   padding:18px;
   margin-bottom:14px;
@@ -181,7 +226,9 @@ button{
     border-radius:30px;
   }
 
-  .summary{
+  .summary,
+  .filterGrid,
+  .top{
     grid-template-columns:1fr;
   }
 
@@ -210,7 +257,31 @@ button{
     LINE 登入中...
   </div>
 
+  <div class="filterBox">
+
+    <div class="filterGrid">
+      <div>
+        <label>開始日期</label>
+        <input type="date" id="filterStart">
+      </div>
+
+      <div>
+        <label>結束日期</label>
+        <input type="date" id="filterEnd">
+      </div>
+    </div>
+
+  </div>
+
   <div class="top">
+    <button class="filterBtn" onclick="loadData()">
+      篩選
+    </button>
+
+    <button class="clearBtn" onclick="clearFilter()">
+      清除篩選
+    </button>
+
     <button class="refreshBtn" onclick="loadData()">
       重新整理
     </button>
@@ -252,26 +323,48 @@ function goBack(){
   }
 }
 
+function clearFilter(){
+  document.getElementById("filterStart").value = "";
+  document.getElementById("filterEnd").value = "";
+  loadData();
+}
+
+function normalizeDate(value){
+  if(!value){
+    return "";
+  }
+
+  return String(value).replace(/\//g,"-").slice(0,10);
+}
+
 function formatDateWithWeek(value){
   if(!value){
     return "-";
   }
 
+  const clean =
+  normalizeDate(value);
+
   const d =
-  new Date(value + "T00:00:00");
+  new Date(clean + "T00:00:00");
+
+  if(isNaN(d.getTime())){
+    return value;
+  }
 
   const weeks =
   ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
 
-  const dateText =
-  d.toLocaleDateString("zh-TW",{
-    timeZone:"Asia/Taipei",
-    year:"numeric",
-    month:"2-digit",
-    day:"2-digit"
-  });
+  const y =
+  d.getFullYear();
 
-  return `${dateText}（${weeks[d.getDay()]}）`;
+  const m =
+  String(d.getMonth() + 1).padStart(2,"0");
+
+  const day =
+  String(d.getDate()).padStart(2,"0");
+
+  return `${y}/${m}/${day}（${weeks[d.getDay()]}）`;
 }
 
 function formatTime(value){
@@ -454,96 +547,49 @@ async function loadData(){
       }
     });
 
-    const rows =
-    Object.values(groups)
-    .sort((a,b)=> new Date(b.date) - new Date(a.date));
+    let rows =
+    Object.values(groups);
 
-    if(rows.length === 0){
-      list.innerHTML =
-      "<div class='empty'>目前沒有可統計的工時資料</div>";
-      return;
+    const filterStart =
+    document.getElementById("filterStart").value;
+
+    const filterEnd =
+    document.getElementById("filterEnd").value;
+
+    if(filterStart){
+      rows =
+      rows.filter(row=>{
+        const rowDate =
+        normalizeDate(row.date);
+
+        return rowDate >= filterStart;
+      });
     }
 
-    let totalWorkHours = 0;
-    let workDays = 0;
+    if(filterEnd){
+      rows =
+      rows.filter(row=>{
+        const rowDate =
+        normalizeDate(row.date);
 
-    let html = "";
+        return rowDate <= filterEnd;
+      });
+    }
 
-    rows.forEach(row=>{
-      let hours = "-";
+    rows =
+    rows.sort((a,b)=>{
+      const da =
+      normalizeDate(a.date);
 
-      if(row.start && row.end){
-        const totalHours =
-        (
-          new Date(row.end) -
-          new Date(row.start)
-        ) / 1000 / 60 / 60;
+      const db =
+      normalizeDate(b.date);
 
-        const workHours =
-        Math.max(
-          0,
-          totalHours - breakHours
-        );
-
-        hours =
-        workHours.toFixed(2);
-
-        totalWorkHours +=
-        workHours;
-
-        workDays++;
-      }
-
-      html += `
-        <div class="workCard">
-
-          <div class="workTop">
-            <div class="dateTitle">
-              ${formatDateWithWeek(row.date)}
-            </div>
-
-            <div class="workHours">
-              ${hours === "-" ? "未完成" : hours + " 小時"}
-            </div>
-          </div>
-
-          <div class="infoLine">
-            員工：${row.name || "-"}<br>
-            上班時間：${formatTime(row.start)}<br>
-            下班時間：${formatTime(row.end)}<br>
-            休息時數：${breakHours} 小時
-          </div>
-
-        </div>
-      `;
+      return new Date(db) - new Date(da);
     });
 
-    summary.innerHTML =
-    `
-    <div class="summaryItem">
-      <div class="summaryLabel">總工時</div>
-      <div class="summaryValue">${totalWorkHours.toFixed(2)} 小時</div>
-    </div>
-
-    <div class="summaryItem">
-      <div class="summaryLabel">出勤天數</div>
-      <div class="summaryValue">${workDays} 天</div>
-    </div>
-    `;
-
-    list.innerHTML =
-    html;
-
-  }catch(error){
-    console.error(error);
-
-    list.innerHTML =
-    "<div class='empty error'>讀取失敗</div>";
-  }
-}
-
-init();
-</script>
-
-</body>
-</html>
+    if(rows.length === 0){
+      summary.innerHTML =
+      `
+      <div class="summaryItem">
+        <div class="summaryLabel">總工時</div>
+        <div class="summaryVa
