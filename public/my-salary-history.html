@@ -3,134 +3,309 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>我的薪資歷史</title>
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
+*{box-sizing:border-box;}
+
 body{
-  font-family:Arial,sans-serif;
-  background:#f5f5f5;
-  padding:20px;
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+  color:#10201d;
+  padding:24px 18px 44px;
+}
+
+.header{
   text-align:center;
+  margin:18px 0 26px;
+}
+
+.brand{
+  font-size:14px;
+  letter-spacing:6px;
+  color:#a9792b;
+  font-weight:900;
 }
 
 h1{
+  margin:12px 0 6px;
   font-size:38px;
+  color:#0b3029;
+  letter-spacing:3px;
+}
+
+.subtitle{
+  color:#8b7d69;
+  font-size:15px;
+  letter-spacing:1px;
 }
 
 .card{
-  background:white;
-  max-width:600px;
-  margin:20px auto;
-  padding:25px;
-  border-radius:16px;
-  box-shadow:0 2px 10px rgba(0,0,0,.1);
+  max-width:680px;
+  margin:0 auto;
+  padding:24px;
+  border-radius:34px;
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  box-shadow:0 26px 60px rgba(66,43,16,.16);
 }
 
 .filter{
-  display:flex;
-  gap:10px;
-  justify-content:center;
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:22px;
+  padding:18px;
   margin-bottom:20px;
-  flex-wrap:wrap;
 }
 
-select,button{
-  padding:10px;
+.filterGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+label{
+  display:block;
+  margin-bottom:8px;
+  color:#756957;
+  font-weight:900;
+}
+
+select{
+  width:100%;
+  height:58px;
+  padding:0 16px;
+  border:1px solid #d8c8ad;
+  border-radius:18px;
+  background:#fffdf8;
+  color:#10201d;
   font-size:16px;
-  border-radius:8px;
-  border:1px solid #ccc;
+  outline:none;
+}
+
+.btnGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:14px;
 }
 
 button{
-  background:#1976d2;
-  color:white;
+  width:100%;
+  padding:15px;
   border:none;
+  border-radius:18px;
+  color:white;
+  font-size:17px;
+  font-weight:950;
   cursor:pointer;
-  margin:5px;
 }
 
-.pdf{
-  background:#0d47a1;
-}
-
-.sign{
-  background:#2e7d32;
-}
-
-.signed{
-  background:#777;
+.filterBtn{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
 }
 
 .clear{
-  background:#555;
+  background:linear-gradient(135deg,#756957,#3b3025);
+}
+
+.pdf{
+  background:linear-gradient(135deg,#123c35,#071b17);
+}
+
+.sign{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+}
+
+.signedBtn{
+  background:#777;
+}
+
+.backBtn{
+  background:linear-gradient(135deg,#10201d,#050b0a);
+  margin-top:18px;
 }
 
 .item{
-  border-bottom:1px solid #eee;
-  padding:20px 0;
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:22px;
+  padding:20px;
+  margin-bottom:16px;
+  text-align:left;
 }
 
 .month{
   font-size:28px;
-  font-weight:bold;
+  font-weight:950;
+  color:#0b3029;
 }
 
-.gross{
-  font-size:22px;
+.moneyBox{
+  margin-top:14px;
+  display:grid;
+  gap:10px;
+}
+
+.moneyRow{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  border-bottom:1px solid #eadfcf;
+  padding:10px 0;
+}
+
+.moneyRow span{
+  color:#756957;
+  font-weight:900;
+}
+
+.moneyRow strong{
+  color:#10201d;
+  text-align:right;
 }
 
 .net{
-  color:#0d47a1;
-  font-size:28px;
-  font-weight:bold;
+  font-size:22px;
+  color:#0b3029;
+  font-weight:950;
 }
 
 .status{
-  font-size:18px;
-  font-weight:bold;
+  display:inline-block;
+  margin-top:14px;
+  padding:8px 13px;
+  border-radius:999px;
+  font-size:15px;
+  font-weight:950;
+}
+
+.statusSigned{
+  background:#e7f7ec;
+  color:#166534;
+}
+
+.statusUnsigned{
+  background:#fdecec;
+  color:#991b1b;
+}
+
+.signedTime{
+  color:#756957;
+  font-weight:800;
+  margin-top:10px;
+  line-height:1.7;
+}
+
+.actionGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:16px;
+}
+
+.empty,
+.loading{
+  text-align:center;
+  color:#8b7d69;
+  font-weight:900;
+  padding:32px 10px;
 }
 
 .error{
-  color:red;
-  font-weight:bold;
+  color:#b91c1c;
+  font-weight:950;
+  text-align:center;
+}
+
+@media(max-width:480px){
+  h1{
+    font-size:34px;
+  }
+
+  .card{
+    padding:20px;
+    border-radius:30px;
+  }
+
+  .filterGrid,
+  .btnGrid,
+  .actionGrid{
+    grid-template-columns:1fr;
+  }
+
+  .month{
+    font-size:25px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<h1>📄 我的薪資歷史</h1>
+<div class="header">
+  <div class="brand">AURUM HOUSE</div>
+  <h1>我的薪資歷史</h1>
+  <div class="subtitle">Salary History</div>
+</div>
 
 <div class="card">
 
   <div class="filter">
-    <select id="yearFilter">
-      <option value="">全部年份</option>
-    </select>
 
-    <select id="monthFilter">
-      <option value="">全部月份</option>
-      <option value="1">1 月</option>
-      <option value="2">2 月</option>
-      <option value="3">3 月</option>
-      <option value="4">4 月</option>
-      <option value="5">5 月</option>
-      <option value="6">6 月</option>
-      <option value="7">7 月</option>
-      <option value="8">8 月</option>
-      <option value="9">9 月</option>
-      <option value="10">10 月</option>
-      <option value="11">11 月</option>
-      <option value="12">12 月</option>
-    </select>
+    <div class="filterGrid">
 
-    <button onclick="renderList()">篩選</button>
-    <button class="clear" onclick="clearFilter()">清除</button>
+      <div>
+        <label>年份</label>
+        <select id="yearFilter">
+          <option value="">全部年份</option>
+        </select>
+      </div>
+
+      <div>
+        <label>月份</label>
+        <select id="monthFilter">
+          <option value="">全部月份</option>
+          <option value="1">1 月</option>
+          <option value="2">2 月</option>
+          <option value="3">3 月</option>
+          <option value="4">4 月</option>
+          <option value="5">5 月</option>
+          <option value="6">6 月</option>
+          <option value="7">7 月</option>
+          <option value="8">8 月</option>
+          <option value="9">9 月</option>
+          <option value="10">10 月</option>
+          <option value="11">11 月</option>
+          <option value="12">12 月</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="btnGrid">
+      <button class="filterBtn" onclick="renderList()">
+        篩選
+      </button>
+
+      <button class="clear" onclick="clearFilter()">
+        清除
+      </button>
+    </div>
+
   </div>
 
-  <div id="list">LINE 登入中...</div>
+  <div id="list">
+    <div class="loading">LINE 登入中...</div>
+  </div>
+
+  <button class="backBtn" onclick="goBack()">
+    返回員工專區
+  </button>
 
 </div>
 
@@ -140,8 +315,17 @@ const LIFF_ID = "2010241581-YtDxQgWd";
 let salaryHistory = [];
 let employeeId = null;
 
+function goBack(){
+  if(document.referrer){
+    history.back();
+  }else{
+    location.href="/employee-home.html";
+  }
+}
+
 async function init(){
-  const list = document.getElementById("list");
+  const list =
+  document.getElementById("list");
 
   try{
     await liff.init({
@@ -221,7 +405,8 @@ function buildYearFilter(){
   let years = [];
 
   salaryHistory.forEach(item=>{
-    const ym = getYearMonth(item);
+    const ym =
+    getYearMonth(item);
 
     if(ym.year){
       years.push(ym.year);
@@ -253,7 +438,8 @@ function renderList(){
 
   let rows =
   salaryHistory.filter(item=>{
-    const ym = getYearMonth(item);
+    const ym =
+    getYearMonth(item);
 
     if(
       year &&
@@ -272,9 +458,24 @@ function renderList(){
     return true;
   });
 
+  rows =
+  rows.sort((a,b)=>{
+    const ay =
+    getYearMonth(a);
+
+    const by =
+    getYearMonth(b);
+
+    return (
+      Number(by.year || 0) * 100 + Number(by.month || 0)
+    ) - (
+      Number(ay.year || 0) * 100 + Number(ay.month || 0)
+    );
+  });
+
   if(rows.length === 0){
     list.innerHTML =
-    "<p>目前沒有符合條件的薪資紀錄</p>";
+    "<div class='empty'>目前沒有符合條件的薪資紀錄</div>";
     return;
   }
 
@@ -314,8 +515,13 @@ function renderList(){
 
     const signedText =
     item.is_signed
-    ? "✅ 已簽收"
-    : "❌ 未簽收";
+    ? "已簽收"
+    : "未簽收";
+
+    const statusClass =
+    item.is_signed
+    ? "statusSigned"
+    : "statusUnsigned";
 
     const signedTime =
     item.signed_at
@@ -326,42 +532,55 @@ function renderList(){
 
     html += `
       <div class="item">
-        <div class="month">${y}-${m}</div>
 
-        <p class="gross">
-          應發薪資：
-          NT$${gross.toLocaleString("zh-TW")}
-        </p>
+        <div class="month">
+          ${y} 年 ${m} 月
+        </div>
 
-        <p class="net">
-          實發薪資：
-          NT$${net.toLocaleString("zh-TW")}
-        </p>
+        <div class="moneyBox">
 
-        <p class="status">
+          <div class="moneyRow">
+            <span>應發薪資</span>
+            <strong>NT$${gross.toLocaleString("zh-TW")}</strong>
+          </div>
+
+          <div class="moneyRow net">
+            <span>實發薪資</span>
+            <strong>NT$${net.toLocaleString("zh-TW")}</strong>
+          </div>
+
+        </div>
+
+        <div class="status ${statusClass}">
           ${signedText}
-        </p>
+        </div>
 
         ${
           signedTime
-          ? `<p>簽收時間：${signedTime}</p>`
+          ? `<div class="signedTime">簽收時間：${signedTime}</div>`
           : ""
         }
 
-        <button class="pdf" onclick="downloadPdf()">
-          下載 PDF
-        </button>
+        <div class="actionGrid">
 
-        ${
-          item.is_signed
-          ? `<button class="signed" disabled>已簽收</button>`
-          : `<button class="sign" onclick="signSalary(${item.id})">薪資單簽收</button>`
-        }
+          <button class="pdf" onclick="downloadPdf()">
+            下載 PDF
+          </button>
+
+          ${
+            item.is_signed
+            ? `<button class="signedBtn" disabled>已簽收</button>`
+            : `<button class="sign" onclick="signSalary(${item.id})">薪資單簽收</button>`
+          }
+
+        </div>
+
       </div>
     `;
   });
 
-  list.innerHTML = html;
+  list.innerHTML =
+  html;
 }
 
 function clearFilter(){
@@ -387,39 +606,56 @@ async function signSalary(id){
     return;
   }
 
-  if(
-    !confirm("確認簽收本月薪資單？")
-  ){
+  if(!confirm("確認簽收本月薪資單？")){
+
     return;
+
   }
 
   try{
+
     const res =
+
     await fetch(
+
       "/api/sign-salary/" + id,
+
       {
+
         method:"POST"
+
       }
+
     );
 
     const data =
+
     await res.json();
 
     alert(
+
       data.message ||
+
       "簽收完成"
+
     );
 
     location.reload();
 
   }catch(err){
+
     console.error(err);
+
     alert("簽收失敗，請稍後再試");
+
   }
+
 }
 
 init();
+
 </script>
 
 </body>
+
 </html>
