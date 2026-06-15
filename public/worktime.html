@@ -561,12 +561,13 @@ function formatDateWithWeek(value){
   if(!value){
 
     return "-";
-
+    
   }
 
   const clean =
-
-  normalizeDate(value);
+  String(value)
+  .replace(/\//g,"-")
+  .slice(0,10);
 
   const d =
 
