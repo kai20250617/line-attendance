@@ -1,3 +1,4 @@
+const cloudinary = require("cloudinary").v2;
 const express = require("express");
 const { Pool } = require("pg");
 const cors = require("cors");
@@ -7,7 +8,18 @@ const PDFDocument = require("pdfkit");
 const multer = require("multer");
 
 
+
 const app = express();
+
+// =========================
+// 圖片儲存(發票)
+// =========================
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 
 // =========================
 // 建立 uploads 資料夾
@@ -16,42 +28,14 @@ if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
 }
 
-// =========================
-// 開放圖片讀取(發票)
-// =========================
-app.use(
-  "/uploads",
-  express.static("uploads")
-);
+
 
 
 // =========================
 // Multer設定
 // =========================
-const storage = multer.diskStorage({
-
-  destination: function(req,file,cb){
-
-    cb(null,"uploads/");
-
-  },
-
-  filename: function(req,file,cb){
-
-    const ext =
-
-    path.extname(file.originalname);
-
-    cb(
-
-      null,
-
-      Date.now() + ext
-
-    );
-
-  }
-
+const upload = multer({
+  dest: "temp/"
 });
 
 const upload =
@@ -4855,12 +4839,19 @@ app.post(
 
       }
 
-      const url =
-      `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+      const result =
+      await cloudinary.uploader.upload(
+        req.file.path,
+        {
+          folder:"receipts"
+        }
+      );
+
+      fs.unlinkSync(req.file.path);
 
       res.json({
         success:true,
-        url
+        url: result.secure_url
       });
 
     }catch(err){
