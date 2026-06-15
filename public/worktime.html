@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>我的工時</title>
@@ -9,587 +13,1095 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
+
 *{box-sizing:border-box;}
 
 body{
+
   margin:0;
+
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+
   background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+
   color:#10201d;
+
   padding:24px 18px 44px;
+
 }
 
 .header{
+
   text-align:center;
+
   margin:18px 0 26px;
+
 }
 
 .brand{
+
   font-size:14px;
+
   letter-spacing:6px;
+
   color:#a9792b;
+
   font-weight:900;
+
 }
 
 h1{
+
   margin:12px 0 6px;
+
   font-size:38px;
+
   color:#0b3029;
+
   letter-spacing:3px;
+
 }
 
 .subtitle{
+
   color:#8b7d69;
+
   font-size:15px;
+
   letter-spacing:1px;
+
 }
 
 .card{
+
   max-width:720px;
+
   margin:0 auto;
+
   padding:24px;
+
   border-radius:34px;
+
   background:rgba(255,255,255,.94);
+
   border:1px solid #e4d4b8;
+
   box-shadow:0 26px 60px rgba(66,43,16,.16);
+
 }
 
 .employeeBox,
+
 .filterBox,
+
 .summary,
+
 .workCard{
+
   background:#fffaf3;
+
   border:1px solid #eadfcf;
+
 }
 
 .employeeBox{
+
   border-radius:22px;
+
   padding:18px;
+
   margin-bottom:22px;
+
   color:#0b3029;
+
   font-weight:950;
+
   line-height:1.7;
+
 }
 
 .filterBox{
+
   border-radius:22px;
+
   padding:18px;
+
   margin-bottom:18px;
+
 }
 
 .filterGrid{
+
   display:grid;
+
   grid-template-columns:1fr 1fr;
+
   gap:12px;
+
 }
 
 .filterBox label{
+
   display:block;
+
   color:#756957;
+
   font-weight:900;
+
   margin-bottom:8px;
+
 }
 
 .filterBox input{
+
   width:100%;
+
   max-width:100%;
+
   height:58px;
+
   padding:0 16px;
+
   border:1px solid #d8c8ad;
+
   border-radius:18px;
+
   background:#fffdf8;
+
   color:#10201d;
+
   font-size:16px;
+
   box-sizing:border-box;
+
 }
 
 .filterBox input[type="date"]{
+
   appearance:none;
+
   -webkit-appearance:none;
+
   min-width:0;
+
 }
 
 .top{
+
   display:grid;
+
   grid-template-columns:1fr 1fr;
+
   gap:12px;
+
   margin-bottom:20px;
+
 }
 
 button{
+
   width:100%;
+
   padding:16px;
+
   border:none;
+
   border-radius:20px;
+
   color:white;
+
   font-size:18px;
+
   font-weight:950;
+
   cursor:pointer;
+
 }
 
 .refreshBtn,
+
 .filterBtn{
+
   background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+
 }
 
 .clearBtn{
+
   background:linear-gradient(135deg,#756957,#3b3025);
+
 }
 
 .backBtn{
+
   background:linear-gradient(135deg,#10201d,#050b0a);
+
 }
 
 .summary{
+
   border-radius:22px;
+
   padding:18px;
+
   margin-bottom:20px;
+
   display:grid;
+
   grid-template-columns:1fr 1fr;
+
   gap:12px;
+
 }
 
 .summaryItem{
+
   text-align:left;
+
 }
 
 .summaryLabel{
+
   color:#756957;
+
   font-weight:900;
+
   font-size:14px;
+
 }
 
 .summaryValue{
+
   margin-top:6px;
+
   color:#0b3029;
+
   font-size:24px;
+
   font-weight:950;
+
 }
 
 .workCard{
+
   border-radius:22px;
+
   padding:18px;
+
   margin-bottom:14px;
+
   text-align:left;
+
 }
 
 .workTop{
+
   display:flex;
+
   justify-content:space-between;
+
   gap:12px;
+
   align-items:flex-start;
+
   margin-bottom:12px;
+
 }
 
 .dateTitle{
+
   font-size:20px;
+
   font-weight:950;
+
   color:#0b3029;
+
 }
 
 .workHours{
+
   padding:8px 12px;
+
   border-radius:999px;
+
   background:#f7ead0;
+
   color:#8a5f1e;
+
   font-weight:950;
+
   white-space:nowrap;
+
 }
 
 .infoLine{
+
   color:#756957;
+
   line-height:1.8;
+
   font-weight:800;
+
 }
 
 .empty,
+
 .loading{
+
   text-align:center;
+
   color:#8b7d69;
+
   font-weight:900;
+
   padding:32px 10px;
+
 }
 
 .error{
+
   color:#b91c1c;
+
   font-weight:950;
+
   text-align:center;
+
 }
 
 @media(max-width:480px){
+
   h1{
+
     font-size:34px;
+
   }
 
   .card{
+
     padding:20px;
+
     border-radius:30px;
+
   }
 
   .summary,
+
   .filterGrid,
+
   .top{
+
     grid-template-columns:1fr;
+
   }
 
   .workTop{
+
     flex-direction:column;
+
   }
 
   .workHours{
+
     align-self:flex-start;
+
   }
+
 }
+
 </style>
+
 </head>
 
 <body>
 
 <div class="header">
+
   <div class="brand">AURUM HOUSE</div>
+
   <h1>我的工時</h1>
+
   <div class="subtitle">Work Hours</div>
+
 </div>
 
 <div class="card">
 
   <div id="employeeName" class="employeeBox">
+
     LINE 登入中...
+
   </div>
 
   <div class="filterBox">
 
     <div class="filterGrid">
+
       <div>
+
         <label>開始日期</label>
+
         <input type="date" id="filterStart">
+
       </div>
 
       <div>
+
         <label>結束日期</label>
+
         <input type="date" id="filterEnd">
+
       </div>
+
     </div>
 
   </div>
 
   <div class="top">
+
     <button class="filterBtn" onclick="loadData()">
+
       篩選
+
     </button>
 
     <button class="clearBtn" onclick="clearFilter()">
+
       清除篩選
+
     </button>
 
     <button class="refreshBtn" onclick="loadData()">
+
       重新整理
+
     </button>
 
     <button class="backBtn" onclick="goBack()">
+
       返回員工專區
+
     </button>
+
   </div>
 
   <div id="summary" class="summary">
+
     <div class="summaryItem">
+
       <div class="summaryLabel">總工時</div>
+
       <div class="summaryValue">-</div>
+
     </div>
 
     <div class="summaryItem">
+
       <div class="summaryLabel">出勤天數</div>
+
       <div class="summaryValue">-</div>
+
     </div>
+
   </div>
 
   <div id="workList">
+
     <div class="loading">讀取中...</div>
+
   </div>
 
 </div>
 
 <script>
+
 const LIFF_ID = "2010241581-YtDxQgWd";
 
 let profile = null;
+
 let breakHours = 0;
 
 function goBack(){
+
   if(document.referrer){
+
     history.back();
+
   }else{
+
     location.href="/employee-home.html";
+
   }
+
 }
 
 function clearFilter(){
+
   document.getElementById("filterStart").value = "";
+
   document.getElementById("filterEnd").value = "";
+
   loadData();
+
 }
 
 function normalizeDate(value){
+
   if(!value){
+
     return "";
+
   }
 
   return String(value).replace(/\//g,"-").slice(0,10);
+
 }
 
 function formatDateWithWeek(value){
+
   if(!value){
+
     return "-";
+
   }
 
   const clean =
+
   normalizeDate(value);
 
   const d =
+
   new Date(clean + "T00:00:00");
 
   if(isNaN(d.getTime())){
+
     return value;
+
   }
 
   const weeks =
+
   ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
 
   const y =
+
   d.getFullYear();
 
   const m =
+
   String(d.getMonth() + 1).padStart(2,"0");
 
   const day =
+
   String(d.getDate()).padStart(2,"0");
 
   return `${y}/${m}/${day}（${weeks[d.getDay()]}）`;
+
 }
 
 function formatTime(value){
+
   if(!value){
+
     return "-";
+
   }
 
   const d =
+
   new Date(value);
 
   if(isNaN(d.getTime())){
+
     return "-";
+
   }
 
   return d.toLocaleTimeString("zh-TW",{
+
     timeZone:"Asia/Taipei",
+
     hour:"2-digit",
+
     minute:"2-digit"
+
   });
+
 }
 
 async function init(){
+
   try{
+
     await liff.init({
+
       liffId: LIFF_ID
+
     });
 
     if(!liff.isLoggedIn()){
+
       liff.login();
+
       return;
+
     }
 
     profile =
+
     await liff.getProfile();
 
     const empRes =
+
     await fetch(
+
       "/api/check-employee/" +
+
       profile.userId
+
     );
 
     const empData =
+
     await empRes.json();
 
     if(empData.success && empData.isEmployee){
+
       document.getElementById("employeeName").innerHTML =
+
       `員工：${empData.employee.name || profile.displayName || "-"}<br>
+
        部門：${empData.employee.department || "-"} / ${empData.employee.position || "-"}`;
+
     }else{
+
       document.getElementById("employeeName").innerHTML =
+
       `員工：${profile.displayName}`;
+
     }
 
     loadData();
 
   }catch(error){
+
     console.error(error);
 
     document.getElementById("employeeName").innerHTML =
+
     "<span class='error'>LINE 登入失敗</span>";
 
     document.getElementById("workList").innerHTML =
+
     "<div class='empty'>請使用 LINE 開啟此頁面</div>";
+
   }
+
 }
 
 async function loadRules(){
+
   try{
+
     const ruleRes =
+
     await fetch("/api/rules");
 
     const ruleData =
+
     await ruleRes.json();
 
     const rule =
+
     ruleData.rules || ruleData;
 
     breakHours =
+
     Number(rule.break_hours || 0);
 
   }catch(error){
+
     console.error("讀取出勤規則失敗", error);
+
     breakHours = 0;
+
   }
+
 }
 
 async function loadData(){
+
   const list =
+
   document.getElementById("workList");
 
   const summary =
+
   document.getElementById("summary");
 
   list.innerHTML =
+
   "<div class='loading'>載入中...</div>";
 
   if(!profile || !profile.userId){
+
     list.innerHTML =
+
     "<div class='empty'>尚未取得 LINE 身分</div>";
+
     return;
+
   }
 
   try{
+
     await loadRules();
 
     const response =
+
     await fetch(
+
       "/api/my-worktime/" + profile.userId
+
     );
 
     const data =
+
     await response.json();
 
     if(!response.ok){
+
       list.innerHTML =
+
       "<div class='empty error'>讀取失敗</div>";
+
       return;
+
     }
 
     if(!data || data.length === 0){
+
       summary.innerHTML =
+
       `
+
       <div class="summaryItem">
+
         <div class="summaryLabel">總工時</div>
+
         <div class="summaryValue">0 小時</div>
+
       </div>
 
       <div class="summaryItem">
+
         <div class="summaryLabel">出勤天數</div>
+
         <div class="summaryValue">0 天</div>
+
       </div>
+
       `;
 
       list.innerHTML =
+
       "<div class='empty'>目前沒有出勤資料</div>";
+
       return;
+
     }
 
     const groups = {};
 
     data.forEach(item=>{
+
       const date =
+
       new Date(item.clock_time)
+
       .toLocaleDateString("zh-TW",{
+
         timeZone:"Asia/Taipei"
+
       });
 
       const key =
+
       item.line_user_id + "_" + date;
 
       if(!groups[key]){
+
         groups[key] = {
+
           name:item.name,
+
           date:date,
+
           start:null,
+
           end:null
+
         };
+
       }
 
       if(item.type === "上班"){
+
         if(
+
           !groups[key].start ||
+
           new Date(item.clock_time) <
+
           new Date(groups[key].start)
+
         ){
+
           groups[key].start =
+
           item.clock_time;
+
         }
+
       }
 
       if(item.type === "下班"){
+
         if(
+
           !groups[key].end ||
+
           new Date(item.clock_time) >
+
           new Date(groups[key].end)
+
         ){
+
           groups[key].end =
+
           item.clock_time;
+
         }
+
       }
+
     });
 
     let rows =
+
     Object.values(groups);
 
     const filterStart =
+
     document.getElementById("filterStart").value;
 
     const filterEnd =
+
     document.getElementById("filterEnd").value;
 
     if(filterStart){
+
       rows =
+
       rows.filter(row=>{
+
         const rowDate =
+
         normalizeDate(row.date);
 
         return rowDate >= filterStart;
+
       });
+
     }
 
     if(filterEnd){
+
       rows =
+
       rows.filter(row=>{
+
         const rowDate =
+
         normalizeDate(row.date);
 
         return rowDate <= filterEnd;
+
       });
+
     }
 
     rows =
+
     rows.sort((a,b)=>{
+
       const da =
+
       normalizeDate(a.date);
 
       const db =
+
       normalizeDate(b.date);
 
       return new Date(db) - new Date(da);
+
     });
 
     if(rows.length === 0){
+
       summary.innerHTML =
+
       `
+
       <div class="summaryItem">
+
         <div class="summaryLabel">總工時</div>
-        <div class="summaryVa
+
+        <div class="summaryValue">0 小時</div>
+
+      </div>
+
+      <div class="summaryItem">
+
+        <div class="summaryLabel">出勤天數</div>
+
+        <div class="summaryValue">0 天</div>
+
+      </div>
+
+      `;
+
+      list.innerHTML =
+
+      "<div class='empty'>此篩選區間沒有工時資料</div>";
+
+      return;
+
+    }
+
+    let totalWorkHours = 0;
+
+    let workDays = 0;
+
+    let html = "";
+
+    rows.forEach(row=>{
+
+      let hours = "-";
+
+      if(row.start && row.end){
+
+        const totalHours =
+
+        (
+
+          new Date(row.end) -
+
+          new Date(row.start)
+
+        ) / 1000 / 60 / 60;
+
+        const workHours =
+
+        Math.max(
+
+          0,
+
+          totalHours - breakHours
+
+        );
+
+        hours =
+
+        workHours.toFixed(2);
+
+        totalWorkHours +=
+
+        workHours;
+
+        workDays++;
+
+      }
+
+      html += `
+
+        <div class="workCard">
+
+          <div class="workTop">
+
+            <div class="dateTitle">
+
+              ${formatDateWithWeek(row.date)}
+
+            </div>
+
+            <div class="workHours">
+
+              ${hours === "-" ? "未完成" : hours + " 小時"}
+
+            </div>
+
+          </div>
+
+          <div class="infoLine">
+
+            員工：${row.name || "-"}<br>
+
+            上班時間：${formatTime(row.start)}<br>
+
+            下班時間：${formatTime(row.end)}<br>
+
+            休息時數：${breakHours} 小時
+
+          </div>
+
+        </div>
+
+      `;
+
+    });
+
+    summary.innerHTML =
+
+    `
+
+    <div class="summaryItem">
+
+      <div class="summaryLabel">總工時</div>
+
+      <div class="summaryValue">${totalWorkHours.toFixed(2)} 小時</div>
+
+    </div>
+
+    <div class="summaryItem">
+
+      <div class="summaryLabel">出勤天數</div>
+
+      <div class="summaryValue">${workDays} 天</div>
+
+    </div>
+
+    `;
+
+    list.innerHTML =
+
+    html;
+
+  }catch(error){
+
+    console.error(error);
+
+    list.innerHTML =
+
+    "<div class='empty error'>讀取失敗</div>";
+
+  }
+
+}
+
+init();
+
+</script>
+
+</body>
+
+</html>
