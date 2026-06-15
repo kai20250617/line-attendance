@@ -436,17 +436,17 @@ async function init(){
           <div class="statLabel">本月工時</div>
           <strong>${Number(totalHours || 0).toFixed(1)} 小時</strong>
         </div>
-
-        <div class="stat">
-          <div class="statLabel">預估薪資</div>
-          <strong>NT$${Number(salary.netSalary || 0).toLocaleString("zh-TW")}</strong>
-        </div>
-
+        
         <div class="stat">
           <div class="statLabel">本月請假</div>
           <strong>${leaveDays} 天</strong>
         </div>
       </div>
+
+      <div class="stat">
+          <div class="statLabel">預估薪資</div>
+          <strong>NT$${Number(salary.netSalary || 0).toLocaleString("zh-TW")}</strong>
+        </div>
 
       <div class="sectionTitle">常用功能</div>
 
