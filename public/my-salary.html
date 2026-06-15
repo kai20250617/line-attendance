@@ -804,4 +804,108 @@ function buildSignHtml(){
 
 async function signSalary(){
 
-  if(!profile || !pr
+  if(!profile || !profile.userId){
+
+    alert("尚未完成 LINE 登入");
+
+    return;
+
+  }
+
+  if(!currentSalaryHistory || !currentSalaryHistory.salary_month){
+
+    alert("找不到本月薪資紀錄，請先月結薪資");
+
+    return;
+
+  }
+
+  if(!confirm("確定要簽收本月薪資單嗎？")){
+
+    return;
+
+  }
+
+  try{
+
+    const res =
+
+    await fetch(
+
+      "/api/sign-salary",
+
+      {
+
+        method:"POST",
+
+        headers:{
+
+          "Content-Type":"application/json"
+
+        },
+
+        body:JSON.stringify({
+
+          lineUserId:profile.userId,
+
+          salaryMonth:String(currentSalaryHistory.salary_month).slice(0,7)
+
+        })
+
+      }
+
+    );
+
+    const data =
+
+    await res.json();
+
+    if(!res.ok || data.success === false){
+
+      alert(data.message || "簽收失敗，請稍後再試");
+
+      return;
+
+    }
+
+    alert(data.message || "薪資單已簽收");
+
+    location.reload();
+
+  }catch(err){
+
+    console.error(err);
+
+    alert("簽收失敗，請稍後再試");
+
+  }
+
+}
+
+function downloadPayslip(){
+
+  if(!salaryData || !salaryData.employeeId){
+
+    alert("找不到員工資料，無法下載薪資單");
+
+    return;
+
+  }
+
+  window.open(
+
+    "/api/payslip/" + salaryData.employeeId,
+
+    "_blank"
+
+  );
+
+}
+
+loadMySalary();
+
+</script>
+
+</body>
+
+</html>
