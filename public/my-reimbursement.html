@@ -285,6 +285,7 @@ function goBack(){
 }
 
 function formatDate(value){
+
   if(!value){
     return "-";
   }
@@ -295,14 +296,37 @@ function formatDate(value){
     return String(value).substring(0,10);
   }
 
-  return d.toLocaleDateString("zh-TW", {
+  const weeks = [
+    "星期日",
+    "星期一",
+    "星期二",
+    "星期三",
+    "星期四",
+    "星期五",
+    "星期六"
+  ];
+
+  const dateText =
+  d.toLocaleDateString("zh-TW",{
     timeZone:"Asia/Taipei",
     year:"numeric",
     month:"2-digit",
     day:"2-digit"
   });
-}
 
+  return `
+    ${dateText}
+    <div style="
+      margin-top:4px;
+      color:#a9792b;
+      font-size:13px;
+      font-weight:900;
+    ">
+      ${weeks[d.getDay()]}
+    </div>
+  `;
+
+}
 function money(value){
   return "NT$" + Number(value || 0).toLocaleString("zh-TW");
 }
@@ -406,9 +430,9 @@ async function loadData(){
 
         <div class="cardTop">
 
-          <div class="date">
-            ${formatDate(item.expense_date)}
-          </div>
+         <div class="date">
+  ${formatDate(item.expense_date)}
+</div>
 
           <div class="amount">
             ${money(item.amount)}
