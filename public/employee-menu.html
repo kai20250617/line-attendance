@@ -121,18 +121,14 @@ h1{
 }
 
 .avatar{
+  width:140px;
+  height:90px;
 
-  width:78px;
+  background:transparent;
+  border:none;
+  border-radius:0;
 
-  height:78px;
-
-  border-radius:22px;
-
-  background:#fff;
-
-  border:1px solid #e6d6bd;
-
-  overflow:hidden;
+  overflow:visible;
 
   display:flex;
 
@@ -140,20 +136,19 @@ h1{
 
   justify-content:center;
 
-  box-shadow:0 8px 20px rgba(0,0,0,.08);
+  box-shadow:none;
 
+  flex-shrink:0;
 }
 
 .avatar img{
-
-  width:100%;
-
-  height:100%;
+  width:140px;
+  height:auto;
 
   object-fit:contain;
 
-  padding:6px;
-
+  padding:0;
+  border:none;
 }
 
 .empName{
@@ -180,7 +175,7 @@ h1{
 
   display:grid;
 
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(3,1fr);
 
   gap:13px;
 
@@ -401,10 +396,8 @@ h1{
   }
 
   .stats{
-
-    grid-template-columns:1fr 1fr;
-
-  }
+  grid-template-columns:1fr;
+}
 
   .menuItem{
 
@@ -714,7 +707,7 @@ async function init(){
 
         <div class="avatar">
 
-          <img src="/images/logo.jpg" alt="Aurum House">
+          <img src="/images/logo-transparent.png" alt="Aurum House">
 
         </div>
 
@@ -762,13 +755,7 @@ async function init(){
 
         </div>
 
-        <div class="stat">
-
-          <div class="statLabel">交通津貼</div>
-
-          <strong>${attendanceStatus}</strong>
-
-        </div>
+        
 
       </div>
 
