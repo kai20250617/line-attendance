@@ -9,99 +9,245 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
+*{box-sizing:border-box;}
+
 body{
-  font-family:Arial,sans-serif;
-  background:#f5f5f5;
-  padding:20px;
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+  color:#10201d;
+  padding:24px 18px 44px;
 }
 
-.card{
-  background:white;
-  max-width:500px;
-  margin:auto;
-  padding:25px;
-  border-radius:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,.1);
+.header{
+  text-align:center;
+  margin:18px 0 26px;
+}
+
+.brand{
+  font-size:14px;
+  letter-spacing:6px;
+  color:#a9792b;
+  font-weight:900;
 }
 
 h1{
-  text-align:center;
+  margin:12px 0 6px;
+  font-size:38px;
+  color:#0b3029;
+  letter-spacing:3px;
 }
 
-input,select,textarea{
+.subtitle{
+  color:#8b7d69;
+  font-size:15px;
+  letter-spacing:1px;
+}
+
+.card{
+  max-width:620px;
+  margin:0 auto;
+  padding:24px;
+  border-radius:34px;
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  box-shadow:0 26px 60px rgba(66,43,16,.16);
+}
+
+.employeeBox{
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:22px;
+  padding:18px;
+  margin-bottom:22px;
+  color:#0b3029;
+  font-weight:950;
+}
+
+label{
+  display:block;
+  margin-top:18px;
+  margin-bottom:8px;
+  color:#756957;
+  font-weight:900;
+}
+
+input,
+select,
+textarea{
   width:100%;
-  padding:12px;
-  margin-top:8px;
-  margin-bottom:15px;
-  border:1px solid #ccc;
-  border-radius:8px;
-  box-sizing:border-box;
+  padding:15px;
+  border:1px solid #d8c8ad;
+  border-radius:18px;
+  background:#fffdf8;
+  color:#10201d;
+  font-size:16px;
+  outline:none;
+}
+
+textarea{
+  min-height:110px;
+  resize:vertical;
+  line-height:1.7;
+}
+
+input:focus,
+select:focus,
+textarea:focus{
+  border-color:#cfa54f;
+  box-shadow:0 0 0 3px rgba(207,165,79,.18);
 }
 
 button{
   width:100%;
-  background:#ff9800;
-  color:white;
+  padding:16px;
+  margin-top:16px;
   border:none;
-  padding:15px;
-  border-radius:8px;
+  border-radius:20px;
+  color:white;
   font-size:18px;
+  font-weight:950;
+  cursor:pointer;
+}
+
+.submitBtn{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+}
+
+.backBtn{
+  background:linear-gradient(135deg,#10201d,#050b0a);
 }
 
 .result{
+  margin-top:18px;
   text-align:center;
-  margin-top:15px;
-  font-weight:bold;
+  font-weight:950;
+  color:#0b3029;
+}
+
+.success{
+  color:#166534;
+}
+
+.error{
+  color:#b91c1c;
+}
+
+.note{
+  margin-top:18px;
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:18px;
+  padding:14px;
+  color:#756957;
+  font-size:14px;
+  line-height:1.7;
+}
+
+@media(max-width:480px){
+  h1{
+    font-size:34px;
+  }
+
+  .card{
+    padding:20px;
+    border-radius:30px;
+  }
 }
 </style>
-
 </head>
 
 <body>
 
+<div class="header">
+  <div class="brand">AURUM HOUSE</div>
+  <h1>補打卡申請</h1>
+  <div class="subtitle">Clock Correction Request</div>
+</div>
+
 <div class="card">
 
-<h1>🕒 補打卡申請</h1>
+  <div id="employeeBox" class="employeeBox">
+    LINE 登入中...
+  </div>
 
-<label>補打卡類型</label>
+  <label>補打卡類型</label>
+  <select id="clockType">
+    <option value="上班">上班</option>
+    <option value="下班">下班</option>
+  </select>
 
-<select id="clockType">
-  <option value="上班">上班</option>
-  <option value="下班">下班</option>
-</select>
+  <label>補打卡時間</label>
+  <input type="datetime-local" id="clockTime">
 
-<label>補打卡時間</label>
+  <label>補打卡原因</label>
+  <textarea
+    id="reason"
+    rows="4"
+    placeholder="例如：忘記打卡、手機沒電、外出工作無法即時打卡..."></textarea>
 
-<input type="datetime-local" id="clockTime">
+  <button class="submitBtn" onclick="submitRequest()">
+    送出補打卡申請
+  </button>
 
-<label>原因</label>
+  <button class="backBtn" onclick="goBack()">
+    返回員工專區
+  </button>
 
-<textarea
-id="reason"
-rows="4"
-placeholder="請輸入補打卡原因"></textarea>
+  <div class="note">
+    補打卡申請送出後，需由管理員審核。核准後才會寫入正式出勤紀錄。
+  </div>
 
-<button onclick="submitRequest()">
-送出申請
-</button>
-
-<div id="result" class="result"></div>
+  <div id="result" class="result"></div>
 
 </div>
 
 <script>
-
 const LIFF_ID = "2010241581-YtDxQgWd";
 
-async function submitRequest(){
+let profile = null;
+let employee = null;
+
+function setResult(message,type){
+  document.getElementById("result").innerHTML =
+  `<span class="${type || ""}">${message}</span>`;
+}
+
+function goBack(){
+  if(document.referrer){
+    history.back();
+  }else{
+    location.href="/employee-home.html";
+  }
+}
+
+function setDefaultTime(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2,"0");
+  const d = String(now.getDate()).padStart(2,"0");
+  const h = String(now.getHours()).padStart(2,"0");
+  const min = String(now.getMinutes()).padStart(2,"0");
+
+  document.getElementById("clockTime").value =
+  `${y}-${m}-${d}T${h}:${min}`;
+}
+
+async function init(){
+  const employeeBox =
+  document.getElementById("employeeBox");
 
   try{
-
     await liff.init({
       liffId: LIFF_ID
     });
 
-    const profile =
+    if(!liff.isLoggedIn()){
+      liff.login();
+      return;
+    }
+
+    profile =
     await liff.getProfile();
 
     const empRes =
@@ -113,19 +259,56 @@ async function submitRequest(){
     const empData =
     await empRes.json();
 
-    if(!empData.isEmployee){
-      alert("非員工無法使用");
+    if(!empData.success || !empData.isEmployee){
+      employeeBox.innerHTML =
+      "<span class='error'>非員工無法使用</span>";
       return;
     }
 
-    const clockType =
-    document.getElementById("clockType").value;
+    employee =
+    empData.employee;
 
-    const clockTime =
-    document.getElementById("clockTime").value;
+    employeeBox.innerHTML =
+    `員工：${employee.name || profile.displayName || "-"}<br>
+     部門：${employee.department || "-"} / ${employee.position || "-"}`;
 
-    const reason =
-    document.getElementById("reason").value;
+    setDefaultTime();
+
+  }catch(err){
+    console.error(err);
+
+    employeeBox.innerHTML =
+    "<span class='error'>LINE 登入失敗，請重新開啟頁面</span>";
+  }
+}
+
+async function submitRequest(){
+  if(!profile || !employee){
+    alert("尚未完成 LINE 登入或員工驗證");
+    return;
+  }
+
+  const clockType =
+  document.getElementById("clockType").value;
+
+  const clockTime =
+  document.getElementById("clockTime").value;
+
+  const reason =
+  document.getElementById("reason").value.trim();
+
+  if(!clockTime){
+    alert("請選擇補打卡時間");
+    return;
+  }
+
+  if(!reason){
+    alert("請輸入補打卡原因");
+    return;
+  }
+
+  try{
+    setResult("申請送出中...","");
 
     const response =
     await fetch(
@@ -137,7 +320,7 @@ async function submitRequest(){
         },
         body:JSON.stringify({
           lineUserId:profile.userId,
-          name:empData.employee.name,
+          name:employee.name || profile.displayName,
           clockType,
           clockTime,
           reason
@@ -148,19 +331,22 @@ async function submitRequest(){
     const result =
     await response.json();
 
-    document.getElementById("result")
-    .innerHTML = result.message;
+    if(!response.ok || result.success === false){
+      setResult(result.message || "送出失敗","error");
+      return;
+    }
+
+    setResult("✅ " + (result.message || "補打卡申請已送出"),"success");
+
+    document.getElementById("reason").value = "";
 
   }catch(err){
-
     console.error(err);
-
-    document.getElementById("result")
-    .innerHTML = "送出失敗";
-
+    setResult("送出失敗，請稍後再試","error");
   }
-
 }
+
+init();
 </script>
 
 </body>
