@@ -192,7 +192,7 @@ h1{
 </div>
 
 <script>
-    
+
 const LIFF_ID = "2010241581-YtDxQgWd";
 
 let profile = null;
@@ -206,6 +206,30 @@ function goBack(){
 }
 
 function formatDate(value){
+
+  if(!value){
+    return "-";
+  }
+
+  const d = new Date(value);
+
+  if(isNaN(d.getTime())){
+    return value;
+  }
+
+  const week =
+  ["日","一","二","三","四","五","六"];
+
+  return d.toLocaleDateString("zh-TW",{
+    timeZone:"Asia/Taipei",
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit"
+  })
+  + "（週" +
+  week[d.getDay()] +
+  "）";
+}
   if(!value){
     return "-";
   }
@@ -222,6 +246,7 @@ function formatDate(value){
     month:"2-digit",
     day:"2-digit"
   });
+  
 }
 
 function getStatusClass(status){
