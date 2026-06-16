@@ -1800,52 +1800,61 @@ app.get("/api/export-monthly", async (req, res) => {
         };
       }
 
-      if (day.start && day.end) {
-        const totalHours =
-          (new Date(day.end) - new Date(day.start)) /
-          1000 / 60 / 60;
+     if (day.start && day.end) {
 
-          const breakDeduct =
-calcBreakHours(
-  row.start,
-  row.end
-);
+  const totalHours =
+    (new Date(day.end) - new Date(day.start)) /
+    1000 / 60 / 60;
 
-const workHours =
-Math.max(
-  0,
-  totalHours - breakDeduct
-);
+  const start =
+    new Date(day.start);
 
-        function calcBreakHours(startTime,endTime){
-  const start = new Date(startTime);
-  const end = new Date(endTime);
+  const end =
+    new Date(day.end);
 
-  const breakStart = new Date(start);
-  breakStart.setHours(12,0,0,0);
+  const lunchStart =
+    new Date(start);
 
-  const breakEnd = new Date(start);
-  breakEnd.setHours(13,0,0,0);
+  lunchStart.setHours(
+    12,0,0,0
+  );
+
+  const lunchEnd =
+    new Date(start);
+
+  lunchEnd.setHours(
+    13,0,0,0
+  );
 
   const overlapStart =
-  start > breakStart ? start : breakStart;
+    start > lunchStart
+    ? start
+    : lunchStart;
 
   const overlapEnd =
-  end < breakEnd ? end : breakEnd;
+    end < lunchEnd
+    ? end
+    : lunchEnd;
 
   const overlapMs =
-  overlapEnd - overlapStart;
+    overlapEnd - overlapStart;
 
-  if(overlapMs <= 0){
-    return 0;
-  }
+  const breakDeduct =
+    overlapMs > 0
+    ? overlapMs / 1000 / 60 / 60
+    : 0;
 
-  return overlapMs / 1000 / 60 / 60;
+  const workHours =
+    Math.max(
+      0,
+      totalHours - breakDeduct
+    );
+
+  monthly[key].hours += workHours;
+
+  monthly[key].workDays++;
+
 }
-
-        monthly[key].hours += workHours;
-        monthly[key].workDays++;
-      }
     });
 
     let csv =
