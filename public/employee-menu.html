@@ -347,33 +347,14 @@ async function loadAnnouncement(){
       <div class="announcementBadge">
         ${item.pinned ? "📌 置頂公告" : "📢 最新公告"}
       </div>
-<div class="announcementTitle">
-  ${item.title || "-"}
-</div>
 
-${
-  item.image_url
-  ?
-  `
-  <img
-    src="${item.image_url}"
-    style="
-      width:100%;
-      border-radius:18px;
-      margin-top:14px;
-      margin-bottom:14px;
-      border:1px solid #eadfcf;
-      box-shadow:0 10px 26px rgba(0,0,0,.10);
-    "
-  >
-  `
-  :
-  ""
-}
+      <div class="announcementTitle">
+        ${item.title || "-"}
+      </div>
 
-<div class="announcementContent">
-  ${item.content || ""}
-</div>
+      <div class="announcementContent">
+        ${item.content || ""}
+      </div>
 
       <div class="announcementDate">
         ${date}
@@ -495,31 +476,8 @@ async function init(){
           const rawHours =
           (new Date(day.end) - new Date(day.start)) / 1000 / 60 / 60;
 
-          function calcBreakHours(startTime,endTime){
-  const start = new Date(startTime);
-  const end = new Date(endTime);
-
-  const breakStart = new Date(start);
-  breakStart.setHours(12,0,0,0);
-
-  const breakEnd = new Date(start);
-  breakEnd.setHours(13,0,0,0);
-
-  const overlapStart =
-  start > breakStart ? start : breakStart;
-
-  const overlapEnd =
-  end < breakEnd ? end : breakEnd;
-
-  const overlapMs =
-  overlapEnd - overlapStart;
-
-  if(overlapMs <= 0){
-    return 0;
-  }
-
-  return overlapMs / 1000 / 60 / 60;
-}
+          const workHours =
+          Math.max(0, rawHours - breakHours);
 
           totalHours += workHours;
         }
