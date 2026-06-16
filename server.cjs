@@ -4961,8 +4961,16 @@ app.post("/api/announcements", async (req,res)=>{
       title,
       content,
       target,
-      pinned
+      pinned,
+      imageUrl
     } = req.body;
+
+    if(!title || !content){
+      return res.status(400).json({
+        success:false,
+        message:"公告標題與內容不可空白"
+      });
+    }
 
     await pool.query(
       `
@@ -4971,54 +4979,56 @@ app.post("/api/announcements", async (req,res)=>{
         title,
         content,
         target,
-        pinned
+        pinned,
+        image_url
       )
       VALUES
       (
-        $1,$2,$3,$4
+        $1,$2,$3,$4,$5
       )
       `,
       [
         title,
         content,
         target || "全部",
-        pinned || false
+        pinned || false,
+        imageUrl || null
       ]
     );
 
     // 推播給所有在職員工
-const employees =
-await pool.query(`
-  SELECT line_user_id,name
-  FROM employees
-  WHERE status='在職'
-  AND line_user_id IS NOT NULL
-`);
+    const employees =
+    await pool.query(`
+      SELECT line_user_id,name
+      FROM employees
+      WHERE status='在職'
+      AND line_user_id IS NOT NULL
+    `);
 
-for(const emp of employees.rows){
+    for(const emp of employees.rows){
 
-  try{
+      try{
 
-    await pushLineMessage(
-      emp.line_user_id,
+        await pushLineMessage(
+          emp.line_user_id,
 `📢 新公告通知
 
 ${title}
 
 請進入員工專區查看完整內容`
-    );
+        );
 
-  }catch(err){
+      }catch(err){
 
-    console.error(
-      "推播失敗:",
-      emp.name,
-      err.message
-    );
+        console.error(
+          "推播失敗:",
+          emp.name,
+          err.message
+        );
 
-  }
+      }
 
-}
+    }
 
     res.json({
       success:true,
