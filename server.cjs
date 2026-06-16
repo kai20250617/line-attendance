@@ -1805,11 +1805,43 @@ app.get("/api/export-monthly", async (req, res) => {
           (new Date(day.end) - new Date(day.start)) /
           1000 / 60 / 60;
 
-        const workHours =
-          Math.max(
-            0,
-            totalHours - breakHours
-          );
+          const breakDeduct =
+calcBreakHours(
+  row.start,
+  row.end
+);
+
+const workHours =
+Math.max(
+  0,
+  totalHours - breakDeduct
+);
+
+        function calcBreakHours(startTime,endTime){
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+
+  const breakStart = new Date(start);
+  breakStart.setHours(12,0,0,0);
+
+  const breakEnd = new Date(start);
+  breakEnd.setHours(13,0,0,0);
+
+  const overlapStart =
+  start > breakStart ? start : breakStart;
+
+  const overlapEnd =
+  end < breakEnd ? end : breakEnd;
+
+  const overlapMs =
+  overlapEnd - overlapStart;
+
+  if(overlapMs <= 0){
+    return 0;
+  }
+
+  return overlapMs / 1000 / 60 / 60;
+}
 
         monthly[key].hours += workHours;
         monthly[key].workDays++;
@@ -2416,15 +2448,31 @@ app.get("/api/my-salary/:lineUserId", async (req, res) => {
 
           (endTime - startTime) / 1000 / 60 / 60;
 
-        const workHours =
+       function calcBreakHours(startTime,endTime){
+  const start = new Date(startTime);
+  const end = new Date(endTime);
 
-          Math.max(
+  const breakStart = new Date(start);
+  breakStart.setHours(12,0,0,0);
 
-            0,
+  const breakEnd = new Date(start);
+  breakEnd.setHours(13,0,0,0);
 
-            rawHours - breakHours
+  const overlapStart =
+  start > breakStart ? start : breakStart;
 
-          );
+  const overlapEnd =
+  end < breakEnd ? end : breakEnd;
+
+  const overlapMs =
+  overlapEnd - overlapStart;
+
+  if(overlapMs <= 0){
+    return 0;
+  }
+
+  return overlapMs / 1000 / 60 / 60;
+}
 
         if (workHours > 0) {
 
@@ -4402,9 +4450,31 @@ app.get("/api/attendance-report", async (req, res) => {
 
             1000 / 60 / 60;
 
-          const workHours =
+          function calcBreakHours(startTime,endTime){
+  const start = new Date(startTime);
+  const end = new Date(endTime);
 
-            Math.max(0, rawHours - breakHours);
+  const breakStart = new Date(start);
+  breakStart.setHours(12,0,0,0);
+
+  const breakEnd = new Date(start);
+  breakEnd.setHours(13,0,0,0);
+
+  const overlapStart =
+  start > breakStart ? start : breakStart;
+
+  const overlapEnd =
+  end < breakEnd ? end : breakEnd;
+
+  const overlapMs =
+  overlapEnd - overlapStart;
+
+  if(overlapMs <= 0){
+    return 0;
+  }
+
+  return overlapMs / 1000 / 60 / 60;
+}
 
           if (workHours > 0) {
 

@@ -513,47 +513,31 @@ button{
 </div>
 
 <script>
-
 const LIFF_ID = "2010241581-YtDxQgWd";
 
 let profile = null;
-
 let breakHours = 0;
 
 function goBack(){
-
   if(document.referrer){
-
     history.back();
-
   }else{
-
-    location.href="/employee-home.html";
-
+    location.href="/employee-menu.html";
   }
-
 }
 
 function clearFilter(){
-
   document.getElementById("filterStart").value = "";
-
   document.getElementById("filterEnd").value = "";
-
   loadData();
-
 }
 
 function normalizeDate(value){
-
   if(!value){
-
     return "";
-
   }
 
   return String(value).replace(/\//g,"-").slice(0,10);
-
 }
 
 function formatDateWithWeek(value){
@@ -561,9 +545,7 @@ function formatDateWithWeek(value){
     return "-";
   }
 
-  let text =
-  String(value).trim();
-
+  let text = String(value).trim();
   let y, m, d;
 
   if(text.includes("/")){
@@ -580,113 +562,115 @@ function formatDateWithWeek(value){
     return text;
   }
 
-  const dateObj =
-  new Date(y, m - 1, d);
+  const dateObj = new Date(y, m - 1, d);
 
-  const weeks =
-  ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
+  const weeks = [
+    "星期日",
+    "星期一",
+    "星期二",
+    "星期三",
+    "星期四",
+    "星期五",
+    "星期六"
+  ];
 
   return `${y}/${m}/${d}（${weeks[dateObj.getDay()]}）`;
 }
 
 function formatTime(value){
-
   if(!value){
-
     return "-";
-
   }
 
-  const d =
-
-  new Date(value);
+  const d = new Date(value);
 
   if(isNaN(d.getTime())){
-
     return "-";
-
   }
 
   return d.toLocaleTimeString("zh-TW",{
-
     timeZone:"Asia/Taipei",
-
     hour:"2-digit",
-
     minute:"2-digit"
-
   });
+}
 
+function calcBreakHours(startTime,endTime){
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+
+  if(isNaN(start.getTime()) || isNaN(end.getTime())){
+    return 0;
+  }
+
+  const lunchStart = new Date(start);
+  lunchStart.setHours(12,0,0,0);
+
+  const lunchEnd = new Date(start);
+  lunchEnd.setHours(13,0,0,0);
+
+  const overlapStart =
+  start > lunchStart
+  ? start
+  : lunchStart;
+
+  const overlapEnd =
+  end < lunchEnd
+  ? end
+  : lunchEnd;
+
+  const overlapMs =
+  overlapEnd - overlapStart;
+
+  if(overlapMs <= 0){
+    return 0;
+  }
+
+  return overlapMs / 1000 / 60 / 60;
 }
 
 async function init(){
-
   try{
-
     await liff.init({
-
       liffId: LIFF_ID
-
     });
 
     if(!liff.isLoggedIn()){
-
       liff.login();
-
       return;
-
     }
 
-    profile =
-
-    await liff.getProfile();
+    profile = await liff.getProfile();
 
     const empRes =
-
     await fetch(
-
       "/api/check-employee/" +
-
       profile.userId
-
     );
 
     const empData =
-
     await empRes.json();
 
     if(empData.success && empData.isEmployee){
-
       document.getElementById("employeeName").innerHTML =
-
       `員工：${empData.employee.name || profile.displayName || "-"}<br>
-
        部門：${empData.employee.department || "-"} / ${empData.employee.position || "-"}`;
-
     }else{
-
       document.getElementById("employeeName").innerHTML =
-
       `員工：${profile.displayName}`;
-
     }
 
     loadData();
 
   }catch(error){
-
     console.error(error);
 
     document.getElementById("employeeName").innerHTML =
-
     "<span class='error'>LINE 登入失敗</span>";
 
     document.getElementById("workList").innerHTML =
-
     "<div class='empty'>請使用 LINE 開啟此頁面</div>";
-
   }
-
 }
 
 async function loadRules(){
@@ -991,15 +975,49 @@ async function loadData(){
 
         ) / 1000 / 60 / 60;
 
-        const workHours =
+        const breakDeduct =
+calcBreakHours(
+  row.start,
+  row.end
+);
 
-        Math.max(
+const breakDeduct =
+calcBreakHours(
+  row.start,
+  row.end
+);
 
-          0,
+const workHours =
+Math.max(
+  0,
+  totalHours - breakDeduct
+);
 
-          totalHours - breakHours
+        function calcBreakHours(startTime,endTime){
+  const start = new Date(startTime);
+  const end = new Date(endTime);
 
-        );
+  const breakStart = new Date(start);
+  breakStart.setHours(12,0,0,0);
+
+  const breakEnd = new Date(start);
+  breakEnd.setHours(13,0,0,0);
+
+  const overlapStart =
+  start > breakStart ? start : breakStart;
+
+  const overlapEnd =
+  end < breakEnd ? end : breakEnd;
+
+  const overlapMs =
+  overlapEnd - overlapStart;
+
+  if(overlapMs <= 0){
+    return 0;
+  }
+
+  return overlapMs / 1000 / 60 / 60;
+}
 
         hours =
 
@@ -1041,7 +1059,7 @@ async function loadData(){
 
             下班時間：${formatTime(row.end)}<br>
 
-            休息時數：${breakHours} 小時
+            休息時數：${hours === "-" ? "-" : calcBreakHours(row.start,row.end).toFixed(2)} 小時
 
           </div>
 
