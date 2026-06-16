@@ -275,6 +275,17 @@ ALTER TABLE reimbursements
 ADD COLUMN IF NOT EXISTS receipt_url TEXT
 `);
 
+await pool.query(`
+CREATE TABLE IF NOT EXISTS announcements (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  target TEXT DEFAULT '全部',
+  pinned BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+)
+`);
+
 console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
 
@@ -4900,6 +4911,133 @@ res.status(500).json([]);
 }
 
 });
+
+// =========================
+// 取得公告
+// =========================
+app.get("/api/announcements", async (req,res)=>{
+
+  try{
+
+    const result = await pool.query(`
+      SELECT *
+      FROM announcements
+      ORDER BY
+      pinned DESC,
+      created_at DESC
+    `);
+
+    res.json({
+      success:true,
+      data:result.rows
+    });
+
+  }catch(err){
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"讀取公告失敗"
+    });
+
+  }
+
+});
+
+// =========================
+// 新增公告
+// =========================
+app.post("/api/announcements", async (req,res)=>{
+
+  try{
+
+    const {
+      title,
+      content,
+      target,
+      pinned
+    } = req.body;
+
+    await pool.query(
+      `
+      INSERT INTO announcements
+      (
+        title,
+        content,
+        target,
+        pinned
+      )
+      VALUES
+      (
+        $1,$2,$3,$4
+      )
+      `,
+      [
+        title,
+        content,
+        target || "全部",
+        pinned || false
+      ]
+    );
+
+    res.json({
+      success:true,
+      message:"公告發布成功"
+    });
+
+  }catch(err){
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false,
+      message:"公告發布失敗"
+    });
+
+  }
+
+});
+
+
+// =========================
+// 刪除公告
+// =========================
+app.delete(
+  "/api/announcements/:id",
+  async (req,res)=>{
+
+    try{
+
+      await pool.query(
+        `
+        DELETE FROM announcements
+        WHERE id = $1
+        `,
+        [
+          req.params.id
+        ]
+      );
+
+      res.json({
+        success:true,
+        message:"公告已刪除"
+      });
+
+    }catch(err){
+
+      console.error(err);
+
+      res.status(500).json({
+        success:false,
+        message:"刪除失敗"
+      });
+
+    }
+
+  }
+);
+
 
 // =========================
 // 啟動伺服器
