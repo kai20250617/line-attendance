@@ -495,43 +495,123 @@ async function init(){
     step = "產生畫面";
 
     box.innerHTML = `
+
       <div class="profile">
+
         ${logoHtml()}
 
         <div>
+
           <div class="empName">
+
             ${emp.name || profile.displayName || "-"}
+
           </div>
 
           <div class="empRole">
+
             ${emp.department || "-"} / ${emp.position || "-"}
+
           </div>
+
         </div>
+
       </div>
 
       <div id="announcementCard" class="announcementCard">
+
         <div class="announcementLoading">
+
           公告讀取中...
+
         </div>
+
       </div>
 
       <div class="stats">
+
         <div class="stat">
+
           <div class="statLabel">本月工時</div>
+
           <strong>${Number(totalHours || 0).toFixed(1)} 小時</strong>
+
         </div>
 
         <div class="stat">
+
           <div class="statLabel">本月請假</div>
+
           <strong>${leaveDays} 天</strong>
+
         </div>
 
         <div class="stat">
+
           <div class="statLabel">預估薪資</div>
+
           <strong>NT$${Number(salary.netSalary || 0).toLocaleString("zh-TW")}</strong>
+
         </div>
+
       </div>
 
       <div class="sectionTitle">常用功能</div>
 
-      
+      <div class="grid">
+
+        <a class="menuItem gold" href="/attendance.html">我要打卡</a>
+
+        <a class="menuItem gold" href="/clock-request.html">補打卡</a>
+
+        <a class="menuItem brown" href="/leave.html">我要請假</a>
+
+        <a class="menuItem brown" href="/my-leave.html">請假紀錄</a>
+
+        <a class="menuItem green" href="/worktime.html">我的工時</a>
+
+        <a class="menuItem green" href="/my-salary.html">我的薪資</a>
+
+        <a class="menuItem green" href="/my-salary-history.html">薪資歷史</a>
+
+        <a class="menuItem dark" href="/reimbursement.html">代墊申請</a>
+
+        <a class="menuItem dark" href="/my-reimbursement.html">我的代墊</a>
+
+        <a class="menuItem red" href="/dashboard.html">管理首頁</a>
+
+      </div>
+
+    `;
+
+    loadAnnouncement();
+
+  }catch(err){
+
+    console.error(err);
+
+    box.innerHTML = `
+
+      <div class="error">讀取失敗</div>
+
+      <div class="debug">
+
+        錯誤位置：${step}<br>
+
+        錯誤訊息：${err.message || err}
+
+      </div>
+
+    `;
+
+  }
+
+}
+
+init();
+
+</script>
+
+</body>
+
+</html>
