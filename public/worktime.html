@@ -578,6 +578,8 @@ function formatDateWithWeek(value){
 }
 
 function formatTime(value){
+
+  
   if(!value){
     return "-";
   }
@@ -593,6 +595,19 @@ function formatTime(value){
     hour:"2-digit",
     minute:"2-digit"
   });
+}
+
+function formatHoursMinutes(hours){
+  const totalMinutes =
+  Math.round(Number(hours || 0) * 60);
+
+  const h =
+  Math.floor(totalMinutes / 60);
+
+  const m =
+  totalMinutes % 60;
+
+  return `${h}小時${m}分鐘`;
 }
 
 function calcBreakHours(startTime,endTime){
@@ -871,61 +886,70 @@ async function loadData(){
           totalHours - breakDeduct
         );
 
-        hours =
-        workHours.toFixed(2);
+        const totalMinutes =
+Math.round(workHours * 60);
 
-        totalWorkHours +=
-        workHours;
+const h =
+Math.floor(totalMinutes / 60);
 
-        workDays++;
-      }
+const m =
+totalMinutes % 60;
 
-      html += `
-        <div class="workCard">
+hours =
+`${h}小時${m}分鐘`;
 
-          <div class="workTop">
-            <div class="dateTitle">
-              ${formatDateWithWeek(row.date)}
-            </div>
+totalWorkHours +=
+workHours;
 
-            <div class="workHours">
-              ${hours === "-" ? "未完成" : hours + " 小時"}
-            </div>
-          </div>
+workDays++;
+}
 
-          <div class="infoLine">
-            員工：${row.name || "-"}<br>
-            上班時間：${formatTime(row.start)}<br>
-            下班時間：${formatTime(row.end)}<br>
-            休息時數：${hours === "-" ? "-" : breakDeduct.toFixed(2)} 小時
-          </div>
+html += `
+  <div class="workCard">
 
-        </div>
-      `;
-    });
+    <div class="workTop">
+      <div class="dateTitle">
+        ${formatDateWithWeek(row.date)}
+      </div>
 
-    summary.innerHTML =
-    `
-    <div class="summaryItem">
-      <div class="summaryLabel">總工時</div>
-      <div class="summaryValue">${totalWorkHours.toFixed(2)} 小時</div>
+      <div class="workHours">
+        ${hours === "-" ? "未完成" : hours}
+      </div>
     </div>
 
-    <div class="summaryItem">
-      <div class="summaryLabel">出勤天數</div>
-      <div class="summaryValue">${workDays} 天</div>
+    <div class="infoLine">
+      員工：${row.name || "-"}<br>
+      上班時間：${formatTime(row.start)}<br>
+      下班時間：${formatTime(row.end)}<br>
+      休息時數：${hours === "-" ? "-" : formatHoursMinutes(breakDeduct)}
     </div>
-    `;
 
-    list.innerHTML =
-    html;
+  </div>
+`;
+});
 
-  }catch(error){
-    console.error(error);
+summary.innerHTML =
+`
+<div class="summaryItem">
+  <div class="summaryLabel">總工時</div>
+  <div class="summaryValue">${formatHoursMinutes(totalWorkHours)}</div>
+</div>
 
-    list.innerHTML =
-    "<div class='empty error'>讀取失敗</div>";
-  }
+<div class="summaryItem">
+  <div class="summaryLabel">出勤天數</div>
+  <div class="summaryValue">${workDays} 天</div>
+</div>
+`;
+
+list.innerHTML =
+html;
+
+}catch(error){
+console.error(error);
+
+list.innerHTML =
+"<div class='empty error'>讀取失敗</div>";
+}
 }
 
 init();
