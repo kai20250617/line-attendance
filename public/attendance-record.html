@@ -7,61 +7,291 @@
 <title>員工出勤紀錄</title>
 
 <style>
-body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:20px;}
-h1{text-align:center;}
-.top{text-align:center;margin:20px;}
-button{padding:10px 16px;font-size:16px;cursor:pointer;background:#4a90e2;color:white;border:none;border-radius:5px;margin:4px;}
-.back{background:#222;}
-.export{background:#2e7d32;}
-.clear{background:#555;}
-input{padding:10px;font-size:16px;border:1px solid #ccc;border-radius:6px;margin:4px;}
-.table-wrap{width:100%;overflow-x:auto;background:white;}
-table{width:100%;min-width:1200px;border-collapse:collapse;background:white;}
-th{background:#222;color:white;padding:12px;white-space:nowrap;}
-td{padding:10px;border:1px solid #ddd;text-align:center;white-space:nowrap;}
-.map-btn{background:#4CAF50;color:white;padding:8px 12px;text-decoration:none;border-radius:5px;display:inline-block;margin:2px;}
-.weekday{color:#1976d2;font-weight:bold;}
-.weekend{color:#e53935;font-weight:bold;}
-.missing{color:#e53935;font-weight:bold;}
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+  color:#10201d;
+  padding:24px 18px 44px;
+}
+
+.page{
+  max-width:1180px;
+  margin:0 auto;
+}
+
+.header{
+  text-align:center;
+  margin:18px 0 26px;
+}
+
+.brand{
+  font-size:14px;
+  letter-spacing:6px;
+  color:#a9792b;
+  font-weight:900;
+}
+
+h1{
+  margin:12px 0 6px;
+  font-size:38px;
+  color:#0b3029;
+  letter-spacing:3px;
+}
+
+.subtitle{
+  color:#8b7d69;
+  font-size:15px;
+  letter-spacing:1px;
+}
+
+.filterCard{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:30px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 18px 40px rgba(66,43,16,.12);
+}
+
+.filterGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:12px;
+}
+
+input{
+  width:100%;
+  height:56px;
+  padding:0 14px;
+  border:1px solid #d8c8ad;
+  border-radius:18px;
+  background:#fffdf8;
+  color:#10201d;
+  font-size:15px;
+  outline:none;
+}
+
+input:focus{
+  border-color:#cfa54f;
+  box-shadow:0 0 0 3px rgba(207,165,79,.18);
+}
+
+.actionGrid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:12px;
+  margin-top:14px;
+}
+
+button{
+  width:100%;
+  padding:13px 14px;
+  border:none;
+  border-radius:18px;
+  color:white;
+  font-size:15px;
+  font-weight:950;
+  cursor:pointer;
+}
+
+.search,
+.refresh{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+}
+
+.export{
+  background:linear-gradient(135deg,#166534,#064e3b);
+}
+
+.clear{
+  background:linear-gradient(135deg,#756957,#3b3025);
+}
+
+.back{
+  background:linear-gradient(135deg,#10201d,#050b0a);
+}
+
+.list{
+  display:grid;
+  gap:16px;
+}
+
+.recordCard{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:30px;
+  padding:20px;
+  box-shadow:0 18px 40px rgba(66,43,16,.12);
+}
+
+.recordTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.empName{
+  font-size:24px;
+  font-weight:950;
+  color:#0b3029;
+}
+
+.dateText{
+  margin-top:6px;
+  color:#756957;
+  font-weight:850;
+}
+
+.workBadge{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+  color:white;
+  padding:10px 15px;
+  border-radius:999px;
+  font-weight:950;
+  white-space:nowrap;
+}
+
+.infoGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
+
+.infoBox{
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:18px;
+  padding:14px;
+  line-height:1.7;
+}
+
+.infoLabel{
+  color:#756957;
+  font-weight:900;
+  font-size:14px;
+  margin-bottom:6px;
+}
+
+.weekday{
+  color:#0b3029;
+  font-weight:950;
+}
+
+.weekend{
+  color:#b91c1c;
+  font-weight:950;
+}
+
+.missing{
+  color:#b91c1c;
+  font-weight:950;
+}
+
+.mapArea{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:14px;
+}
+
+.map-btn{
+  display:block;
+  text-align:center;
+  color:white;
+  text-decoration:none;
+  padding:12px;
+  border-radius:18px;
+  font-weight:950;
+  background:linear-gradient(135deg,#123c35,#071b17);
+}
+
+.empty,
+.loading{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:26px;
+  padding:30px;
+  text-align:center;
+  color:#8b7d69;
+  font-weight:900;
+}
+
+.error{
+  color:#b91c1c;
+  font-weight:950;
+}
+
+@media(max-width:800px){
+  .filterGrid,
+  .actionGrid,
+  .infoGrid,
+  .mapArea{
+    grid-template-columns:1fr;
+  }
+
+  .recordTop{
+    flex-direction:column;
+  }
+
+  .workBadge{
+    align-self:flex-start;
+  }
+}
+
+@media(max-width:480px){
+  h1{
+    font-size:34px;
+  }
+
+  .filterCard,
+  .recordCard{
+    border-radius:26px;
+    padding:18px;
+  }
+}
 </style>
 </head>
 
 <body>
 
-<h1>📋 員工出勤紀錄</h1>
+<div class="page">
 
-<div class="top">
-  <input type="text" id="searchName" placeholder="搜尋姓名">
-  <input type="date" id="startDate">
-  <input type="date" id="endDate">
+  <div class="header">
+    <div class="brand">AURUM HOUSE</div>
+    <h1>員工出勤紀錄</h1>
+    <div class="subtitle">Attendance Records</div>
+  </div>
 
-  <button onclick="loadAttendance()">查詢</button>
-  <button class="clear" onclick="clearFilter()">清除</button>
-  <button class="export" onclick="exportCSV()">匯出 CSV</button>
-  <button onclick="loadAttendance()">重新整理</button>
-  <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
-</div>
+  <div class="filterCard">
 
-<div class="table-wrap">
-<table>
-<thead>
-<tr>
-  <th>姓名</th>
-  <th>日期</th>
-  <th>星期</th>
-  <th>上班時間</th>
-  <th>下班時間</th>
-  <th>工時</th>
-  <th>上班位置</th>
-  <th>下班位置</th>
-  <th>地圖</th>
-</tr>
-</thead>
+    <div class="filterGrid">
+      <input type="text" id="searchName" placeholder="搜尋姓名">
+      <input type="date" id="startDate">
+      <input type="date" id="endDate">
+    </div>
 
-<tbody id="attendanceTable">
-<tr><td colspan="9">讀取中...</td></tr>
-</tbody>
-</table>
+    <div class="actionGrid">
+      <button class="search" onclick="loadAttendance()">查詢</button>
+      <button class="clear" onclick="clearFilter()">清除</button>
+      <button class="export" onclick="exportCSV()">匯出 CSV</button>
+      <button class="refresh" onclick="loadAttendance()">重新整理</button>
+      <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
+    </div>
+
+  </div>
+
+  <div id="list" class="list">
+    <div class="loading">讀取中...</div>
+  </div>
+
 </div>
 
 <script>
@@ -73,11 +303,15 @@ let rows = [];
 const addressCache = {};
 
 function formatTime(value){
-  if(!value) return "-";
+  if(!value){
+    return "-";
+  }
 
   const d = new Date(value);
 
-  if(isNaN(d.getTime())) return "-";
+  if(isNaN(d.getTime())){
+    return "-";
+  }
 
   return d.toLocaleTimeString("zh-TW", {
     timeZone:"Asia/Taipei",
@@ -123,9 +357,52 @@ function getWeekdayClass(weekday){
   return "weekday";
 }
 
+function calcBreakHours(startTime,endTime){
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+
+  if(isNaN(start.getTime()) || isNaN(end.getTime())){
+    return 0;
+  }
+
+  const lunchStart = new Date(start);
+  lunchStart.setHours(12,0,0,0);
+
+  const lunchEnd = new Date(start);
+  lunchEnd.setHours(13,0,0,0);
+
+  const overlapStart =
+  start > lunchStart ? start : lunchStart;
+
+  const overlapEnd =
+  end < lunchEnd ? end : lunchEnd;
+
+  const overlapMs =
+  overlapEnd - overlapStart;
+
+  if(overlapMs <= 0){
+    return 0;
+  }
+
+  return overlapMs / 1000 / 60 / 60;
+}
+
+function formatHoursMinutes(hours){
+  const totalMinutes =
+  Math.round(Number(hours || 0) * 60);
+
+  const h =
+  Math.floor(totalMinutes / 60);
+
+  const m =
+  totalMinutes % 60;
+
+  return `${h}小時${m}分鐘`;
+}
+
 function mapLink(lat,lng,text){
   if(!lat || !lng){
-    return "-";
+    return "";
   }
 
   return `
@@ -171,7 +448,9 @@ function groupRawAttendance(rawRows){
   const groups = {};
 
   rawRows.forEach(row=>{
-    const date = new Date(row.clock_time).toLocaleDateString("zh-TW", {
+    const date =
+    new Date(row.clock_time)
+    .toLocaleDateString("zh-TW", {
       timeZone:"Asia/Taipei"
     });
 
@@ -199,7 +478,8 @@ function groupRawAttendance(rawRows){
         end_latitude:null,
         end_longitude:null,
 
-        work_hours:null
+        work_hours:null,
+        break_hours:null
       };
     }
 
@@ -218,240 +498,558 @@ function groupRawAttendance(rawRows){
     }
   });
 
-  const result =
+ const result =
+
   Object.values(groups).map(item=>{
+
     if(item.start_time && item.end_time){
-      item.work_hours =
-      Number(
-        (
-          (new Date(item.end_time) - new Date(item.start_time)) /
-          1000 / 60 / 60
-        ).toFixed(2)
+
+      const rawHours =
+
+      (new Date(item.end_time) - new Date(item.start_time)) /
+
+      1000 / 60 / 60;
+
+      const breakDeduct =
+
+      calcBreakHours(
+
+        item.start_time,
+
+        item.end_time
+
       );
+
+      item.break_hours =
+
+      breakDeduct;
+
+      item.work_hours =
+
+      Math.max(
+
+        0,
+
+        rawHours - breakDeduct
+
+      );
+
     }
 
     return item;
+
   });
 
   result.sort((a,b)=>{
+
     const at =
+
     new Date(a.end_time || a.start_time || 0).getTime();
 
     const bt =
+
     new Date(b.end_time || b.start_time || 0).getTime();
 
     return bt - at;
+
   });
 
   return result;
+
 }
 
 async function loadAttendance(){
-  const table =
-  document.getElementById("attendanceTable");
 
-  table.innerHTML =
-  "<tr><td colspan='9'>載入中...</td></tr>";
+  const list =
+
+  document.getElementById("list");
+
+  list.innerHTML =
+
+  "<div class='loading'>載入中...</div>";
 
   try{
+
     const name =
+
     document.getElementById("searchName").value.trim();
 
     const startDate =
+
     document.getElementById("startDate").value;
 
     const endDate =
+
     document.getElementById("endDate").value;
 
     const params =
+
     new URLSearchParams();
 
     if(name){
+
       params.append("name", name);
+
     }
 
     if(startDate){
+
       params.append("startDate", startDate);
+
     }
 
     if(endDate){
+
       params.append("endDate", endDate);
+
     }
 
     let url = "/api/attendance";
 
     if(params.toString()){
+
       url += "?" + params.toString();
+
     }
 
     const response =
+
     await fetch(url);
 
     const rawRows =
+
     await response.json();
 
     if(
+
       rawRows.length > 0 &&
+
       rawRows[0].clock_time
+
     ){
+
       rows =
+
       groupRawAttendance(rawRows);
+
     }else{
+
       rows =
+
       rawRows;
+
     }
 
     if(!Array.isArray(rows) || rows.length === 0){
-      table.innerHTML =
-      "<tr><td colspan='9'>目前沒有出勤紀錄</td></tr>";
+
+      list.innerHTML =
+
+      "<div class='empty'>目前沒有出勤紀錄</div>";
+
       return;
+
     }
 
-    renderTable();
+    renderCards();
 
   }catch(error){
+
     console.error(error);
 
-    table.innerHTML =
-    "<tr><td colspan='9'>讀取失敗</td></tr>";
+    list.innerHTML =
+
+    "<div class='empty error'>讀取失敗</div>";
+
   }
+
 }
 
-function renderTable(){
-  const table =
-  document.getElementById("attendanceTable");
+function renderCards(){
 
-  table.innerHTML = "";
+  const list =
+
+  document.getElementById("list");
+
+  let html = "";
 
   rows.forEach((row,index)=>{
-    table.innerHTML += `
-      <tr>
-        <td>${safeText(row.name)}</td>
 
-        <td>${safeText(row.date)}</td>
+    let workText = "-";
 
-        <td>
-          <span class="${getWeekdayClass(row.weekday)}">
-            ${safeText(row.weekday)}
-          </span>
-        </td>
+    let breakText = "-";
 
-        <td>
-          ${
-            row.start_time
-            ? formatTime(row.start_time)
-            : `<span class="missing">缺上班</span>`
-          }
-        </td>
+    if(row.start_time && row.end_time){
 
-        <td>
-          ${
-            row.end_time
-            ? formatTime(row.end_time)
-            : `<span class="missing">缺下班</span>`
-          }
-        </td>
+      const rawHours =
 
-        <td>
-          ${
-            row.work_hours !== null &&
-            row.work_hours !== undefined
-            ? row.work_hours + " 小時"
-            : "-"
-          }
-        </td>
+      (new Date(row.end_time) - new Date(row.start_time)) /
 
-        <td id="start_addr_${index}">
-          ${
-            row.start_location
-            ? safeText(row.start_location)
-            : "解析中..."
-          }
-        </td>
+      1000 / 60 / 60;
 
-        <td id="end_addr_${index}">
-          ${
-            row.end_location
-            ? safeText(row.end_location)
-            : "解析中..."
-          }
-        </td>
+      const breakDeduct =
 
-        <td>
-          ${mapLink(row.start_latitude,row.start_longitude,"上班地圖")}
-          ${mapLink(row.end_latitude,row.end_longitude,"下班地圖")}
-        </td>
-      </tr>
+      calcBreakHours(
+
+        row.start_time,
+
+        row.end_time
+
+      );
+
+      const workHours =
+
+      Math.max(
+
+        0,
+
+        rawHours - breakDeduct
+
+      );
+
+      workText =
+
+      formatHoursMinutes(workHours);
+
+      breakText =
+
+      formatHoursMinutes(breakDeduct);
+
+    }else if(
+
+      row.work_hours !== null &&
+
+      row.work_hours !== undefined
+
+    ){
+
+      workText =
+
+      formatHoursMinutes(row.work_hours);
+
+    }
+
+    html += `
+
+      <div class="recordCard">
+
+        <div class="recordTop">
+
+          <div>
+
+            <div class="empName">
+
+              ${safeText(row.name)}
+
+            </div>
+
+            <div class="dateText">
+
+              ${safeText(row.date)}
+
+              ｜
+
+              <span class="${getWeekdayClass(row.weekday)}">
+
+                ${safeText(row.weekday)}
+
+              </span>
+
+            </div>
+
+          </div>
+
+          <div class="workBadge">
+
+            ${workText}
+
+          </div>
+
+        </div>
+
+        <div class="infoGrid">
+
+          <div class="infoBox">
+
+            <div class="infoLabel">上班時間</div>
+
+            ${
+
+              row.start_time
+
+              ? formatTime(row.start_time)
+
+              : `<span class="missing">缺上班</span>`
+
+            }
+
+          </div>
+
+          <div class="infoBox">
+
+            <div class="infoLabel">下班時間</div>
+
+            ${
+
+              row.end_time
+
+              ? formatTime(row.end_time)
+
+              : `<span class="missing">缺下班</span>`
+
+            }
+
+          </div>
+
+          <div class="infoBox">
+
+            <div class="infoLabel">休息時數</div>
+
+            ${breakText}
+
+          </div>
+
+          <div class="infoBox">
+
+            <div class="infoLabel">上班位置</div>
+
+            <span id="start_addr_${index}">
+
+              ${
+
+                row.start_location
+
+                ? safeText(row.start_location)
+
+                : "解析中..."
+
+              }
+
+            </span>
+
+          </div>
+
+          <div class="infoBox">
+
+            <div class="infoLabel">下班位置</div>
+
+            <span id="end_addr_${index}">
+
+              ${
+
+                row.end_location
+
+                ? safeText(row.end_location)
+
+                : "解析中..."
+
+              }
+
+            </span>
+
+          </div>
+
+          <div class="infoBox">
+
+            <div class="infoLabel">地圖</div>
+
+            <div class="mapArea">
+
+              ${mapLink(row.start_latitude,row.start_longitude,"上班地圖")}
+
+              ${mapLink(row.end_latitude,row.end_longitude,"下班地圖")}
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
     `;
+
   });
 
+  list.innerHTML = html;
+
   rows.forEach(async (row,index)=>{
+
     if(!row.start_location){
-      document.getElementById("start_addr_" + index).innerText =
-      await getAddress(row.start_latitude,row.start_longitude);
+
+      const el =
+
+      document.getElementById("start_addr_" + index);
+
+      if(el){
+
+        el.innerText =
+
+        await getAddress(row.start_latitude,row.start_longitude);
+
+      }
+
     }
 
     if(!row.end_location){
-      document.getElementById("end_addr_" + index).innerText =
-      await getAddress(row.end_latitude,row.end_longitude);
+
+      const el =
+
+      document.getElementById("end_addr_" + index);
+
+      if(el){
+
+        el.innerText =
+
+        await getAddress(row.end_latitude,row.end_longitude);
+
+      }
+
     }
+
   });
+
 }
 
 function clearFilter(){
+
   document.getElementById("searchName").value = "";
+
   document.getElementById("startDate").value = "";
+
   document.getElementById("endDate").value = "";
 
   loadAttendance();
+
 }
 
 function exportCSV(){
+
   if(!rows || rows.length === 0){
+
     alert("沒有資料可匯出");
+
     return;
+
   }
 
   let csv =
-  "\uFEFF姓名,日期,星期,上班時間,下班時間,工時,上班位置,下班位置\n";
+
+  "\uFEFF姓名,日期,星期,上班時間,下班時間,工時,休息時數,上班位置,下班位置\n";
 
   rows.forEach(row=>{
+
+    let workText = "";
+
+    let breakText = "";
+
+    if(row.start_time && row.end_time){
+
+      const rawHours =
+
+      (new Date(row.end_time) - new Date(row.start_time)) /
+
+      1000 / 60 / 60;
+
+      const breakDeduct =
+
+      calcBreakHours(
+
+        row.start_time,
+
+        row.end_time
+
+      );
+
+      const workHours =
+
+      Math.max(
+
+        0,
+
+        rawHours - breakDeduct
+
+      );
+
+      workText =
+
+      formatHoursMinutes(workHours);
+
+      breakText =
+
+      formatHoursMinutes(breakDeduct);
+
+    }else if(
+
+      row.work_hours !== null &&
+
+      row.work_hours !== undefined
+
+    ){
+
+      workText =
+
+      formatHoursMinutes(row.work_hours);
+
+    }
+
     csv += [
+
       row.name,
+
       row.date,
+
       row.weekday,
+
       formatTime(row.start_time),
+
       formatTime(row.end_time),
-      row.work_hours !== null && row.work_hours !== undefined
-        ? row.work_hours
-        : "",
+
+      workText,
+
+      breakText,
+
       safeText(row.start_location),
+
       safeText(row.end_location)
+
     ].map(v =>
+
       `"${String(v).replace(/"/g,'""')}"`
+
     ).join(",") + "\n";
+
   });
 
   const blob =
+
   new Blob([csv], {
+
     type:"text/csv;charset=utf-8;"
+
   });
 
   const url =
+
   URL.createObjectURL(blob);
 
   const a =
+
   document.createElement("a");
 
   a.href = url;
+
   a.download = "attendance-record.csv";
+
   a.click();
 
   URL.revokeObjectURL(url);
+
 }
 
 loadAttendance();
+
 </script>
 
 </body>
+
 </html>
