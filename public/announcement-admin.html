@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>公告管理中心</title>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:
+  radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+  color:#10201d;
+}
+
+.page{
+  padding:24px 18px 50px;
+}
+
+.header{
+  text-align:center;
+  margin-bottom:24px;
+}
+
+.brand{
+  color:#a9792b;
+  font-size:14px;
+  letter-spacing:6px;
+  font-weight:900;
+}
+
+h1{
+  margin:12px 0 6px;
+  font-size:38px;
+  color:#0b3029;
+}
+
+.subtitle{
+  color:#756957;
+}
+
+.card{
+  max-width:720px;
+  margin:auto;
+  background:white;
+  border-radius:32px;
+  padding:24px;
+  border:1px solid #eadfcf;
+  box-shadow:
+  0 25px 60px rgba(66,43,16,.15);
+}
+
+label{
+  display:block;
+  margin-top:16px;
+  margin-bottom:8px;
+  font-weight:900;
+  color:#756957;
+}
+
+input,
+textarea,
+select{
+  width:100%;
+  padding:15px;
+  border:1px solid #d9ccb7;
+  border-radius:18px;
+  font-size:16px;
+  background:#fffdf9;
+}
+
+textarea{
+  min-height:180px;
+  resize:vertical;
+}
+
+.checkbox{
+  margin-top:18px;
+}
+
+.checkbox label{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.checkbox input{
+  width:auto;
+}
+
+button{
+  width:100%;
+  padding:16px;
+  margin-top:16px;
+  border:none;
+  border-radius:18px;
+  color:white;
+  font-size:18px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.publishBtn{
+  background:
+  linear-gradient(
+    135deg,
+    #cfa54f,
+    #8b5f1e
+  );
+}
+
+.backBtn{
+  background:
+  linear-gradient(
+    135deg,
+    #10201d,
+    #050b0a
+  );
+}
+
+.status{
+  text-align:center;
+  margin-top:18px;
+  font-weight:900;
+}
+
+.success{
+  color:#166534;
+}
+
+.error{
+  color:#b91c1c;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+  <div class="header">
+
+    <div class="brand">
+      AURUM HOUSE
+    </div>
+
+    <h1>
+      公告管理中心
+    </h1>
+
+    <div class="subtitle">
+      Announcement Management
+    </div>
+
+  </div>
+
+  <div class="card">
+
+    <label>
+      公告標題
+    </label>
+
+    <input
+      type="text"
+      id="title"
+      placeholder="請輸入公告標題"
+    >
+
+    <label>
+      公告內容
+    </label>
+
+    <textarea
+      id="content"
+      placeholder="請輸入公告內容"
+    ></textarea>
+
+    <label>
+      公告對象
+    </label>
+
+    <select id="target">
+
+      <option value="全部">
+        全部人員
+      </option>
+
+      <option value="員工">
+        員工
+      </option>
+
+      <option value="管理員">
+        管理員
+      </option>
+
+    </select>
+
+    <div class="checkbox">
+
+      <label>
+
+        <input
+          type="checkbox"
+          id="pinned"
+        >
+
+        置頂公告
+
+      </label>
+
+    </div>
+
+    <button
+      class="publishBtn"
+      onclick="publishAnnouncement()"
+    >
+      發布公告
+    </button>
+
+    <button
+      class="backBtn"
+      onclick="location.href='/dashboard.html'"
+    >
+      返回後台
+    </button>
+
+    <div
+      id="status"
+      class="status"
+    ></div>
+
+  </div>
+
+</div>
+
+<script>
+
+async function publishAnnouncement(){
+
+  const title =
+  document.getElementById("title").value.trim();
+
+  const content =
+  document.getElementById("content").value.trim();
+
+  const target =
+  document.getElementById("target").value;
+
+  const pinned =
+  document.getElementById("pinned").checked;
+
+  if(!title){
+
+    alert("請輸入公告標題");
+    return;
+
+  }
+
+  if(!content){
+
+    alert("請輸入公告內容");
+    return;
+
+  }
+
+  try{
+
+    const res =
+    await fetch(
+      "/api/announcements",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          title,
+          content,
+          target,
+          pinned
+        })
+      }
+    );
+
+    const data =
+    await res.json();
+
+    if(!res.ok){
+
+      throw new Error(
+        data.message || "發布失敗"
+      );
+
+    }
+
+    document.getElementById("status")
+    .innerHTML =
+    `<span class="success">
+      ✅ 公告發布成功
+    </span>`;
+
+    document.getElementById("title").value = "";
+    document.getElementById("content").value = "";
+    document.getElementById("pinned").checked = false;
+
+  }catch(err){
+
+    console.error(err);
+
+    document.getElementById("status")
+    .innerHTML =
+    `<span class="error">
+      ❌ ${err.message}
+    </span>`;
+
+  }
+
+}
+
+</script>
+
+</body>
+</html>

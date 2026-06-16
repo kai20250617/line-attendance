@@ -4981,6 +4981,40 @@ app.post("/api/announcements", async (req,res)=>{
       ]
     );
 
+    // 推播給所有在職員工
+const employees =
+await pool.query(`
+  SELECT line_user_id,name
+  FROM employees
+  WHERE status='在職'
+  AND line_user_id IS NOT NULL
+`);
+
+for(const emp of employees.rows){
+
+  try{
+
+    await pushLineMessage(
+      emp.line_user_id,
+`📢 新公告通知
+
+${title}
+
+請進入員工專區查看完整內容`
+    );
+
+  }catch(err){
+
+    console.error(
+      "推播失敗:",
+      emp.name,
+      err.message
+    );
+
+  }
+
+}
+
     res.json({
       success:true,
       message:"公告發布成功"
@@ -5038,6 +5072,39 @@ app.delete(
   }
 );
 
+
+// =========================
+// 最新公告
+// =========================
+app.get("/api/latest-announcement", async (req,res)=>{
+
+  try{
+
+    const result = await pool.query(`
+      SELECT *
+      FROM announcements
+      ORDER BY
+      pinned DESC,
+      created_at DESC
+      LIMIT 1
+    `);
+
+    res.json({
+      success:true,
+      data:result.rows[0] || null
+    });
+
+  }catch(err){
+
+    console.error(err);
+
+    res.status(500).json({
+      success:false
+    });
+
+  }
+
+});
 
 // =========================
 // 啟動伺服器
