@@ -6,70 +6,287 @@
 <title>出勤管理</title>
 
 <style>
-body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
-h1{text-align:center;}
-.top{text-align:center;margin-bottom:20px;}
-button{color:white;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;margin:2px;}
-.back{background:#222;}
-.refresh{background:#1976d2;}
-.save{background:#2e7d32;}
-.delete{background:#e53935;}
-.table-wrap{width:100%;overflow-x:auto;background:white;}
-table{width:100%;min-width:1050px;border-collapse:collapse;background:white;}
-th{background:#222;color:white;padding:10px;white-space:nowrap;}
-td{border:1px solid #ddd;padding:10px;text-align:center;white-space:nowrap;}
-select,input{padding:8px;border:1px solid #ccc;border-radius:6px;margin:3px;}
-.weekday{font-weight:bold;color:#1976d2;}
-.weekend{font-weight:bold;color:#e53935;}
-.missing{color:#e53935;font-weight:bold;}
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+  color:#10201d;
+  padding:24px 18px 44px;
+}
+
+.header{
+  text-align:center;
+  margin:18px 0 26px;
+}
+
+.brand{
+  font-size:14px;
+  letter-spacing:6px;
+  color:#a9792b;
+  font-weight:900;
+}
+
+h1{
+  margin:12px 0 6px;
+  font-size:38px;
+  color:#0b3029;
+  letter-spacing:3px;
+}
+
+.subtitle{
+  color:#8b7d69;
+  font-size:15px;
+  letter-spacing:1px;
+}
+
+.page{
+  max-width:1180px;
+  margin:0 auto;
+}
+
+.filterCard{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:30px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 18px 40px rgba(66,43,16,.12);
+}
+
+.filterGrid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+}
+
+input,
+select{
+  width:100%;
+  height:56px;
+  padding:0 14px;
+  border:1px solid #d8c8ad;
+  border-radius:18px;
+  background:#fffdf8;
+  color:#10201d;
+  font-size:15px;
+  outline:none;
+}
+
+input:focus,
+select:focus{
+  border-color:#cfa54f;
+  box-shadow:0 0 0 3px rgba(207,165,79,.18);
+}
+
+.actionGrid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-top:14px;
+}
+
+button{
+  width:100%;
+  padding:13px 14px;
+  border:none;
+  border-radius:18px;
+  color:white;
+  font-size:15px;
+  font-weight:950;
+  cursor:pointer;
+}
+
+.refresh{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+}
+
+.back{
+  background:linear-gradient(135deg,#10201d,#050b0a);
+}
+
+.save{
+  background:linear-gradient(135deg,#166534,#064e3b);
+}
+
+.delete{
+  background:linear-gradient(135deg,#dc2626,#7f1d1d);
+}
+
+.list{
+  display:grid;
+  gap:16px;
+}
+
+.attCard{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:30px;
+  padding:20px;
+  box-shadow:0 18px 40px rgba(66,43,16,.12);
+}
+
+.attTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.empName{
+  font-size:24px;
+  font-weight:950;
+  color:#0b3029;
+}
+
+.dateText{
+  margin-top:6px;
+  color:#756957;
+  font-weight:850;
+}
+
+.workBadge{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+  color:white;
+  padding:10px 15px;
+  border-radius:999px;
+  font-weight:950;
+  white-space:nowrap;
+}
+
+.infoGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
+
+.infoBox{
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:18px;
+  padding:14px;
+}
+
+.infoLabel{
+  color:#756957;
+  font-weight:900;
+  font-size:14px;
+  margin-bottom:8px;
+}
+
+.weekday{
+  font-weight:950;
+  color:#0b3029;
+}
+
+.weekend{
+  font-weight:950;
+  color:#b91c1c;
+}
+
+.missing{
+  color:#b91c1c;
+  font-weight:950;
+}
+
+.cardActions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:16px;
+}
+
+.empty,
+.loading{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:26px;
+  padding:30px;
+  text-align:center;
+  color:#8b7d69;
+  font-weight:900;
+}
+
+.error{
+  color:#b91c1c;
+  font-weight:950;
+}
+
+@media(max-width:800px){
+  .filterGrid,
+  .actionGrid,
+  .infoGrid{
+    grid-template-columns:1fr;
+  }
+
+  .attTop{
+    flex-direction:column;
+  }
+
+  .workBadge{
+    align-self:flex-start;
+  }
+}
+
+@media(max-width:480px){
+  h1{
+    font-size:34px;
+  }
+
+  .filterCard,
+  .attCard{
+    border-radius:26px;
+    padding:18px;
+  }
+
+  .cardActions{
+    grid-template-columns:1fr;
+  }
+}
 </style>
 </head>
 
 <body>
 
-<h1>📋 出勤管理</h1>
+<div class="page">
 
-<div class="top">
-  <input type="text" id="searchName" placeholder="員工姓名">
+  <div class="header">
+    <div class="brand">AURUM HOUSE</div>
+    <h1>出勤管理</h1>
+    <div class="subtitle">Attendance Management</div>
+  </div>
 
-  <select id="searchType">
-    <option value="">全部類型</option>
-   
-  </select>
+  <div class="filterCard">
 
-  <input type="date" id="startDate">
-  <input type="date" id="endDate">
+    <div class="filterGrid">
+      <input type="text" id="searchName" placeholder="搜尋員工姓名">
 
-  <button class="refresh" onclick="loadData()">查詢</button>
-  <button class="back" onclick="clearFilter()">清除</button>
-</div>
+      <select id="searchType">
+        <option value="">全部類型</option>
+      </select>
 
-<div class="top">
-  <button class="refresh" onclick="loadData()">重新整理</button>
-  <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
-</div>
+      <input type="date" id="startDate">
+      <input type="date" id="endDate">
+    </div>
 
-<div class="table-wrap">
-<table>
-<thead>
-<tr>
-  <th>ID</th>
-  <th>員工</th>
-  <th>日期</th>
-  <th>星期</th>
-  <th>上班時間</th>
-  <th>下班時間</th>
-  <th>工時</th>
-  <th>操作</th>
-</tr>
-</thead>
+    <div class="actionGrid">
+      <button class="refresh" onclick="loadData()">查詢</button>
+      <button class="back" onclick="clearFilter()">清除</button>
+      <button class="refresh" onclick="loadData()">重新整理</button>
+      <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
+    </div>
 
-<tbody id="tbody">
-<tr>
-  <td colspan="8">讀取中...</td>
-</tr>
-</tbody>
-</table>
+  </div>
+
+  <div id="list" class="list">
+    <div class="loading">讀取中...</div>
+  </div>
+
 </div>
 
 <script>
@@ -78,11 +295,15 @@ if(localStorage.getItem("adminLogin") !== "yes"){
 }
 
 function toDatetimeLocal(value){
-  if(!value) return "";
+  if(!value){
+    return "";
+  }
 
   const d = new Date(value);
 
-  if(isNaN(d.getTime())) return "";
+  if(isNaN(d.getTime())){
+    return "";
+  }
 
   const local = new Date(
     d.getTime() - d.getTimezoneOffset() * 60000
@@ -99,11 +320,54 @@ function getWeekdayClass(weekday){
   return "weekday";
 }
 
-async function loadData(){
-  const tbody = document.getElementById("tbody");
+function calcBreakHours(startTime,endTime){
+  const start = new Date(startTime);
+  const end = new Date(endTime);
 
-  tbody.innerHTML =
-  "<tr><td colspan='8'>讀取中...</td></tr>";
+  if(isNaN(start.getTime()) || isNaN(end.getTime())){
+    return 0;
+  }
+
+  const lunchStart = new Date(start);
+  lunchStart.setHours(12,0,0,0);
+
+  const lunchEnd = new Date(start);
+  lunchEnd.setHours(13,0,0,0);
+
+  const overlapStart =
+  start > lunchStart ? start : lunchStart;
+
+  const overlapEnd =
+  end < lunchEnd ? end : lunchEnd;
+
+  const overlapMs =
+  overlapEnd - overlapStart;
+
+  if(overlapMs <= 0){
+    return 0;
+  }
+
+  return overlapMs / 1000 / 60 / 60;
+}
+
+function formatHoursMinutes(hours){
+  const totalMinutes =
+  Math.round(Number(hours || 0) * 60);
+
+  const h =
+  Math.floor(totalMinutes / 60);
+
+  const m =
+  totalMinutes % 60;
+
+  return `${h}小時${m}分鐘`;
+}
+
+async function loadData(){
+  const list = document.getElementById("list");
+
+  list.innerHTML =
+  "<div class='loading'>讀取中...</div>";
 
   try{
     const name = document.getElementById("searchName").value.trim();
@@ -139,63 +403,113 @@ async function loadData(){
     const data = await res.json();
 
     if(!Array.isArray(data) || data.length === 0){
-      tbody.innerHTML =
-      "<tr><td colspan='8'>目前沒有出勤資料</td></tr>";
+      list.innerHTML =
+      "<div class='empty'>目前沒有出勤資料</div>";
       return;
     }
 
-    tbody.innerHTML = "";
+    let html = "";
 
     data.forEach(item=>{
-      tbody.innerHTML += `
-        <tr>
-          <td>${item.id || "-"}</td>
+      let workText = "-";
+      let breakText = "-";
 
-          <td>${item.name || "-"}</td>
+      if(item.start_time && item.end_time){
+        const rawHours =
+        (new Date(item.end_time) - new Date(item.start_time)) /
+        1000 / 60 / 60;
 
-          <td>${item.date || "-"}</td>
+        const breakDeduct =
+        calcBreakHours(
+          item.start_time,
+          item.end_time
+        );
 
-          <td>
-            <span class="${getWeekdayClass(item.weekday)}">
-              ${item.weekday || "-"}
-            </span>
-          </td>
+        const workHours =
+        Math.max(
+          0,
+          rawHours - breakDeduct
+        );
 
-          <td>
-            ${
-              item.start_id
-              ? `
-                <input
-                  type="datetime-local"
-                  id="start_${item.id}"
-                  value="${toDatetimeLocal(item.start_time)}">
-              `
-              : `<span class="missing">缺上班</span>`
-            }
-          </td>
+        workText =
+        formatHoursMinutes(workHours);
 
-          <td>
-            ${
-              item.end_id
-              ? `
-                <input
-                  type="datetime-local"
-                  id="end_${item.id}"
-                  value="${toDatetimeLocal(item.end_time)}">
-              `
-              : `<span class="missing">缺下班</span>`
-            }
-          </td>
+        breakText =
+        formatHoursMinutes(breakDeduct);
+      }else if(
+        item.work_hours !== null &&
+        item.work_hours !== undefined
+      ){
+        workText =
+        formatHoursMinutes(item.work_hours);
+      }
 
-          <td>
-            ${
-              item.work_hours !== null && item.work_hours !== undefined
-              ? item.work_hours + " 小時"
-              : "-"
-            }
-          </td>
+      html += `
+        <div class="attCard">
 
-          <td>
+          <div class="attTop">
+            <div>
+              <div class="empName">
+                ${item.name || "-"}
+              </div>
+
+              <div class="dateText">
+                ${item.date || "-"}
+                ｜ 
+                <span class="${getWeekdayClass(item.weekday)}">
+                  ${item.weekday || "-"}
+                </span>
+              </div>
+            </div>
+
+            <div class="workBadge">
+              ${workText}
+            </div>
+          </div>
+
+          <div class="infoGrid">
+
+            <div class="infoBox">
+              <div class="infoLabel">上班時間</div>
+              ${
+                item.start_id
+                ? `
+                  <input
+                    type="datetime-local"
+                    id="start_${item.id}"
+                    value="${toDatetimeLocal(item.start_time)}">
+                `
+                : `<span class="missing">缺上班</span>`
+              }
+            </div>
+
+            <div class="infoBox">
+              <div class="infoLabel">下班時間</div>
+              ${
+                item.end_id
+                ? `
+                  <input
+                    type="datetime-local"
+                    id="end_${item.id}"
+                    value="${toDatetimeLocal(item.end_time)}">
+                `
+                : `<span class="missing">缺下班</span>`
+              }
+            </div>
+
+            <div class="infoBox">
+              <div class="infoLabel">休息時數</div>
+              ${breakText}
+            </div>
+
+            <div class="infoBox">
+              <div class="infoLabel">資料ID</div>
+              ${item.id || "-"}
+            </div>
+
+          </div>
+
+          <div class="cardActions">
             <button class="save" onclick="saveDay(${item.id}, ${item.start_id || "null"}, ${item.end_id || "null"})">
               修改
             </button>
@@ -203,84 +517,128 @@ async function loadData(){
             <button class="delete" onclick="deleteDay(${item.start_id || "null"}, ${item.end_id || "null"})">
               刪除
             </button>
-          </td>
-        </tr>
+          </div>
+
+        </div>
       `;
     });
+
+    list.innerHTML = html;
 
   }catch(err){
     console.error(err);
 
-    tbody.innerHTML =
-    "<tr><td colspan='8'>讀取失敗</td></tr>";
+    list.innerHTML =
+    "<div class='empty error'>讀取失敗</div>";
   }
 }
 
 function clearFilter(){
+
   document.getElementById("searchName").value = "";
+
   document.getElementById("searchType").value = "";
+
   document.getElementById("startDate").value = "";
+
   document.getElementById("endDate").value = "";
 
   loadData();
+
 }
 
 async function updateOne(id, type, rawTime){
+
   if(!id){
+
     throw new Error("找不到出勤ID");
+
   }
 
   if(!rawTime){
+
     throw new Error("請輸入時間");
+
   }
 
   const clock_time =
+
   rawTime + ":00+08:00";
 
   const res =
+
   await fetch("/api/attendance-admin/" + id, {
+
     method:"PUT",
+
     headers:{
+
       "Content-Type":"application/json"
+
     },
+
     body:JSON.stringify({
+
       type:type,
+
       clock_time:clock_time
+
     })
+
   });
 
   const data =
+
   await res.json();
 
   if(!res.ok || data.success === false){
+
     throw new Error(data.message || "修改失敗");
+
   }
 
   return data;
+
 }
 
 async function saveDay(rowId, startId, endId){
+
   try{
+
     const startInput =
+
     document.getElementById("start_" + rowId);
 
     const endInput =
+
     document.getElementById("end_" + rowId);
 
     if(startId && startInput){
+
       await updateOne(
+
         startId,
+
         "上班",
+
         startInput.value
+
       );
+
     }
 
     if(endId && endInput){
+
       await updateOne(
+
         endId,
+
         "下班",
+
         endInput.value
+
       );
+
     }
 
     alert("已修改成功");
@@ -288,47 +646,71 @@ async function saveDay(rowId, startId, endId){
     loadData();
 
   }catch(err){
+
     console.error(err);
 
     alert(
+
       "修改失敗：\n" +
+
       err.message
+
     );
+
   }
+
 }
 
 async function deleteOne(id){
+
   if(!id){
+
     return;
+
   }
 
   const res =
+
   await fetch("/api/attendance-admin/" + id, {
+
     method:"DELETE"
+
   });
 
   const data =
+
   await res.json();
 
   if(!res.ok || data.success === false){
+
     throw new Error(data.message || "刪除失敗");
+
   }
 
   return data;
+
 }
 
 async function deleteDay(startId, endId){
+
   if(!confirm("確定刪除這一天的上班與下班資料？")){
+
     return;
+
   }
 
   try{
+
     if(startId){
+
       await deleteOne(startId);
+
     }
 
     if(endId){
+
       await deleteOne(endId);
+
     }
 
     alert("已刪除");
@@ -336,17 +718,25 @@ async function deleteDay(startId, endId){
     loadData();
 
   }catch(err){
+
     console.error(err);
 
     alert(
+
       "刪除失敗：\n" +
+
       err.message
+
     );
+
   }
+
 }
 
 loadData();
+
 </script>
 
 </body>
+
 </html>
