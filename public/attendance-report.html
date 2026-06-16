@@ -6,64 +6,219 @@
 <title>出勤統計報表</title>
 
 <style>
-body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
-h1{text-align:center;}
-.top{text-align:center;margin-bottom:20px;}
-input,button{padding:10px;margin:4px;border-radius:6px;border:1px solid #ccc;font-size:16px;}
-button{color:white;border:none;cursor:pointer;}
-.search{background:#1976d2;}
-.clear{background:#555;}
-.export{background:#2e7d32;}
-.back{background:#222;}
-.month-title{text-align:center;font-size:22px;font-weight:bold;margin:15px 0;color:#0d47a1;}
-.table-wrap{overflow-x:auto;background:white;}
-table{width:100%;min-width:1050px;border-collapse:collapse;background:white;}
-th{background:#222;color:white;padding:12px;}
-td{border:1px solid #ddd;padding:10px;text-align:center;}
-.bad{color:red;font-weight:bold;}
-.good{color:green;font-weight:bold;}
+*{box-sizing:border-box;}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 45%,#eadcc8 100%);
+  color:#10201d;
+  padding:24px 18px 44px;
+}
+
+.page{max-width:1180px;margin:0 auto;}
+
+.header{text-align:center;margin:18px 0 26px;}
+
+.brand{
+  font-size:14px;
+  letter-spacing:6px;
+  color:#a9792b;
+  font-weight:900;
+}
+
+h1{
+  margin:12px 0 6px;
+  font-size:38px;
+  color:#0b3029;
+  letter-spacing:3px;
+}
+
+.subtitle{color:#8b7d69;font-size:15px;letter-spacing:1px;}
+
+.filterCard{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:30px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 18px 40px rgba(66,43,16,.12);
+}
+
+.filterGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:12px;
+}
+
+input{
+  width:100%;
+  height:56px;
+  padding:0 14px;
+  border:1px solid #d8c8ad;
+  border-radius:18px;
+  background:#fffdf8;
+  color:#10201d;
+  font-size:15px;
+}
+
+.actionGrid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-top:14px;
+}
+
+button{
+  width:100%;
+  padding:13px 14px;
+  border:none;
+  border-radius:18px;
+  color:white;
+  font-size:15px;
+  font-weight:950;
+  cursor:pointer;
+}
+
+.search{background:linear-gradient(135deg,#cfa54f,#8b5f1e);}
+.export{background:linear-gradient(135deg,#166534,#064e3b);}
+.clear{background:linear-gradient(135deg,#756957,#3b3025);}
+.back{background:linear-gradient(135deg,#10201d,#050b0a);}
+
+.monthTitle{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:24px;
+  padding:16px;
+  text-align:center;
+  color:#0b3029;
+  font-size:20px;
+  font-weight:950;
+  margin-bottom:18px;
+}
+
+.list{display:grid;gap:16px;}
+
+.reportCard{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:30px;
+  padding:20px;
+  box-shadow:0 18px 40px rgba(66,43,16,.12);
+}
+
+.reportTop{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  align-items:flex-start;
+  margin-bottom:14px;
+}
+
+.empName{
+  font-size:24px;
+  font-weight:950;
+  color:#0b3029;
+}
+
+.empMeta{
+  margin-top:6px;
+  color:#756957;
+  font-weight:850;
+}
+
+.workBadge{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+  color:white;
+  padding:10px 15px;
+  border-radius:999px;
+  font-weight:950;
+  white-space:nowrap;
+}
+
+.infoGrid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+}
+
+.infoBox{
+  background:#fffaf3;
+  border:1px solid #eadfcf;
+  border-radius:18px;
+  padding:14px;
+}
+
+.infoLabel{
+  color:#756957;
+  font-weight:900;
+  font-size:14px;
+  margin-bottom:8px;
+}
+
+.infoValue{
+  color:#0b3029;
+  font-size:18px;
+  font-weight:950;
+}
+
+.good{color:#166534;}
+.bad{color:#b91c1c;}
+
+.empty,.loading{
+  background:rgba(255,255,255,.94);
+  border:1px solid #e4d4b8;
+  border-radius:26px;
+  padding:30px;
+  text-align:center;
+  color:#8b7d69;
+  font-weight:900;
+}
+
+@media(max-width:800px){
+  .filterGrid,.actionGrid,.infoGrid{grid-template-columns:1fr;}
+  .reportTop{flex-direction:column;}
+  .workBadge{align-self:flex-start;}
+}
+
+@media(max-width:480px){
+  h1{font-size:34px;}
+  .filterCard,.reportCard{border-radius:26px;padding:18px;}
+}
 </style>
 </head>
 
 <body>
 
-<h1>📊 出勤統計報表</h1>
+<div class="page">
 
-<div class="top">
-  <input type="month" id="month">
-  <input type="text" id="name" placeholder="員工姓名">
-  <input type="text" id="department" placeholder="部門">
+  <div class="header">
+    <div class="brand">AURUM HOUSE</div>
+    <h1>出勤統計報表</h1>
+    <div class="subtitle">Attendance Report</div>
+  </div>
 
-  <button class="search" onclick="loadReport()">查詢</button>
-  <button class="clear" onclick="clearFilter()">清除</button>
-  <button class="export" onclick="exportCSV()">匯出 CSV</button>
-  <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
-</div>
+  <div class="filterCard">
+    <div class="filterGrid">
+      <input type="month" id="month">
+      <input type="text" id="name" placeholder="員工姓名">
+      <input type="text" id="department" placeholder="部門">
+    </div>
 
-<div id="monthTitle" class="month-title"></div>
+    <div class="actionGrid">
+      <button class="search" onclick="loadReport()">查詢</button>
+      <button class="clear" onclick="clearFilter()">清除</button>
+      <button class="export" onclick="exportCSV()">匯出 CSV</button>
+      <button class="back" onclick="location.href='/dashboard.html'">返回後台</button>
+    </div>
+  </div>
 
-<div class="table-wrap">
-<table>
-<thead>
-<tr>
-  <th>月份</th>
-  <th>員工</th>
-  <th>部門</th>
-  <th>職稱</th>
-  <th>出勤天數</th>
-  <th>總工時</th>
-  <th>平均工時</th>
-  <th>遲到次數</th>
-  <th>早退次數</th>
-</tr>
-</thead>
+  <div id="monthTitle" class="monthTitle"></div>
 
-<tbody id="tbody">
-<tr>
-  <td colspan="9">讀取中...</td>
-</tr>
-</tbody>
-</table>
+  <div id="list" class="list">
+    <div class="loading">讀取中...</div>
+  </div>
+
 </div>
 
 <script>
@@ -89,17 +244,11 @@ function getMonthRange(monthValue){
     };
   }
 
-  const [year, month] =
-  monthValue.split("-").map(Number);
+  const [year, month] = monthValue.split("-").map(Number);
 
-  const startDate =
-  `${year}-${String(month).padStart(2,"0")}-01`;
-
-  const lastDay =
-  new Date(year, month, 0).getDate();
-
-  const endDate =
-  `${year}-${String(month).padStart(2,"0")}-${String(lastDay).padStart(2,"0")}`;
+  const startDate = `${year}-${String(month).padStart(2,"0")}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2,"0")}-${String(lastDay).padStart(2,"0")}`;
 
   return {
     startDate,
@@ -108,49 +257,33 @@ function getMonthRange(monthValue){
   };
 }
 
-function formatNumber(value){
-  return Number(value || 0).toFixed(2);
+function formatHoursMinutes(hours){
+  const totalMinutes = Math.round(Number(hours || 0) * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${h}小時${m}分鐘`;
 }
 
 async function loadReport(){
-  const tbody = document.getElementById("tbody");
+  const list = document.getElementById("list");
   const monthTitle = document.getElementById("monthTitle");
 
-  tbody.innerHTML =
-  "<tr><td colspan='9'>讀取中...</td></tr>";
+  list.innerHTML = "<div class='loading'>讀取中...</div>";
 
   const params = new URLSearchParams();
 
-  const month =
-  document.getElementById("month").value;
+  const month = document.getElementById("month").value;
+  const name = document.getElementById("name").value.trim();
+  const department = document.getElementById("department").value.trim();
 
-  const name =
-  document.getElementById("name").value.trim();
+  const range = getMonthRange(month);
 
-  const department =
-  document.getElementById("department").value.trim();
+  monthTitle.innerText = "報表月份：" + range.label;
 
-  const range =
-  getMonthRange(month);
-
-  monthTitle.innerText =
-  "報表月份：" + range.label;
-
-  if(name){
-    params.append("name", name);
-  }
-
-  if(department){
-    params.append("department", department);
-  }
-
-  if(range.startDate){
-    params.append("startDate", range.startDate);
-  }
-
-  if(range.endDate){
-    params.append("endDate", range.endDate);
-  }
+  if(name){params.append("name", name);}
+  if(department){params.append("department", department);}
+  if(range.startDate){params.append("startDate", range.startDate);}
+  if(range.endDate){params.append("endDate", range.endDate);}
 
   try{
     let url = "/api/attendance-report";
@@ -159,85 +292,92 @@ async function loadReport(){
       url += "?" + params.toString();
     }
 
-    const res =
-    await fetch(url);
-
-    const data =
-    await res.json();
+    const res = await fetch(url);
+    const data = await res.json();
 
     if(!Array.isArray(data) || data.length === 0){
       reportRows = [];
-
-      tbody.innerHTML =
-      "<tr><td colspan='9'>目前沒有報表資料</td></tr>";
-
+      list.innerHTML = "<div class='empty'>目前沒有報表資料</div>";
       return;
     }
 
-    reportRows =
-    data.map(item=>({
+    reportRows = data.map(item=>({
       month:range.label,
       name:item.name || "-",
       department:item.department || "-",
       position:item.position || "-",
       workDays:Number(item.workDays || 0),
-      totalHours:formatNumber(item.totalHours),
-
-      averageHours:
-      formatNumber(
-        item.averageHours !== undefined
-        ? item.averageHours
-        : (
-            Number(item.workDays || 0) > 0
-            ? Number(item.totalHours || 0) / Number(item.workDays || 1)
-            : 0
-          )
-      ),
-
+      totalHours:Number(item.totalHours || 0),
+      averageHours:Number(item.averageHours || 0),
       lateCount:Number(item.lateCount || 0),
       earlyLeaveCount:Number(item.earlyLeaveCount || 0)
     }));
 
-    renderTable();
+    renderCards();
 
   }catch(err){
     console.error(err);
-
     reportRows = [];
-
-    tbody.innerHTML =
-    "<tr><td colspan='9'>讀取失敗</td></tr>";
+    list.innerHTML = "<div class='empty'>讀取失敗</div>";
   }
 }
 
-function renderTable(){
-  const tbody =
-  document.getElementById("tbody");
+function renderCards(){
+  const list = document.getElementById("list");
 
-  tbody.innerHTML = "";
+  let html = "";
 
   reportRows.forEach(item=>{
-    tbody.innerHTML += `
-      <tr>
-        <td>${item.month}</td>
-        <td>${item.name}</td>
-        <td>${item.department}</td>
-        <td>${item.position}</td>
-        <td>${item.workDays}</td>
-        <td>${item.totalHours}</td>
-        <td>${item.averageHours}</td>
-        <td class="${item.lateCount > 0 ? "bad" : "good"}">${item.lateCount}</td>
-        <td class="${item.earlyLeaveCount > 0 ? "bad" : "good"}">${item.earlyLeaveCount}</td>
-      </tr>
+    html += `
+      <div class="reportCard">
+        <div class="reportTop">
+          <div>
+            <div class="empName">${item.name}</div>
+            <div class="empMeta">${item.department} / ${item.position}</div>
+          </div>
+
+          <div class="workBadge">
+            ${formatHoursMinutes(item.totalHours)}
+          </div>
+        </div>
+
+        <div class="infoGrid">
+          <div class="infoBox">
+            <div class="infoLabel">月份</div>
+            <div class="infoValue">${item.month}</div>
+          </div>
+
+          <div class="infoBox">
+            <div class="infoLabel">出勤天數</div>
+            <div class="infoValue">${item.workDays} 天</div>
+          </div>
+
+          <div class="infoBox">
+            <div class="infoLabel">平均工時</div>
+            <div class="infoValue">${formatHoursMinutes(item.averageHours)}</div>
+          </div>
+
+          <div class="infoBox">
+            <div class="infoLabel">遲到次數</div>
+            <div class="infoValue ${item.lateCount > 0 ? "bad" : "good"}">${item.lateCount}</div>
+          </div>
+
+          <div class="infoBox">
+            <div class="infoLabel">早退次數</div>
+            <div class="infoValue ${item.earlyLeaveCount > 0 ? "bad" : "good"}">${item.earlyLeaveCount}</div>
+          </div>
+        </div>
+      </div>
     `;
   });
+
+  list.innerHTML = html;
 }
 
 function clearFilter(){
   document.getElementById("month").value = getCurrentMonth();
   document.getElementById("name").value = "";
   document.getElementById("department").value = "";
-
   loadReport();
 }
 
@@ -247,8 +387,7 @@ function exportCSV(){
     return;
   }
 
-  let csv =
-  "\uFEFF月份,員工,部門,職稱,出勤天數,總工時,平均工時,遲到次數,早退次數\n";
+  let csv = "\uFEFF月份,員工,部門,職稱,出勤天數,總工時,平均工時,遲到次數,早退次數\n";
 
   reportRows.forEach(item=>{
     csv += [
@@ -257,8 +396,8 @@ function exportCSV(){
       item.department,
       item.position,
       item.workDays,
-      item.totalHours,
-      item.averageHours,
+      formatHoursMinutes(item.totalHours),
+      formatHoursMinutes(item.averageHours),
       item.lateCount,
       item.earlyLeaveCount
     ].map(v =>
@@ -266,32 +405,23 @@ function exportCSV(){
     ).join(",") + "\n";
   });
 
-  const blob =
-  new Blob([csv], {
+  const blob = new Blob([csv], {
     type:"text/csv;charset=utf-8;"
   });
 
-  const url =
-  URL.createObjectURL(blob);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
 
-  const a =
-  document.createElement("a");
-
-  const month =
-  document.getElementById("month").value || "all";
+  const month = document.getElementById("month").value || "all";
 
   a.href = url;
-  a.download =
-  `attendance-report-${month}.csv`;
-
+  a.download = `attendance-report-${month}.csv`;
   a.click();
 
   URL.revokeObjectURL(url);
 }
 
-document.getElementById("month").value =
-getCurrentMonth();
-
+document.getElementById("month").value = getCurrentMonth();
 loadReport();
 </script>
 
