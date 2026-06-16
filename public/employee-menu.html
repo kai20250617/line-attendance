@@ -316,6 +316,19 @@ function logoHtml(){
   `;
 }
 
+function formatHoursMinutes(hours){
+  const totalMinutes =
+  Math.round(Number(hours || 0) * 60);
+
+  const h =
+  Math.floor(totalMinutes / 60);
+
+  const m =
+  totalMinutes % 60;
+
+  return `${h}小時${m}分鐘`;
+}
+
 async function loadAnnouncement(){
   try{
     const res = await fetch("/api/latest-announcement");
@@ -534,7 +547,7 @@ async function init(){
 
           <div class="statLabel">本月工時</div>
 
-          <strong>${Number(totalHours || 0).toFixed(1)} 小時</strong>
+          <strong>${formatHoursMinutes(totalHours)}</strong>
 
         </div>
 
