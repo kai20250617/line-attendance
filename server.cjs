@@ -4003,6 +4003,48 @@ function getTaipeiDate(value) {
 
 }
 
+function calcLunchBreakHours(startTime,endTime){
+
+  const start = new Date(startTime);
+
+  const end = new Date(endTime);
+
+  if(isNaN(start.getTime()) || isNaN(end.getTime())){
+
+    return 0;
+
+  }
+
+  const breakStart = new Date(start);
+
+  breakStart.setHours(12,0,0,0);
+
+  const breakEnd = new Date(start);
+
+  breakEnd.setHours(13,0,0,0);
+
+  const overlapStart =
+
+  start > breakStart ? start : breakStart;
+
+  const overlapEnd =
+
+  end < breakEnd ? end : breakEnd;
+
+  const overlapMs =
+
+  overlapEnd - overlapStart;
+
+  if(overlapMs <= 0){
+
+    return 0;
+
+  }
+
+  return overlapMs / 1000 / 60 / 60;
+
+}
+
 app.get("/api/attendance-report", async (req, res) => {
 
   try {
@@ -4031,23 +4073,25 @@ app.get("/api/attendance-report", async (req, res) => {
 
     const workEnd = rules.work_end || "18:00";
 
-    const breakHours = Number(rules.break_hours || 0);
-
     const lateAllowance = Number(rules.late_allowance || 0);
 
     const earlyAllowance = Number(rules.early_allowance || 0);
 
-    const [startHour, startMinute] = workStart.split(":").map(Number);
+    const [startHour, startMinute] =
 
-    const [endHour, endMinute] = workEnd.split(":").map(Number);
+    workStart.split(":").map(Number);
+
+    const [endHour, endMinute] =
+
+    workEnd.split(":").map(Number);
 
     const ruleStartMinutes =
 
-      startHour * 60 + startMinute + lateAllowance;
+    startHour * 60 + startMinute + lateAllowance;
 
     const ruleEndMinutes =
 
-      endHour * 60 + endMinute - earlyAllowance;
+    endHour * 60 + endMinute - earlyAllowance;
 
     let empSql = `
 
@@ -4079,9 +4123,9 @@ app.get("/api/attendance-report", async (req, res) => {
 
     empSql += ` ORDER BY name`;
 
-    const employees = await pool.query(empSql, empParams);
+    const employees =
 
-    // 去除重複員工
+    await pool.query(empSql, empParams);
 
     const uniqueEmployees = [];
 
@@ -4143,13 +4187,17 @@ app.get("/api/attendance-report", async (req, res) => {
 
     attSql += ` ORDER BY clock_time ASC`;
 
-    const attendance = await pool.query(attSql, attParams);
+    const attendance =
+
+    await pool.query(attSql, attParams);
 
     const result = [];
 
     for (const emp of uniqueEmployees) {
 
       let totalHours = 0;
+
+      let totalBreakHours = 0;
 
       let lateCount = 0;
 
@@ -4161,64 +4209,73 @@ app.get("/api/attendance-report", async (req, res) => {
 
       attendance.rows
 
-        .filter(item =>
-  item.line_user_id === emp.line_user_id ||
-  item.name === emp.name
-)
+      .filter(item =>
 
-        .forEach(item => {
+        item.line_user_id === emp.line_user_id ||
 
-          const date = getTaipeiDate(item.clock_time);
+        item.name === emp.name
 
-          if (!dayGroups[date]) {
+      )
 
-            dayGroups[date] = {
+      .forEach(item => {
 
-              start:null,
+        const date =
 
-              end:null
+        getTaipeiDate(item.clock_time);
 
-            };
+        if (!dayGroups[date]) {
 
-          }
+          dayGroups[date] = {
 
-          if (item.type === "上班") {
+            start:null,
 
-            if (
+            end:null
 
-              !dayGroups[date].start ||
+          };
 
-              new Date(item.clock_time) <
+        }
 
-              new Date(dayGroups[date].start)
+        if (item.type === "上班") {
 
-            ) {
+          if (
 
-              dayGroups[date].start = item.clock_time;
+            !dayGroups[date].start ||
 
-            }
+            new Date(item.clock_time) <
 
-          }
+            new Date(dayGroups[date].start)
 
-          if (item.type === "下班") {
+          ) {
 
-            if (
+            dayGroups[date].start =
 
-              !dayGroups[date].end ||
-
-              new Date(item.clock_time) >
-
-              new Date(dayGroups[date].end)
-
-            ) {
-
-              dayGroups[date].end = item.clock_time;
-
-            }
+            item.clock_time;
 
           }
 
-        });
+        }
+
+        if (item.type === "下班") {
+
+          if (
+
+            !dayGroups[date].end ||
+
+            new Date(item.clock_time) >
+
+            new Date(dayGroups[date].end)
+
+          ) {
+
+            dayGroups[date].end =
+
+            item.clock_time;
+
+          }
+
+        }
+
+      });
 
       Object.values(dayGroups).forEach(day => {
 
@@ -4226,35 +4283,29 @@ app.get("/api/attendance-report", async (req, res) => {
 
           const rawHours =
 
-            (new Date(day.end) - new Date(day.start)) /
+          (new Date(day.end) - new Date(day.start)) /
 
-            1000 / 60 / 60;
+          1000 / 60 / 60;
 
-          function calcBreakHours(startTime,endTime){
-  const start = new Date(startTime);
-  const end = new Date(endTime);
+          const breakDeduct =
 
-  const breakStart = new Date(start);
-  breakStart.setHours(12,0,0,0);
+          calcLunchBreakHours(
 
-  const breakEnd = new Date(start);
-  breakEnd.setHours(13,0,0,0);
+            day.start,
 
-  const overlapStart =
-  start > breakStart ? start : breakStart;
+            day.end
 
-  const overlapEnd =
-  end < breakEnd ? end : breakEnd;
+          );
 
-  const overlapMs =
-  overlapEnd - overlapStart;
+          const workHours =
 
-  if(overlapMs <= 0){
-    return 0;
-  }
+          Math.max(
 
-  return overlapMs / 1000 / 60 / 60;
-}
+            0,
+
+            rawHours - breakDeduct
+
+          );
 
           if (workHours > 0) {
 
@@ -4262,11 +4313,17 @@ app.get("/api/attendance-report", async (req, res) => {
 
             totalHours += workHours;
 
+            totalBreakHours += breakDeduct;
+
           }
 
-          const startMinutes = getTaipeiMinutes(day.start);
+          const startMinutes =
 
-          const endMinutes = getTaipeiMinutes(day.end);
+          getTaipeiMinutes(day.start);
+
+          const endMinutes =
+
+          getTaipeiMinutes(day.end);
 
           if (startMinutes > ruleStartMinutes) {
 
@@ -4284,43 +4341,37 @@ app.get("/api/attendance-report", async (req, res) => {
 
       });
 
-      const averageHours =
+      result.push({
+
+        name: emp.name,
+
+        department: emp.department || "-",
+
+        position: emp.position || "-",
+
+        workDays,
+
+        breakHours:
+
+        totalBreakHours.toFixed(2),
+
+        totalHours:
+
+        totalHours.toFixed(2),
+
+        averageHours:
 
         workDays > 0
 
-        ? Number((totalHours / workDays).toFixed(2))
+        ? (totalHours / workDays).toFixed(2)
 
-        : 0;
+        : "0.00",
 
-      let normalDays =
+        lateCount,
 
-        workDays - lateCount - earlyLeaveCount;
+        earlyLeaveCount
 
-      if (normalDays < 0) {
-
-        normalDays = 0;
-
-      }
-
-      result.push({
-  name: emp.name,
-  department: emp.department || "-",
-  position: emp.position || "-",
-
-  workDays,
-
-  breakHours,
-
-  totalHours: totalHours.toFixed(2),
-
-  averageHours:
-    workDays > 0
-      ? (totalHours / workDays).toFixed(2)
-      : "0.00",
-
-  lateCount,
-  earlyLeaveCount
-});
+      });
 
     }
 
