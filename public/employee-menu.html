@@ -13,8 +13,7 @@
 body{
   margin:0;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-  background:
-    radial-gradient(circle at top,#fff8ea 0%,#f4ead9 42%,#eadcc8 100%);
+  background:radial-gradient(circle at top,#fff8ea 0%,#f4ead9 42%,#eadcc8 100%);
   color:#0b2621;
 }
 
@@ -55,9 +54,7 @@ h1{
   border-radius:34px;
   background:rgba(255,255,255,.94);
   border:1px solid #e4d4b8;
-  box-shadow:
-    0 26px 60px rgba(66,43,16,.16),
-    inset 0 1px 0 rgba(255,255,255,.9);
+  box-shadow:0 26px 60px rgba(66,43,16,.16), inset 0 1px 0 rgba(255,255,255,.9);
 }
 
 .profile{
@@ -108,6 +105,51 @@ h1{
   margin-top:6px;
   color:#756957;
   font-size:16px;
+}
+
+.announcementCard{
+  margin:22px 0;
+  background:linear-gradient(135deg,#fffaf3,#f7ead0);
+  border:1px solid #e4d4b8;
+  border-radius:24px;
+  padding:18px;
+  box-shadow:0 10px 25px rgba(66,43,16,.08);
+}
+
+.announcementBadge{
+  display:inline-block;
+  padding:6px 12px;
+  border-radius:999px;
+  background:#8b5f1e;
+  color:white;
+  font-size:13px;
+  font-weight:900;
+}
+
+.announcementTitle{
+  margin-top:10px;
+  font-size:20px;
+  font-weight:950;
+  color:#0b3029;
+}
+
+.announcementContent{
+  margin-top:8px;
+  line-height:1.8;
+  color:#10201d;
+  white-space:pre-wrap;
+}
+
+.announcementDate{
+  margin-top:12px;
+  color:#8b7d69;
+  font-size:13px;
+  font-weight:800;
+}
+
+.announcementLoading{
+  color:#8b7a63;
+  font-weight:900;
 }
 
 .stats{
@@ -166,25 +208,11 @@ h1{
   box-shadow:0 12px 26px rgba(0,0,0,.16);
 }
 
-.gold{
-  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
-}
-
-.brown{
-  background:linear-gradient(135deg,#81541e,#3b220c);
-}
-
-.green{
-  background:linear-gradient(135deg,#123c35,#071b17);
-}
-
-.dark{
-  background:linear-gradient(135deg,#10201d,#050b0a);
-}
-
-.red{
-  background:linear-gradient(135deg,#8b1e1e,#4a0f0f);
-}
+.gold{background:linear-gradient(135deg,#cfa54f,#8b5f1e);}
+.brown{background:linear-gradient(135deg,#81541e,#3b220c);}
+.green{background:linear-gradient(135deg,#123c35,#071b17);}
+.dark{background:linear-gradient(135deg,#10201d,#050b0a);}
+.red{background:linear-gradient(135deg,#8b1e1e,#4a0f0f);}
 
 .loading{
   text-align:center;
@@ -207,54 +235,6 @@ h1{
   line-height:1.7;
   text-align:left;
 }
-
-
-
-/* 公告卡片 */
-
-.announcementCard{
-  margin:20px 0;
-  background:linear-gradient(
-    135deg,
-    #fffaf3,
-    #f7ead0
-  );
-  border:1px solid #e4d4b8;
-  border-radius:24px;
-  padding:18px;
-  box-shadow:0 10px 25px rgba(66,43,16,.08);
-}
-
-.announcementBadge{
-  display:inline-block;
-  padding:6px 12px;
-  border-radius:999px;
-  background:#8b5f1e;
-  color:white;
-  font-size:13px;
-  font-weight:900;
-}
-
-.announcementTitle{
-  margin-top:10px;
-  font-size:20px;
-  font-weight:950;
-  color:#0b3029;
-}
-
-.announcementContent{
-  margin-top:8px;
-  line-height:1.8;
-  color:#10201d;
-}
-
-.announcementDate{
-  margin-top:12px;
-  color:#8b7d69;
-  font-size:13px;
-}
-
-</style>
 
 @media(max-width:480px){
   h1{font-size:36px;}
@@ -334,6 +314,56 @@ function logoHtml(){
       >
     </div>
   `;
+}
+
+async function loadAnnouncement(){
+  try{
+    const res = await fetch("/api/latest-announcement");
+    const data = await res.json();
+
+    const box = document.getElementById("announcementCard");
+
+    if(!box){
+      return;
+    }
+
+    if(!data.success || !data.data){
+      box.style.display = "none";
+      return;
+    }
+
+    const item = data.data;
+
+    const date = new Date(item.created_at).toLocaleString("zh-TW",{
+      timeZone:"Asia/Taipei",
+      year:"numeric",
+      month:"2-digit",
+      day:"2-digit",
+      hour:"2-digit",
+      minute:"2-digit"
+    });
+
+    box.innerHTML = `
+      <div class="announcementBadge">
+        ${item.pinned ? "📌 置頂公告" : "📢 最新公告"}
+      </div>
+
+      <div class="announcementTitle">
+        ${item.title || "-"}
+      </div>
+
+      <div class="announcementContent">
+        ${item.content || ""}
+      </div>
+
+      <div class="announcementDate">
+        ${date}
+      </div>
+    `;
+
+  }catch(err){
+    console.error(err);
+  }
 }
 
 async function init(){
@@ -468,15 +498,6 @@ async function init(){
       <div class="profile">
         ${logoHtml()}
 
-<div id="announcementCard"
-class="announcementCard">
-
-  <div class="announcementLoading">
-    公告讀取中...
-  </div>
-
-</div>
-
         <div>
           <div class="empName">
             ${emp.name || profile.displayName || "-"}
@@ -488,54 +509,29 @@ class="announcementCard">
         </div>
       </div>
 
+      <div id="announcementCard" class="announcementCard">
+        <div class="announcementLoading">
+          公告讀取中...
+        </div>
+      </div>
+
       <div class="stats">
         <div class="stat">
           <div class="statLabel">本月工時</div>
           <strong>${Number(totalHours || 0).toFixed(1)} 小時</strong>
         </div>
-        
+
         <div class="stat">
           <div class="statLabel">本月請假</div>
           <strong>${leaveDays} 天</strong>
         </div>
-      </div>
 
-      <div class="stat">
+        <div class="stat">
           <div class="statLabel">預估薪資</div>
           <strong>NT$${Number(salary.netSalary || 0).toLocaleString("zh-TW")}</strong>
         </div>
+      </div>
 
       <div class="sectionTitle">常用功能</div>
 
-      <div class="grid">
-        <a class="menuItem gold" href="/attendance.html">我要打卡</a>
-        <a class="menuItem gold" href="/clock-request.html">補打卡</a>
-        <a class="menuItem brown" href="/leave.html">我要請假</a>
-        <a class="menuItem brown" href="/my-leave.html">請假紀錄</a>
-        <a class="menuItem green" href="/worktime.html">我的工時</a>
-        <a class="menuItem green" href="/my-salary.html">我的薪資</a>
-        <a class="menuItem green" href="/my-salary-history.html">薪資歷史</a>
-        <a class="menuItem dark" href="/reimbursement.html">代墊申請</a>
-        <a class="menuItem dark" href="/my-reimbursement.html">我的代墊</a>
-        <a class="menuItem red" href="/dashboard.html">管理首頁</a>
-      </div>
-    `;
-
-  }catch(err){
-    console.error(err);
-
-    box.innerHTML = `
-      <div class="error">讀取失敗</div>
-      <div class="debug">
-        錯誤位置：${step}<br>
-        錯誤訊息：${err.message || err}
-      </div>
-    `;
-  }
-}
-
-init();
-</script>
-
-</body>
-</html>
+      
