@@ -183,6 +183,24 @@ button{
       placeholder="請輸入公告內容"
     ></textarea>
 
+    <label>公告圖片</label>
+
+<input
+  type="file"
+  id="announcementImage"
+  accept="image/*"
+>
+
+<img
+  id="previewImage"
+  style="
+    width:100%;
+    margin-top:10px;
+    border-radius:12px;
+    display:none;
+  "
+>
+
     <label>
       公告對象
     </label>
@@ -243,6 +261,70 @@ button{
 
 <script>
 
+document
+.getElementById("announcementImage")
+.addEventListener("change",function(){
+
+  const file = this.files[0];
+
+  if(!file){
+    return;
+  }
+
+  const img =
+  document.getElementById("previewImage");
+
+  img.src =
+  URL.createObjectURL(file);
+
+  img.style.display =
+  "block";
+
+});
+
+async function uploadAnnouncementImage(){
+
+  const file =
+  document.getElementById("announcementImage")
+  .files[0];
+
+  if(!file){
+    return "";
+  }
+
+  const fd =
+  new FormData();
+
+  fd.append(
+    "receipt",
+    file
+  );
+
+  const res =
+  await fetch(
+    "/api/upload-receipt",
+    {
+      method:"POST",
+      body:fd
+    }
+  );
+
+  const data =
+  await res.json();
+
+  if(!data.success){
+
+    throw new Error(
+      data.message ||
+      "圖片上傳失敗"
+    );
+
+  }
+
+  return data.url || "";
+
+}
+
 async function publishAnnouncement(){
 
   const title =
@@ -273,6 +355,17 @@ async function publishAnnouncement(){
 
   try{
 
+    document.getElementById("status")
+    .innerHTML =
+    "圖片上傳中...";
+
+    const imageUrl =
+    await uploadAnnouncementImage();
+
+    document.getElementById("status")
+    .innerHTML =
+    "公告發布中...";
+
     const res =
     await fetch(
       "/api/announcements",
@@ -285,7 +378,8 @@ async function publishAnnouncement(){
           title,
           content,
           target,
-          pinned
+          pinned,
+          imageUrl
         })
       }
     );
@@ -296,7 +390,8 @@ async function publishAnnouncement(){
     if(!res.ok){
 
       throw new Error(
-        data.message || "發布失敗"
+        data.message ||
+        "發布失敗"
       );
 
     }
@@ -308,8 +403,17 @@ async function publishAnnouncement(){
     </span>`;
 
     document.getElementById("title").value = "";
+
     document.getElementById("content").value = "";
+
     document.getElementById("pinned").checked = false;
+
+    document.getElementById("announcementImage").value = "";
+
+    document.getElementById("previewImage").src = "";
+
+    document.getElementById("previewImage").style.display =
+    "none";
 
   }catch(err){
 
@@ -326,6 +430,7 @@ async function publishAnnouncement(){
 }
 
 </script>
+
 
 </body>
 </html>

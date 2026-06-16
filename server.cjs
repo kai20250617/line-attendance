@@ -286,6 +286,11 @@ CREATE TABLE IF NOT EXISTS announcements (
 )
 `);
 
+await pool.query(`
+ALTER TABLE announcements
+ADD COLUMN IF NOT EXISTS image_url TEXT
+`);
+
 console.log("✅ PostgreSQL Tables Ready");
 console.log("✅ Employee Bind Columns Ready");
 

@@ -195,7 +195,42 @@ async function loadAnnouncements(){
     }
 
     list.innerHTML = rows.map(item=>`
-      <div class="noticeCard">
+     ${
+  item.pinned
+  ? `<div class="pin">📌 置頂公告</div>`
+  : ""
+}
+
+<div class="title">
+  ${item.title || "-"}
+</div>
+
+<div class="date">
+  發布時間：${formatDateTime(item.created_at)}
+  ｜對象：${item.target || "全部"}
+</div>
+
+${
+  item.image_url
+  ?
+  `
+  <img
+    src="${item.image_url}"
+    style="
+      width:100%;
+      border-radius:18px;
+      margin-bottom:14px;
+      border:1px solid #eadfcf;
+    "
+  >
+  `
+  :
+  ""
+}
+
+<div class="content">
+  ${item.content || ""}
+</div>
 
         ${
           item.pinned
@@ -212,9 +247,27 @@ async function loadAnnouncements(){
           ｜對象：${item.target || "全部"}
         </div>
 
-        <div class="content">
-          ${item.content || ""}
-        </div>
+        ${
+  item.image_url
+  ?
+  `
+  <img
+    src="${item.image_url}"
+    style="
+      width:100%;
+      border-radius:18px;
+      margin-bottom:14px;
+      border:1px solid #eadfcf;
+    "
+  >
+  `
+  :
+  ""
+}
+
+<div class="content">
+  ${item.content || ""}
+</div>
 
       </div>
     `).join("");
