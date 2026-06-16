@@ -610,14 +610,10 @@ function calcBreakHours(startTime,endTime){
   lunchEnd.setHours(13,0,0,0);
 
   const overlapStart =
-  start > lunchStart
-  ? start
-  : lunchStart;
+  start > lunchStart ? start : lunchStart;
 
   const overlapEnd =
-  end < lunchEnd
-  ? end
-  : lunchEnd;
+  end < lunchEnd ? end : lunchEnd;
 
   const overlapMs =
   overlapEnd - overlapStart;
@@ -674,438 +670,266 @@ async function init(){
 }
 
 async function loadRules(){
-
   try{
-
     const ruleRes =
-
     await fetch("/api/rules");
 
     const ruleData =
-
     await ruleRes.json();
 
     const rule =
-
     ruleData.rules || ruleData;
 
     breakHours =
-
     Number(rule.break_hours || 0);
 
   }catch(error){
-
     console.error("讀取出勤規則失敗", error);
-
     breakHours = 0;
-
   }
-
 }
 
 async function loadData(){
-
   const list =
-
   document.getElementById("workList");
 
   const summary =
-
   document.getElementById("summary");
 
   list.innerHTML =
-
   "<div class='loading'>載入中...</div>";
 
   if(!profile || !profile.userId){
-
     list.innerHTML =
-
     "<div class='empty'>尚未取得 LINE 身分</div>";
-
     return;
-
   }
 
   try{
-
     await loadRules();
 
     const response =
-
     await fetch(
-
       "/api/my-worktime/" + profile.userId
-
     );
 
     const data =
-
     await response.json();
 
     if(!response.ok){
-
       list.innerHTML =
-
       "<div class='empty error'>讀取失敗</div>";
-
       return;
-
     }
 
     if(!data || data.length === 0){
-
       summary.innerHTML =
-
       `
-
       <div class="summaryItem">
-
         <div class="summaryLabel">總工時</div>
-
         <div class="summaryValue">0 小時</div>
-
       </div>
 
       <div class="summaryItem">
-
         <div class="summaryLabel">出勤天數</div>
-
         <div class="summaryValue">0 天</div>
-
       </div>
-
       `;
 
       list.innerHTML =
-
       "<div class='empty'>目前沒有出勤資料</div>";
-
       return;
-
     }
 
     const groups = {};
 
     data.forEach(item=>{
-
       const date =
-
       new Date(item.clock_time)
-
       .toLocaleDateString("zh-TW",{
-
         timeZone:"Asia/Taipei"
-
       });
 
       const key =
-
       item.line_user_id + "_" + date;
 
       if(!groups[key]){
-
         groups[key] = {
-
           name:item.name,
-
           date:date,
-
           start:null,
-
           end:null
-
         };
-
       }
 
       if(item.type === "上班"){
-
         if(
-
           !groups[key].start ||
-
           new Date(item.clock_time) <
-
           new Date(groups[key].start)
-
         ){
-
           groups[key].start =
-
           item.clock_time;
-
         }
-
       }
 
       if(item.type === "下班"){
-
         if(
-
           !groups[key].end ||
-
           new Date(item.clock_time) >
-
           new Date(groups[key].end)
-
         ){
-
           groups[key].end =
-
           item.clock_time;
-
         }
-
       }
-
     });
 
     let rows =
-
     Object.values(groups);
 
     const filterStart =
-
     document.getElementById("filterStart").value;
 
     const filterEnd =
-
     document.getElementById("filterEnd").value;
 
     if(filterStart){
-
       rows =
-
       rows.filter(row=>{
-
         const rowDate =
-
         normalizeDate(row.date);
 
         return rowDate >= filterStart;
-
       });
-
     }
 
     if(filterEnd){
-
       rows =
-
       rows.filter(row=>{
-
         const rowDate =
-
         normalizeDate(row.date);
 
         return rowDate <= filterEnd;
-
       });
-
     }
 
     rows =
-
     rows.sort((a,b)=>{
-
       const da =
-
       normalizeDate(a.date);
 
       const db =
-
       normalizeDate(b.date);
 
       return new Date(db) - new Date(da);
-
     });
 
     if(rows.length === 0){
-
       summary.innerHTML =
-
       `
-
       <div class="summaryItem">
-
         <div class="summaryLabel">總工時</div>
-
         <div class="summaryValue">0 小時</div>
-
       </div>
 
       <div class="summaryItem">
-
         <div class="summaryLabel">出勤天數</div>
-
         <div class="summaryValue">0 天</div>
-
       </div>
-
       `;
 
       list.innerHTML =
-
       "<div class='empty'>此篩選區間沒有工時資料</div>";
-
       return;
-
     }
 
     let totalWorkHours = 0;
-
     let workDays = 0;
-
     let html = "";
 
     rows.forEach(row=>{
-
       let hours = "-";
+      let breakDeduct = 0;
 
       if(row.start && row.end){
-
         const totalHours =
-
         (
-
           new Date(row.end) -
-
           new Date(row.start)
-
         ) / 1000 / 60 / 60;
 
-        const breakDeduct = calcBreakHours(
-  row.start,
-  row.end
-);
+        breakDeduct =
+        calcBreakHours(
+          row.start,
+          row.end
+        );
 
-
-
-const workHours =
-Math.max(
-  0,
-  totalHours - breakDeduct
-);
-
-        function calcBreakHours(startTime,endTime){
-  const start = new Date(startTime);
-  const end = new Date(endTime);
-
-  const breakStart = new Date(start);
-  breakStart.setHours(12,0,0,0);
-
-  const breakEnd = new Date(start);
-  breakEnd.setHours(13,0,0,0);
-
-  const overlapStart =
-  start > breakStart ? start : breakStart;
-
-  const overlapEnd =
-  end < breakEnd ? end : breakEnd;
-
-  const overlapMs =
-  overlapEnd - overlapStart;
-
-  if(overlapMs <= 0){
-    return 0;
-  }
-
-  return overlapMs / 1000 / 60 / 60;
-}
+        const workHours =
+        Math.max(
+          0,
+          totalHours - breakDeduct
+        );
 
         hours =
-
         workHours.toFixed(2);
 
         totalWorkHours +=
-
         workHours;
 
         workDays++;
-
       }
 
       html += `
-
         <div class="workCard">
 
           <div class="workTop">
-
             <div class="dateTitle">
-
               ${formatDateWithWeek(row.date)}
-
             </div>
 
             <div class="workHours">
-
               ${hours === "-" ? "未完成" : hours + " 小時"}
-
             </div>
-
           </div>
 
           <div class="infoLine">
-
             員工：${row.name || "-"}<br>
-
             上班時間：${formatTime(row.start)}<br>
-
             下班時間：${formatTime(row.end)}<br>
-
-            休息時數：${hours === "-" ? "-" : calcBreakHours(row.start,row.end).toFixed(2)} 小時
-
+            休息時數：${hours === "-" ? "-" : breakDeduct.toFixed(2)} 小時
           </div>
 
         </div>
-
       `;
-
     });
 
     summary.innerHTML =
-
     `
-
     <div class="summaryItem">
-
       <div class="summaryLabel">總工時</div>
-
       <div class="summaryValue">${totalWorkHours.toFixed(2)} 小時</div>
-
     </div>
 
     <div class="summaryItem">
-
       <div class="summaryLabel">出勤天數</div>
-
       <div class="summaryValue">${workDays} 天</div>
-
     </div>
-
     `;
 
     list.innerHTML =
-
     html;
 
   }catch(error){
-
     console.error(error);
 
     list.innerHTML =
-
     "<div class='empty error'>讀取失敗</div>";
-
   }
-
 }
 
 init();
-
 </script>
 
 </body>
-
 </html>
