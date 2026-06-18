@@ -34,7 +34,11 @@ h1{
   letter-spacing:3px;
 }
 
-.subtitle{color:#8b7d69;font-size:15px;letter-spacing:1px;}
+.subtitle{
+  color:#8b7d69;
+  font-size:15px;
+  letter-spacing:1px;
+}
 
 .filterCard{
   background:rgba(255,255,255,.94);
@@ -60,6 +64,12 @@ input{
   background:#fffdf8;
   color:#10201d;
   font-size:15px;
+  outline:none;
+}
+
+input:focus{
+  border-color:#cfa54f;
+  box-shadow:0 0 0 3px rgba(207,165,79,.18);
 }
 
 .actionGrid{
@@ -80,10 +90,21 @@ button{
   cursor:pointer;
 }
 
-.search{background:linear-gradient(135deg,#cfa54f,#8b5f1e);}
-.export{background:linear-gradient(135deg,#166534,#064e3b);}
-.clear{background:linear-gradient(135deg,#756957,#3b3025);}
-.back{background:linear-gradient(135deg,#10201d,#050b0a);}
+.search{
+  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+}
+
+.export{
+  background:linear-gradient(135deg,#166534,#064e3b);
+}
+
+.clear{
+  background:linear-gradient(135deg,#756957,#3b3025);
+}
+
+.back{
+  background:linear-gradient(135deg,#10201d,#050b0a);
+}
 
 .monthTitle{
   background:rgba(255,255,255,.94);
@@ -97,93 +118,85 @@ button{
   margin-bottom:18px;
 }
 
-.list{display:grid;gap:16px;}
-
-.reportCard{
+.tableCard{
   background:rgba(255,255,255,.94);
   border:1px solid #e4d4b8;
   border-radius:30px;
-  padding:20px;
+  padding:16px;
   box-shadow:0 18px 40px rgba(66,43,16,.12);
 }
 
-.reportTop{
-  display:flex;
-  justify-content:space-between;
-  gap:14px;
-  align-items:flex-start;
-  margin-bottom:14px;
+.tableWrap{
+  width:100%;
+  overflow-x:auto;
 }
 
-.empName{
-  font-size:24px;
-  font-weight:950;
-  color:#0b3029;
+table{
+  width:100%;
+  min-width:1050px;
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+  border-radius:22px;
 }
 
-.empMeta{
-  margin-top:6px;
-  color:#756957;
-  font-weight:850;
-}
-
-.workBadge{
-  background:linear-gradient(135deg,#cfa54f,#8b5f1e);
+th{
+  background:linear-gradient(135deg,#10201d,#050b0a);
   color:white;
-  padding:10px 15px;
-  border-radius:999px;
-  font-weight:950;
+  padding:14px 12px;
   white-space:nowrap;
+  font-size:15px;
 }
 
-.infoGrid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:12px;
+td{
+  padding:14px 12px;
+  text-align:center;
+  white-space:nowrap;
+  border-bottom:1px solid #eadfcf;
+  color:#10201d;
+  font-weight:800;
 }
 
-.infoBox{
+tr:nth-child(even) td{
   background:#fffaf3;
-  border:1px solid #eadfcf;
-  border-radius:18px;
-  padding:14px;
 }
 
-.infoLabel{
-  color:#756957;
-  font-weight:900;
-  font-size:14px;
-  margin-bottom:8px;
+tr:nth-child(odd) td{
+  background:#fffdf9;
 }
 
-.infoValue{
-  color:#0b3029;
-  font-size:18px;
+.good{
+  color:#166534;
   font-weight:950;
 }
 
-.good{color:#166534;}
-.bad{color:#b91c1c;}
+.bad{
+  color:#b91c1c;
+  font-weight:950;
+}
 
-.empty,.loading{
-  background:rgba(255,255,255,.94);
-  border:1px solid #e4d4b8;
-  border-radius:26px;
-  padding:30px;
-  text-align:center;
+.empty{
   color:#8b7d69;
   font-weight:900;
+  padding:30px;
+  text-align:center;
 }
 
 @media(max-width:800px){
-  .filterGrid,.actionGrid,.infoGrid{grid-template-columns:1fr;}
-  .reportTop{flex-direction:column;}
-  .workBadge{align-self:flex-start;}
+  .filterGrid,
+  .actionGrid{
+    grid-template-columns:1fr;
+  }
 }
 
 @media(max-width:480px){
   h1{font-size:34px;}
-  .filterCard,.reportCard{border-radius:26px;padding:18px;}
+
+  .filterCard,
+  .tableCard{
+    border-radius:26px;
+    padding:18px;
+  }
 }
 </style>
 </head>
@@ -215,8 +228,30 @@ button{
 
   <div id="monthTitle" class="monthTitle"></div>
 
-  <div id="list" class="list">
-    <div class="loading">讀取中...</div>
+  <div class="tableCard">
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>月份</th>
+            <th>員工</th>
+            <th>部門</th>
+            <th>職稱</th>
+            <th>出勤天數</th>
+            <th>總工時</th>
+            <th>平均工時</th>
+            <th>遲到次數</th>
+            <th>早退次數</th>
+          </tr>
+        </thead>
+
+        <tbody id="tbody">
+          <tr>
+            <td colspan="9">讀取中...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
 </div>
@@ -244,11 +279,17 @@ function getMonthRange(monthValue){
     };
   }
 
-  const [year, month] = monthValue.split("-").map(Number);
+  const [year, month] =
+  monthValue.split("-").map(Number);
 
-  const startDate = `${year}-${String(month).padStart(2,"0")}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const endDate = `${year}-${String(month).padStart(2,"0")}-${String(lastDay).padStart(2,"0")}`;
+  const startDate =
+  `${year}-${String(month).padStart(2,"0")}-01`;
+
+  const lastDay =
+  new Date(year, month, 0).getDate();
+
+  const endDate =
+  `${year}-${String(month).padStart(2,"0")}-${String(lastDay).padStart(2,"0")}`;
 
   return {
     startDate,
@@ -258,32 +299,61 @@ function getMonthRange(monthValue){
 }
 
 function formatHoursMinutes(hours){
-  const totalMinutes = Math.round(Number(hours || 0) * 60);
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
+  const totalMinutes =
+  Math.round(Number(hours || 0) * 60);
+
+  const h =
+  Math.floor(totalMinutes / 60);
+
+  const m =
+  totalMinutes % 60;
+
   return `${h}小時${m}分鐘`;
 }
 
 async function loadReport(){
-  const list = document.getElementById("list");
-  const monthTitle = document.getElementById("monthTitle");
+  const tbody =
+  document.getElementById("tbody");
 
-  list.innerHTML = "<div class='loading'>讀取中...</div>";
+  const monthTitle =
+  document.getElementById("monthTitle");
 
-  const params = new URLSearchParams();
+  tbody.innerHTML =
+  `<tr><td colspan="9">讀取中...</td></tr>`;
 
-  const month = document.getElementById("month").value;
-  const name = document.getElementById("name").value.trim();
-  const department = document.getElementById("department").value.trim();
+  const params =
+  new URLSearchParams();
 
-  const range = getMonthRange(month);
+  const month =
+  document.getElementById("month").value;
 
-  monthTitle.innerText = "報表月份：" + range.label;
+  const name =
+  document.getElementById("name").value.trim();
 
-  if(name){params.append("name", name);}
-  if(department){params.append("department", department);}
-  if(range.startDate){params.append("startDate", range.startDate);}
-  if(range.endDate){params.append("endDate", range.endDate);}
+  const department =
+  document.getElementById("department").value.trim();
+
+  const range =
+  getMonthRange(month);
+
+  monthTitle.innerText =
+  "報表月份：" + range.label;
+
+  if(name){
+    params.append("name", name);
+  }
+
+  if(department){
+    params.append("department", department);
+  }
+
+  if(range.startDate){
+    params.append("startDate", range.startDate);
+  }
+
+  if(range.endDate){
+    params.append("endDate", range.endDate);
+  }
 
   try{
     let url = "/api/attendance-report";
@@ -292,16 +362,23 @@ async function loadReport(){
       url += "?" + params.toString();
     }
 
-    const res = await fetch(url);
-    const data = await res.json();
+    const res =
+    await fetch(url);
+
+    const data =
+    await res.json();
 
     if(!Array.isArray(data) || data.length === 0){
       reportRows = [];
-      list.innerHTML = "<div class='empty'>目前沒有報表資料</div>";
+
+      tbody.innerHTML =
+      `<tr><td colspan="9">目前沒有報表資料</td></tr>`;
+
       return;
     }
 
-    reportRows = data.map(item=>({
+    reportRows =
+    data.map(item=>({
       month:range.label,
       name:item.name || "-",
       department:item.department || "-",
@@ -313,71 +390,48 @@ async function loadReport(){
       earlyLeaveCount:Number(item.earlyLeaveCount || 0)
     }));
 
-    renderCards();
+    renderTable();
 
   }catch(err){
     console.error(err);
+
     reportRows = [];
-    list.innerHTML = "<div class='empty'>讀取失敗</div>";
+
+    tbody.innerHTML =
+    `<tr><td colspan="9">讀取失敗</td></tr>`;
   }
 }
 
-function renderCards(){
-  const list = document.getElementById("list");
+function renderTable(){
+  const tbody =
+  document.getElementById("tbody");
 
   let html = "";
 
   reportRows.forEach(item=>{
     html += `
-      <div class="reportCard">
-        <div class="reportTop">
-          <div>
-            <div class="empName">${item.name}</div>
-            <div class="empMeta">${item.department} / ${item.position}</div>
-          </div>
-
-          <div class="workBadge">
-            ${formatHoursMinutes(item.totalHours)}
-          </div>
-        </div>
-
-        <div class="infoGrid">
-          <div class="infoBox">
-            <div class="infoLabel">月份</div>
-            <div class="infoValue">${item.month}</div>
-          </div>
-
-          <div class="infoBox">
-            <div class="infoLabel">出勤天數</div>
-            <div class="infoValue">${item.workDays} 天</div>
-          </div>
-
-          <div class="infoBox">
-            <div class="infoLabel">平均工時</div>
-            <div class="infoValue">${formatHoursMinutes(item.averageHours)}</div>
-          </div>
-
-          <div class="infoBox">
-            <div class="infoLabel">遲到次數</div>
-            <div class="infoValue ${item.lateCount > 0 ? "bad" : "good"}">${item.lateCount}</div>
-          </div>
-
-          <div class="infoBox">
-            <div class="infoLabel">早退次數</div>
-            <div class="infoValue ${item.earlyLeaveCount > 0 ? "bad" : "good"}">${item.earlyLeaveCount}</div>
-          </div>
-        </div>
-      </div>
+      <tr>
+        <td>${item.month}</td>
+        <td>${item.name}</td>
+        <td>${item.department}</td>
+        <td>${item.position}</td>
+        <td>${item.workDays}</td>
+        <td>${formatHoursMinutes(item.totalHours)}</td>
+        <td>${formatHoursMinutes(item.averageHours)}</td>
+        <td class="${item.lateCount > 0 ? "bad" : "good"}">${item.lateCount}</td>
+        <td class="${item.earlyLeaveCount > 0 ? "bad" : "good"}">${item.earlyLeaveCount}</td>
+      </tr>
     `;
   });
 
-  list.innerHTML = html;
+  tbody.innerHTML = html;
 }
 
 function clearFilter(){
   document.getElementById("month").value = getCurrentMonth();
   document.getElementById("name").value = "";
   document.getElementById("department").value = "";
+
   loadReport();
 }
 
@@ -387,7 +441,8 @@ function exportCSV(){
     return;
   }
 
-  let csv = "\uFEFF月份,員工,部門,職稱,出勤天數,總工時,平均工時,遲到次數,早退次數\n";
+  let csv =
+  "\uFEFF月份,員工,部門,職稱,出勤天數,總工時,平均工時,遲到次數,早退次數\n";
 
   reportRows.forEach(item=>{
     csv += [
@@ -405,23 +460,32 @@ function exportCSV(){
     ).join(",") + "\n";
   });
 
-  const blob = new Blob([csv], {
+  const blob =
+  new Blob([csv], {
     type:"text/csv;charset=utf-8;"
   });
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const url =
+  URL.createObjectURL(blob);
 
-  const month = document.getElementById("month").value || "all";
+  const a =
+  document.createElement("a");
+
+  const month =
+  document.getElementById("month").value || "all";
 
   a.href = url;
-  a.download = `attendance-report-${month}.csv`;
+  a.download =
+  `attendance-report-${month}.csv`;
+
   a.click();
 
   URL.revokeObjectURL(url);
 }
 
-document.getElementById("month").value = getCurrentMonth();
+document.getElementById("month").value =
+getCurrentMonth();
+
 loadReport();
 </script>
 
